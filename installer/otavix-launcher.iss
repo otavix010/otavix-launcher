@@ -42,7 +42,15 @@ Name: "{autodesktop}\Otavix Launcher"; Filename: "{app}\Otavix Launcher.exe"; Ta
 
 [Run]
 Filename: "{app}\Otavix Launcher.exe"; Description: "{cm:LaunchProgram,Otavix Launcher}"; Flags: nowait postinstall skipifsilent
+; an update from inside the launcher (silent, /relaunch=1): the new version opens by itself
+Filename: "{app}\Otavix Launcher.exe"; Flags: nowait; Check: Relaunch
 
 ; the ports, the games, the saves and the settings stay unless the player removes the folder
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\cache"
+
+[Code]
+function Relaunch: Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
+end;

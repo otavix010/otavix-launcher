@@ -1,7 +1,9 @@
 // The launcher's server: reports and port requests. Requests go as JSON; answers come back as lines of tab-separated
 // fields, which need no parser.
 #pragma once
+#include <atomic>
 #include <cstdint>
+#include <filesystem>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -38,6 +40,10 @@ private:
 
 // a JSON string, quoted
 std::string Json(const std::string& s);
+// a download into a file, its SHA-256 (hex) worked out on the way; done grows under m as bytes land; redirects followed
+bool DownloadFile(const std::string& url, const std::filesystem::path& file, std::atomic<bool>& cancel, uint64_t& done,
+                  std::mutex& m, std::string& sha256, std::string& error);
+
 // an answer's lines, each split at its tabs
 std::vector<std::vector<std::string>> Lines(const std::string& body);
 

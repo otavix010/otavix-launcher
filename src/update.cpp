@@ -1,19 +1,17 @@
 #include "update.h"
 
+#include <SDL3/SDL.h>
+
 #include <algorithm>
 #include <cctype>
 #include <thread>
 #include <vector>
 
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <winhttp.h>
-#endif
+#include "net.h"
 
 namespace launcher {
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -32,52 +30,26 @@ std::vector<long> Numbers(const std::string& v) {
     return out;
 }
 
-// the string value of a key in GitHub's JSON, which this needs no parser for
-std::string JsonString(const std::string& json, const std::string& key) {
-    size_t at = json.find("\"" + key + "\"");
-    if (at == std::string::npos) return {};
+// a field of GitHub's JSON, a string or a number, from a position on and before another
+std::string Field(const std::string& json, const std::string& key, size_t from = 0, size_t to = std::string::npos) {
+    size_t at = json.find("\"" + key + "\"", from);
+    if (at == std::string::npos || at >= to) return {};
     at = json.find(':', at);
-    if (at == std::string::npos) return {};
-    at = json.find('"', at);
-    if (at == std::string::npos) return {};
+    size_t q = json.find_first_not_of(" \t\r\n", at + 1);
+    if (q == std::string::npos) return {};
+    if (json[q] != '"') return json.substr(q, json.find_first_of(",}\r\n", q) - q);
     std::string out;
-    for (size_t i = at + 1; i < json.size() && json[i] != '"'; i++) {
+    for (size_t i = q + 1; i < json.size() && json[i] != '"'; i++) {
         if (json[i] == '\\' && i + 1 < json.size()) i++;
         out += json[i];
     }
     return out;
 }
 
-#ifdef _WIN32
-bool HttpsGet(const std::wstring& host, const std::wstring& path, std::string& body, std::string& error) {
-    HINTERNET s = WinHttpOpen(L"Otavix-Launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
-                              WINHTTP_NO_PROXY_BYPASS, 0);
-    if (!s) return error = "WinHTTP", false;
-    HINTERNET c = WinHttpConnect(s, host.c_str(), INTERNET_DEFAULT_HTTPS_PORT, 0);
-    HINTERNET r = c ? WinHttpOpenRequest(c, L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER,
-                                         WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE)
-                    : nullptr;
-    bool ok = r && WinHttpAddRequestHeaders(r, L"Accept: application/vnd.github+json", DWORD(-1), WINHTTP_ADDREQ_FLAG_ADD) &&
-              WinHttpSendRequest(r, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0) &&
-              WinHttpReceiveResponse(r, nullptr);
-    DWORD status = 0, size = sizeof(status);
-    if (ok) WinHttpQueryHeaders(r, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &status, &size, nullptr);
-    if (ok) {
-        for (DWORD avail = 0; WinHttpQueryDataAvailable(r, &avail) && avail;) {
-            std::string chunk(avail, '\0');
-            DWORD got = 0;
-            if (!WinHttpReadData(r, chunk.data(), avail, &got)) break;
-            body.append(chunk, 0, got);
-        }
-    }
-    if (!ok) error = "sem conexão com o GitHub (" + std::to_string(GetLastError()) + ")";
-    else if (status != 200) error = "GitHub respondeu " + std::to_string(status), ok = false;
-    if (r) WinHttpCloseHandle(r);
-    if (c) WinHttpCloseHandle(c);
-    WinHttpCloseHandle(s);
-    return ok;
+std::string Lower(std::string s) {
+    for (char& c : s) c = char(std::tolower(static_cast<unsigned char>(c)));
+    return s;
 }
-#endif
 
 }  // namespace
 
@@ -93,7 +65,7 @@ bool NewerVersion(const std::string& latest, const std::string& installed) {
 void Updater::Start(const std::string& repo, const std::string& installed) {
     {
         std::lock_guard lock(m_);
-        if (cur_.state == UpdateCheck::State::Checking) return;
+        if (cur_.state == UpdateCheck::State::Checking || cur_.state == UpdateCheck::State::Downloading) return;
         cur_ = {};
         if (repo.empty()) {
             cur_.state = UpdateCheck::State::NoRepo;
@@ -103,32 +75,82 @@ void Updater::Start(const std::string& repo, const std::string& installed) {
     }
     std::thread([this, repo, installed] {
         UpdateCheck r;
-#ifdef _WIN32
-        std::string body, error;
-        std::wstring path = L"/repos/" + std::wstring(repo.begin(), repo.end()) + L"/releases/latest";
-        if (HttpsGet(L"api.github.com", path, body, error)) {
-            r.latest = JsonString(body, "tag_name");
-            r.url = JsonString(body, "html_url");
-            r.state = r.latest.empty() ? UpdateCheck::State::Failed
+        HttpResult h = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/releases/latest",
+                                   {{"Accept", "application/vnd.github+json"}}, "");
+        if (h.Ok()) {
+            r.latest = Field(h.body, "tag_name");
+            r.url = Field(h.body, "html_url");
+            // the installer among the release's files: each asset ends with its browser_download_url
+            size_t from = h.body.find("\"assets\"");
+            for (size_t at = h.body.find("\"browser_download_url\"", from); at != std::string::npos;
+                 from = at + 1, at = h.body.find("\"browser_download_url\"", from)) {
+                std::string link = Field(h.body, "browser_download_url", at);
+                if (Lower(link).size() < 4 || Lower(link).substr(link.size() - 4) != ".exe") continue;
+                r.installer = link;
+                r.size = std::strtoull(Field(h.body, "size", from, at).c_str(), nullptr, 10);
+                r.digest = Field(h.body, "digest", from, at);
+                break;
+            }
+            r.state = r.latest.empty()                  ? UpdateCheck::State::Failed
                       : NewerVersion(r.latest, installed) ? UpdateCheck::State::Newer
-                                                         : UpdateCheck::State::UpToDate;
+                                                          : UpdateCheck::State::UpToDate;
             if (r.latest.empty()) r.error = "resposta sem versão";
         } else {
             r.state = UpdateCheck::State::Failed;
-            r.error = error;
+            r.error = h.status == 404 ? "ainda não há versão publicada" : h.error;
         }
-#else
-        r.state = UpdateCheck::State::Failed;
-        r.error = "not on this system yet";
-#endif
         std::lock_guard lock(m_);
         cur_ = r;
+    }).detach();
+}
+
+void Updater::Download() {
+    UpdateCheck c;
+    {
+        std::lock_guard lock(m_);
+        if (cur_.state != UpdateCheck::State::Newer || cur_.installer.empty()) return;
+        cur_.state = UpdateCheck::State::Downloading;
+        cur_.done = 0;
+        c = cur_;
+    }
+    cancel_ = false;
+    std::thread([this, c] {
+        std::error_code ec;
+        fs::path file = fs::temp_directory_path(ec) / ("Instalar-Otavix-Launcher-" + c.latest + ".exe");
+        std::string sha, error;
+        bool ok = DownloadFile(c.installer, file, cancel_, cur_.done, m_, sha, error);
+        // the installer must be the one GitHub says it published
+        if (ok && c.digest.rfind("sha256:", 0) == 0 && Lower(c.digest.substr(7)) != sha) {
+            ok = false;
+            error = "o instalador baixado não confere (SHA-256); tente de novo";
+        }
+        if (!ok) fs::remove(file, ec);
+        std::lock_guard lock(m_);
+        cur_.state = ok ? UpdateCheck::State::Ready : UpdateCheck::State::Failed;
+        cur_.error = error;
+        cur_.file = file;
     }).detach();
 }
 
 UpdateCheck Updater::Get() {
     std::lock_guard lock(m_);
     return cur_;
+}
+
+bool RunInstaller(const fs::path& installer, const fs::path& install_dir, std::string& error) {
+    // no separator at the end: before the quote Windows adds around it, it would escape that quote
+    fs::path d = install_dir.has_filename() ? install_dir : install_dir.parent_path();
+    std::string exe = installer.string(), dir = "/DIR=" + d.string();
+    // silent, over this folder; the launcher closes now, the installer closes it if it lingers and opens the new one
+    const char* args[] = {exe.c_str(), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS",
+                          dir.c_str(), "/relaunch=1", nullptr};
+    SDL_Process* p = SDL_CreateProcess(args, false);
+    if (!p) {
+        error = SDL_GetError();
+        return false;
+    }
+    SDL_DestroyProcess(p);  // it keeps running on its own
+    return true;
 }
 
 }  // namespace launcher

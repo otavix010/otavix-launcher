@@ -262,6 +262,11 @@ constexpr Row kRows[] = {
     {"Nova versão do port: %s", "New port version: %s", "Nueva versión del port: %s"},
     {"Atualizar o port", "Update the port", "Actualizar el port"},
     {"Port atualizado.", "Port updated.", "Port actualizado."},
+    {"Atualizar agora", "Update now", "Actualizar ahora"},
+    {"O que mudou", "What's new", "Qué cambió"},
+    {"Baixando a atualização…", "Downloading the update…", "Descargando la actualización…"},
+    {"Instalando a atualização: o launcher fecha e reabre sozinho.", "Installing the update: the launcher closes and reopens by itself.", "Instalando la actualización: el launcher se cierra y vuelve a abrir solo."},
+    {"Nova versão do Otavix Launcher: %s", "New Otavix Launcher version: %s", "Nueva versión de Otavix Launcher: %s"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

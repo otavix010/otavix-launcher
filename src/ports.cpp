@@ -14,8 +14,6 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#include <bcrypt.h>
-#include <winhttp.h>
 #endif
 
 namespace launcher {
@@ -45,72 +43,6 @@ std::string Lower(std::string s) {
     for (char& c : s) c = char(std::tolower(static_cast<unsigned char>(c)));
     return s;
 }
-
-#ifdef _WIN32
-std::wstring Wide(const std::string& s) {
-    int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0);
-    std::wstring w(size_t(n), L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, s.data(), int(s.size()), w.data(), n);
-    return w;
-}
-
-// a download into a file, its SHA-256 on the way; redirects (GitHub's assets go to their storage) followed
-bool Download(const std::string& url, const fs::path& file, std::atomic<bool>& cancel, uint64_t& done, std::mutex& m,
-              std::string& sha256, std::string& error) {
-    std::wstring wurl = Wide(url);
-    URL_COMPONENTS u{};
-    u.dwStructSize = sizeof(u);
-    wchar_t host[256]{}, path[4096]{};
-    u.lpszHostName = host;
-    u.dwHostNameLength = 256;
-    u.lpszUrlPath = path;
-    u.dwUrlPathLength = 4096;
-    if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &u)) return error = "endereço inválido", false;
-    HINTERNET s = WinHttpOpen(L"Otavix-Launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-    HINTERNET c = s ? WinHttpConnect(s, host, u.nPort, 0) : nullptr;
-    HINTERNET q = c ? WinHttpOpenRequest(c, L"GET", path, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE) : nullptr;
-    bool ok = q && WinHttpSendRequest(q, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0) && WinHttpReceiveResponse(q, nullptr);
-    DWORD status = 0, size = sizeof(status);
-    if (ok) WinHttpQueryHeaders(q, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &status, &size, nullptr);
-    if (!ok || status != 200) {
-        error = ok ? "o GitHub respondeu " + std::to_string(status) : "sem conexão (" + std::to_string(GetLastError()) + ")";
-        ok = false;
-    }
-    BCRYPT_ALG_HANDLE alg = nullptr;
-    BCRYPT_HASH_HANDLE hash = nullptr;
-    if (ok) {
-        BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
-        BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0);
-        std::ofstream out(file, std::ios::binary | std::ios::trunc);
-        std::vector<char> buf(1 << 20);
-        for (DWORD avail = 0; ok && WinHttpQueryDataAvailable(q, &avail) && avail;) {
-            if (cancel) {
-                error = "cancelado";
-                ok = false;
-                break;
-            }
-            DWORD got = 0;
-            if (!WinHttpReadData(q, buf.data(), std::min<DWORD>(avail, DWORD(buf.size())), &got) || !got) break;
-            out.write(buf.data(), got);
-            BCryptHashData(hash, reinterpret_cast<PUCHAR>(buf.data()), got, 0);
-            std::lock_guard lock(m);
-            done += got;
-        }
-        if (!out) error = "disco cheio?", ok = false;
-        uint8_t digest[32];
-        BCryptFinishHash(hash, digest, sizeof(digest), 0);
-        char hex[65];
-        for (int i = 0; i < 32; i++) std::snprintf(hex + i * 2, 3, "%02x", digest[i]);
-        sha256 = hex;
-        BCryptDestroyHash(hash);
-        BCryptCloseAlgorithmProvider(alg, 0);
-    }
-    if (q) WinHttpCloseHandle(q);
-    if (c) WinHttpCloseHandle(c);
-    if (s) WinHttpCloseHandle(s);
-    return ok;
-}
-#endif
 
 // the unpacked release over the port's folder: new and changed files in, the player's own untouched
 void Merge(const fs::path& from, const fs::path& to, std::error_code& ec) {
@@ -208,7 +140,7 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         fs::create_directories(dir, ec);
         fs::path zip = dir / "_port.zip", work = dir / "_port";
         std::string sha, error;
-        if (!Download(url, zip, cancel_, st_.done, m_, sha, error)) {
+        if (!DownloadFile(url, zip, cancel_, st_.done, m_, sha, error)) {
             fs::remove(zip, ec);
             return fail(error);
         }

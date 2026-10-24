@@ -1719,9 +1719,28 @@ bool GameCard(Game& gm, ImVec2 size, bool focus) {
 
 void RequestsPage();
 
+void UpdateActions(const UpdateCheck& u);
+
 void LibraryPage(int library) {
     const char* name = library < 0 ? Tr(S::AllGames) : Tx(g.hub.libraries[size_t(library)].name);
     Heading(name);
+    UpdateCheck u = g.updater.Get();
+    if (u.state == UpdateCheck::State::Newer || u.state == UpdateCheck::State::Downloading ||
+        u.state == UpdateCheck::State::Ready) {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16 * g.scale, 12 * g.scale));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, Accent(0.3f, 0.6f));
+        ImGui::BeginChild("update", ImVec2(-1, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeY);
+        char b[160];
+        std::snprintf(b, sizeof(b), Tr(S::LauncherNewer), u.latest.c_str());
+        ImGui::TextUnformatted(u.state == UpdateCheck::State::Newer ? b
+                               : u.state == UpdateCheck::State::Downloading ? Tr(S::DownloadingUpdate)
+                                                                            : Tr(S::InstallingUpdate));
+        UpdateActions(u);
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+        ImGui::Spacing();
+    }
     std::vector<int> list;
     for (size_t i = 0; i < g.games.size(); i++)
         if (Listed(*g.games[i], library)) list.push_back(int(i));
@@ -1840,6 +1859,31 @@ void SettingsGeneral() {
     if (ImGui::Checkbox("##last", &last)) g.state.Set("start_last", last);
 }
 
+// a newer launcher: updated in place (downloaded, installed silently over this folder, reopened), or its page
+void UpdateActions(const UpdateCheck& u) {
+    static bool ran = false;
+    if (u.state == UpdateCheck::State::Newer) {
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        ImGui::BeginDisabled(u.installer.empty() || g.proc != nullptr);
+        if (ImGui::Button(Tr(S::UpdateNow))) g.updater.Download();
+        ImGui::EndDisabled();
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::WhatsNew))) SDL_OpenURL(u.url.c_str());
+    } else if (u.state == UpdateCheck::State::Downloading) {
+        char b[64];
+        std::snprintf(b, sizeof(b), "%.1f / %.1f MB", double(u.done) / 1048576.0, double(u.size) / 1048576.0);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
+        ImGui::ProgressBar(u.size ? float(double(u.done) / double(u.size)) : 0.0f, ImVec2(-1, 0), b);
+        ImGui::PopStyleColor();
+    } else if (u.state == UpdateCheck::State::Ready && !ran) {
+        ran = true;
+        std::string err;
+        if (RunInstaller(u.file, g.hub_dir, err)) g.quit = true;
+        else Toast(std::string(Tr(S::UpdateFailed)) + ": " + err);
+    }
+}
+
 void SettingsUpdates() {
     ImGui::Text("%s: %s", Tr(S::Installed), g.hub.version.c_str());
     ImGui::Spacing();
@@ -1861,7 +1905,15 @@ void SettingsUpdates() {
             break;
         case UpdateCheck::State::Newer:
             ImGui::TextColored(Accent(1.3f), "● %s: %s", Tr(S::NewVersion), u.latest.c_str());
-            if (ImGui::Button(Tr(S::OpenRelease))) SDL_OpenURL(u.url.c_str());
+            UpdateActions(u);
+            break;
+        case UpdateCheck::State::Downloading:
+            ImGui::TextUnformatted(Tr(S::DownloadingUpdate));
+            UpdateActions(u);
+            break;
+        case UpdateCheck::State::Ready:
+            ImGui::TextUnformatted(Tr(S::InstallingUpdate));
+            UpdateActions(u);
             break;
         case UpdateCheck::State::NoRepo: Dim(Tr(S::NoRepo)); break;
         case UpdateCheck::State::Failed:
@@ -3110,6 +3162,15 @@ int main(int argc, char** argv) {
         TakeDialog();
         TakeArt();
         ApplyInstalls();
+        // tests: LAUNCHER_UPDATE=1 presses "Update now" as soon as a newer launcher is found
+        if (static bool asked = SDL_getenv("LAUNCHER_UPDATE") != nullptr; asked) {
+            UpdateCheck u = g.updater.Get();
+            if (u.state == UpdateCheck::State::Newer) {
+                g.updater.Download();
+                asked = false;
+            }
+            if (u.state == UpdateCheck::State::Ready) UpdateActions(u);
+        }
         g.covers.Take();
         if (SDL_GetWindowFlags(g.win) & SDL_WINDOW_MINIMIZED) {
             SDL_Delay(50);
