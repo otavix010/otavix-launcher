@@ -1,0 +1,18 @@
+# Silent Hill (PlayStation 1) port: listed in the hub while it is made.
+[game]
+title = "Silent Hill"
+subtitle = { pt = "Port nativo do PlayStation 1 · recompilação estática", en = "Native PlayStation 1 port · static recompilation", es = "Port nativo de PlayStation 1 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "silenthill.exe"
+accent = [140, 140, 150]
+legal = { pt = "O port lê a sua própria cópia do jogo. Silent Hill é marca da Konami; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Silent Hill is a trademark of Konami; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Silent Hill es marca de Konami; este proyecto no tiene relación con ella." }
+
+# pictures in arte/silent-hill: capa (the library card) and fundo, fundo1-4 (the page's background)
+[art]
+kind = "image"
+folder = "../arte/silent-hill"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false

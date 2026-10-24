@@ -1,0 +1,277 @@
+# FIFA Street 2 (Xbox) port: what the launcher shows. Copied beside the launcher as launcher.toml.
+# Option keys are the game's settings.toml keys (target = "settings", the default), environment variables of the game's
+# process (target = "env") or the launcher's own state (target = "launcher").
+
+[game]
+title = "FIFA Street 2"
+subtitle = { pt = "Port nativo para PC · recompilação estática do Xbox", en = "Native PC port · static recompilation of the Xbox game", es = "Port nativo para PC · recompilación estática de Xbox" }
+exe = "FIFAStreet2.exe"
+settings = "settings.toml"
+logs = "logs"
+saves = ["hdd/E/UDATA/45410085", "hdd/E/TDATA/45410085"]
+game_file = "default.xbe"
+game_option = "game_path"
+search = ["assets"]
+accent = [226, 58, 32]
+legal = { pt = "Este launcher e o port não trazem nenhum arquivo do jogo. Eles leem a sua própria cópia de FIFA Street 2 (Xbox, versão americana). FIFA Street 2 é marca da Electronic Arts; este projeto não tem relação com a EA nem com a Microsoft.", en = "This launcher and the port ship no game files. They read your own copy of FIFA Street 2 (Xbox, US release). FIFA Street 2 is a trademark of Electronic Arts; this project is not affiliated with EA or Microsoft.", es = "Este launcher y el port no incluyen ningún archivo del juego. Leen tu propia copia de FIFA Street 2 (Xbox, versión de EE. UU.). FIFA Street 2 es marca de Electronic Arts; este proyecto no tiene relación con EA ni con Microsoft." }
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "graphics"
+advanced = true
+label = { pt = "Gráficos", en = "Graphics", es = "Gráficos" }
+
+[[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+# what the game takes for a key its settings file lacks
+[defaults]
+fps_cap = 60
+frame_interpolation = false
+upscaler = "off"
+upscaler_mode = "native"
+render_percent = 100
+anisotropic_filtering = 0
+vsync = true
+
+# the menus' backgrounds, decoded from the player's own fe.viv
+[art]
+kind = "ea-viv"
+file = "data/aptanims/fe.viv"
+include = ["f_bg_press_w", "f_bg_main_w", "f_bg_RTS_w", "f_bg_juggling_w", "f_bg_creation_w", "f_bg_bootdefault_w", "f_bg_myrules_w", "f_bg_default_w"]
+seconds = 9
+
+# ------------------------------------------------------------------------------------------------ video
+
+[[options]]
+page = "video"
+key = "display_mode"
+type = "choice"
+default = "borderless"
+label = { pt = "Modo de tela", en = "Display mode", es = "Modo de pantalla" }
+help = { pt = "Sem bordas cobre o monitor sem trocar a resolução do Windows e troca de janela mais rápido. Tela cheia usa o modo exclusivo.", en = "Borderless covers the monitor without changing the Windows resolution and alt-tabs faster. Fullscreen uses exclusive mode.", es = "Sin bordes cubre el monitor sin cambiar la resolución de Windows y cambia de ventana más rápido. Pantalla completa usa el modo exclusivo." }
+choices = [
+  { value = "borderless", label = { pt = "Tela cheia sem bordas", en = "Borderless fullscreen", es = "Pantalla completa sin bordes" } },
+  { value = "fullscreen", label = { pt = "Tela cheia exclusiva", en = "Exclusive fullscreen", es = "Pantalla completa exclusiva" } },
+  { value = "windowed", label = { pt = "Janela", en = "Windowed", es = "Ventana" } },
+]
+
+[[options]]
+page = "video"
+key = "resolution"
+type = "resolution"
+label = { pt = "Resolução / tamanho da janela", en = "Resolution / window size", es = "Resolución / tamaño de ventana" }
+help = { pt = "Em janela, é o tamanho da janela. Em tela cheia exclusiva, troca o modo do monitor. Sem bordas, é a resolução em que o jogo desenha dentro da tela. Área de trabalho usa a do Windows.", en = "Windowed, it is the window's size. Exclusive fullscreen switches the monitor to it. Borderless, it is the resolution the game draws at inside the screen. Desktop uses the Windows one.", es = "En ventana, es el tamaño de la ventana. En pantalla completa exclusiva, cambia el modo del monitor. Sin bordes, es la resolución a la que el juego dibuja dentro de la pantalla. Escritorio usa la de Windows." }
+
+[[options]]
+page = "graphics"
+key = "upscaler"
+type = "choice"
+default = "off"
+label = { pt = "Anti-aliasing", en = "Anti-aliasing", es = "Antialiasing" }
+help = { pt = "Suaviza as bordas acumulando quadros. DLSS só em placas NVIDIA RTX; FSR e XeSS rodam em qualquer GPU com DirectX 12. Desligado usa a escala de renderização abaixo.", en = "Smooths edges by accumulating frames. DLSS only on NVIDIA RTX cards; FSR and XeSS run on any DirectX 12 GPU. Off uses the render scale below.", es = "Suaviza los bordes acumulando fotogramas. DLSS solo en tarjetas NVIDIA RTX; FSR y XeSS funcionan en cualquier GPU con DirectX 12. Desactivado usa la escala de renderizado de abajo." }
+choices = [
+  { value = "off", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "dlss", label = "NVIDIA DLSS / DLAA" },
+  { value = "fsr", label = "AMD FidelityFX FSR" },
+  { value = "xess", label = "Intel XeSS" },
+]
+
+[[options]]
+page = "graphics"
+key = "upscaler_mode"
+type = "choice"
+default = "native"
+label = { pt = "Modo do anti-aliasing", en = "Anti-aliasing mode", es = "Modo del antialiasing" }
+help = { pt = "Nativo (DLAA / AA nativo) renderiza na resolução do monitor e só suaviza: melhor imagem. Qualidade, Equilibrado e Desempenho renderizam menor e reconstroem, para GPUs mais fracas.", en = "Native (DLAA / native AA) renders at the monitor's resolution and only smooths: best image. Quality, Balanced and Performance render smaller and reconstruct, for weaker GPUs.", es = "Nativo (DLAA / AA nativo) renderiza a la resolución del monitor y solo suaviza: mejor imagen. Calidad, Equilibrado y Rendimiento renderizan menor y reconstruyen, para GPUs más débiles." }
+choices = [
+  { value = "native", label = { pt = "Nativo (DLAA / AA nativo)", en = "Native (DLAA / native AA)", es = "Nativo (DLAA / AA nativo)" } },
+  { value = "quality", label = { pt = "Qualidade (67%)", en = "Quality (67%)", es = "Calidad (67%)" } },
+  { value = "balanced", label = { pt = "Equilibrado (58%)", en = "Balanced (58%)", es = "Equilibrado (58%)" } },
+  { value = "performance", label = { pt = "Desempenho (50%)", en = "Performance (50%)", es = "Rendimiento (50%)" } },
+]
+
+[[options]]
+page = "graphics"
+key = "upscaler_sharpness"
+type = "slider"
+default = 30
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Nitidez", en = "Sharpness", es = "Nitidez" }
+help = { pt = "Nitidez depois do anti-aliasing. Por enquanto só o FSR aplica (RCAS da AMD); no DLSS e no XeSS não tem efeito. 0% desliga.", en = "Sharpening after the anti-aliasing. For now only FSR applies it (AMD's RCAS); it has no effect on DLSS and XeSS. 0% turns it off.", es = "Nitidez después del antialiasing. Por ahora solo FSR la aplica (RCAS de AMD); en DLSS y XeSS no tiene efecto. 0% la desactiva." }
+
+[[options]]
+page = "graphics"
+key = "render_percent"
+type = "slider"
+default = 100
+min = 50
+max = 300
+step = 25
+suffix = "%"
+guest_height = 480
+label = { pt = "Escala de renderização", en = "Render scale", es = "Escala de renderizado" }
+help = { pt = "Só com o anti-aliasing desligado. Resolução interna em relação à saída. 100% num monitor 4K renderiza em 4K nativo; acima de 100% é supersampling (mais nítido, mais GPU).", en = "Internal resolution relative to the output. 100% on a 4K monitor renders native 4K; above 100% supersamples (sharper, more GPU).", es = "Resolución interna respecto a la salida. 100% en un monitor 4K renderiza 4K nativo; más de 100% es supersampling (más nítido, más GPU)." }
+
+[[options]]
+page = "video"
+key = "fps_limit"
+type = "choice"
+label = { pt = "Limite de FPS", en = "Frame rate limit", es = "Límite de FPS" }
+help = { pt = "A física do jogo roda a 60 Hz. 30 fps mantém a velocidade certa e alivia GPUs fracas. 120 fps desenha a cena de novo entre cada dois quadros, com câmera, jogadores e bola na metade do caminho (não é upscale nem IA); use com monitor de 120 Hz ou mais.", en = "The game simulates at 60 Hz. 30 fps keeps the right speed and eases weak GPUs. 120 fps draws the scene again between each two frames, with camera, players and ball halfway (no upscaling, no AI); use with a 120 Hz or faster monitor.", es = "La física del juego va a 60 Hz. 30 fps mantiene la velocidad correcta y alivia GPUs débiles. 120 fps dibuja la escena otra vez entre cada dos fotogramas, con cámara, jugadores y balón a mitad de camino (no es reescalado ni IA); úsalo con un monitor de 120 Hz o más." }
+choices = [
+  { set = { fps_cap = 30, frame_interpolation = false }, label = "30 fps" },
+  { set = { fps_cap = 60, frame_interpolation = false }, label = { pt = "60 fps (original)", en = "60 fps (original)", es = "60 fps (original)" } },
+  { set = { fps_cap = 60, frame_interpolation = true }, label = { pt = "120 fps (quadros intermediários)", en = "120 fps (in-between frames)", es = "120 fps (fotogramas intermedios)" } },
+]
+
+[[options]]
+page = "video"
+key = "vsync"
+type = "toggle"
+default = true
+label = { pt = "Sincronização vertical", en = "V-Sync", es = "Sincronización vertical" }
+help = { pt = "Evita o rasgo da imagem. Recomendado ligado.", en = "Prevents screen tearing. Recommended on.", es = "Evita el desgarro de la imagen. Recomendado activado." }
+
+[[options]]
+page = "graphics"
+key = "anisotropic_filtering"
+type = "choice"
+default = 16
+label = { pt = "Filtro anisotrópico", en = "Anisotropic filtering", es = "Filtro anisotrópico" }
+help = { pt = "Deixa o chão e as paredes nítidos em ângulo. Custa quase nada numa GPU atual.", en = "Keeps floors and walls sharp at an angle. Costs almost nothing on a current GPU.", es = "Mantiene nítidos el suelo y las paredes en ángulo. Casi no cuesta en una GPU actual." }
+choices = [
+  { value = 0, label = { pt = "Como o jogo pede", en = "As the game asks", es = "Como pide el juego" } },
+  { value = 2, label = "2x" },
+  { value = 4, label = "4x" },
+  { value = 8, label = "8x" },
+  { value = 16, label = "16x" },
+]
+
+# ------------------------------------------------------------------------------------------------ audio
+
+[[options]]
+page = "audio"
+key = "volume"
+type = "slider"
+default = 100
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Volume geral", en = "Master volume", es = "Volumen general" }
+help = { pt = "Volume de todo o som do jogo. A música e os efeitos têm volume próprio no menu Options do jogo.", en = "Volume of all the game's sound. Music and effects have their own volume in the game's Options menu.", es = "Volumen de todo el sonido del juego. La música y los efectos tienen volumen propio en el menú Options del juego." }
+
+# ------------------------------------------------------------------------------------------------ controls
+
+[[options]]
+page = "controls"
+key = "deadzone"
+type = "slider"
+default = 0
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta dos analógicos", en = "Stick dead zone", es = "Zona muerta de los sticks" }
+help = { pt = "Aumente se o jogador anda sozinho com o analógico solto (controle gasto). 0% é o original.", en = "Raise it if the player drifts with the stick released (worn controller). 0% is the original.", es = "Súbela si el jugador se mueve solo con el stick suelto (mando gastado). 0% es el original." }
+
+[[options]]
+page = "controls"
+key = "buttons"
+type = "buttons"
+label = { pt = "Botões", en = "Buttons", es = "Botones" }
+help = { pt = "Cada botão do controle do Xbox original e o botão do seu controle que faz o papel dele. O preto e o branco viram RB e LB.", en = "Each button of the original Xbox controller and the button of your controller that plays its part. Black and white become RB and LB.", es = "Cada botón del mando de la Xbox original y el botón de tu mando que hace su papel. El negro y el blanco pasan a RB y LB." }
+buttons = [
+  { key = "a", label = "A", default = "a" },
+  { key = "b", label = "B", default = "b" },
+  { key = "x", label = "X", default = "x" },
+  { key = "y", label = "Y", default = "y" },
+  { key = "black", label = { pt = "Preto", en = "Black", es = "Negro" }, default = "rightshoulder" },
+  { key = "white", label = { pt = "Branco", en = "White", es = "Blanco" }, default = "leftshoulder" },
+  { key = "lt", label = { pt = "Gatilho esquerdo", en = "Left trigger", es = "Gatillo izquierdo" }, default = "lefttrigger" },
+  { key = "rt", label = { pt = "Gatilho direito", en = "Right trigger", es = "Gatillo derecho" }, default = "righttrigger" },
+  { key = "start", label = "Start", default = "start" },
+  { key = "back", label = "Back", default = "back" },
+  { key = "ls", label = { pt = "Analógico esquerdo (clique)", en = "Left stick (click)", es = "Stick izquierdo (clic)" }, default = "leftstick" },
+  { key = "rs", label = { pt = "Analógico direito (clique)", en = "Right stick (click)", es = "Stick derecho (clic)" }, default = "rightstick" },
+  { key = "up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "dpup" },
+  { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "dpdown" },
+  { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "dpleft" },
+  { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "dpright" },
+]
+
+# ------------------------------------------------------------------------------------------------ game
+
+[[options]]
+page = "game"
+key = "language"
+type = "choice"
+default = 1
+label = { pt = "Idioma do jogo", en = "Game language", es = "Idioma del juego" }
+help = { pt = "A versão americana tem inglês e espanhol. É o idioma que o console informa ao jogo.", en = "The US release has English and Spanish. It is the language the console reports to the game.", es = "La versión de EE. UU. tiene inglés y español. Es el idioma que la consola informa al juego." }
+choices = [
+  { value = 1, label = "English" },
+  { value = 5, label = "Español" },
+]
+
+[[options]]
+page = "game"
+key = "game_path"
+type = "path"
+pick = "both"
+filters = ["iso"]
+label = { pt = "Arquivos do jogo", en = "Game files", es = "Archivos del juego" }
+help = { pt = "A pasta com o default.xbe e a pasta data, ou a imagem .iso do disco. Em branco, o port procura a pasta assets ao lado dele.", en = "The folder with default.xbe and the data folder, or the disc's .iso image. Empty, the port looks for an assets folder beside it.", es = "La carpeta con default.xbe y la carpeta data, o la imagen .iso del disco. Vacío, el port busca una carpeta assets junto a él." }
+
+# ------------------------------------------------------------------------------------------------ presets
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "Recomendado. Resolução nativa do monitor, 120 fps com quadros intermediários e filtro 16x.", en = "Recommended. The monitor's native resolution, 120 fps with in-between frames and 16x filtering.", es = "Recomendado. Resolución nativa del monitor, 120 fps con fotogramas intermedios y filtro 16x." }
+values = { render_percent = 100, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, vsync = true, upscaler = "off" }
+
+[[presets]]
+label = { pt = "Leve", en = "Light", es = "Ligero" }
+help = { pt = "Para GPUs de entrada e notebooks: metade da resolução interna e 60 fps originais.", en = "For entry GPUs and laptops: half the internal resolution and the original 60 fps.", es = "Para GPUs de entrada y portátiles: mitad de la resolución interna y los 60 fps originales." }
+values = { render_percent = 50, fps_cap = 60, frame_interpolation = false, anisotropic_filtering = 4, vsync = true, upscaler = "off" }
+
+[[presets]]
+label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
+help = { pt = "Supersampling de 150% (imagem mais lisa), 120 fps e filtro 16x. Para GPUs fortes.", en = "150% supersampling (smoother image), 120 fps and 16x filtering. For strong GPUs.", es = "Supersampling de 150% (imagen más suave), 120 fps y filtro 16x. Para GPUs potentes." }
+values = { render_percent = 150, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, vsync = true, upscaler = "off" }
+
+[[credits]]
+name = "Xbox XBE Recomp (TGP482)"
+what = { pt = "recompilador e runtime do Xbox (MIT)", en = "Xbox recompiler and runtime (MIT)", es = "recompilador y runtime de Xbox (MIT)" }
+
+# mods: folders in jogar/mods, active ones in mods/ativos.txt; the port reads their files before the game's own
+[mods]
+folder = "mods"
+help = { pt = "Cada mod fica numa pasta dentro de mods, com os arquivos no mesmo caminho do jogo. Exemplo: um mod de menus traz mods/MeuMod/data/aptanims/fe.viv. O jogo original nunca é alterado: desligue o mod e tudo volta como era.", en = "Each mod lives in a folder inside mods, its files at the game's own paths. For example, a menu mod brings mods/MyMod/data/aptanims/fe.viv. The original game is never changed: turn the mod off and everything is as it was.", es = "Cada mod va en una carpeta dentro de mods, con los archivos en la misma ruta del juego. Por ejemplo, un mod de menús trae mods/MiMod/data/aptanims/fe.viv. El juego original nunca se modifica: desactiva el mod y todo vuelve a ser como antes." }
+
+# installing: the release the port was made from, by its default.xbe
+[install]
+check = "default.xbe"
+sha1 = "9c59ced6a2e361ba7130bb0dbfdb9106026574d5"
+version = { pt = "FIFA Street 2 (USA) (En,Es), do Xbox (a imagem .iso do disco)", en = "FIFA Street 2 (USA) (En,Es), for Xbox (the disc's .iso image)", es = "FIFA Street 2 (USA) (En,Es), de Xbox (la imagen .iso del disco)" }
+folder = "jogo"

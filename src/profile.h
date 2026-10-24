@@ -1,0 +1,124 @@
+// The game's launcher.toml: what the launcher shows and where each choice goes.
+#pragma once
+#include <array>
+#include <cstdint>
+#include <filesystem>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
+
+#include <toml++/toml.hpp>
+
+namespace launcher {
+
+namespace fs = std::filesystem;
+
+// paths and UTF-8 strings: the launcher's text is UTF-8 everywhere
+inline std::string U8(const fs::path& p) {
+    std::u8string s = p.u8string();
+    return std::string(s.begin(), s.end());
+}
+inline fs::path FromU8(const std::string& s) { return fs::path(std::u8string(s.begin(), s.end())); }
+
+enum class Lang { Pt, En, Es };
+
+// a text in each language the launcher speaks; a plain string in the profile serves all three
+struct Text {
+    std::string pt, en, es;
+    const std::string& Get(Lang l) const;
+    bool Empty() const { return pt.empty() && en.empty() && es.empty(); }
+};
+
+using Value = std::variant<bool, int64_t, double, std::string>;
+
+enum class OptType {
+    Choice,      // one of choices
+    Toggle,      // on or off
+    Slider,      // whole number from min to max
+    Resolution,  // width and height keys from the monitor's modes, 0 x 0 the desktop's
+    ButtonMap,   // a table of console buttons, each the pad button that gives it
+    Path,        // a folder or file the player picks: the game's files
+};
+
+// where a choice is kept: the game's settings file, an environment variable of the game's process, or the
+// launcher's own state (launcher_state.toml)
+enum class Target { Settings, Env, Launcher };
+
+struct ChoiceItem {
+    Value value;
+    Text label;
+    std::vector<std::pair<std::string, Value>> set;  // instead of value: several settings keys at once
+};
+
+struct ButtonSlot {
+    std::string key;  // in the settings table
+    Text label;       // the console's name for it
+    std::string def;  // SDL gamepad name: a, b, x, y, leftshoulder, lefttrigger, dpup, start, ...
+};
+
+struct Option {
+    std::string page, key;
+    OptType type = OptType::Choice;
+    Target target = Target::Settings;
+    Text label, help;
+    Value def = int64_t(0);
+    std::vector<ChoiceItem> choices;
+    int64_t min = 0, max = 100, step = 1;
+    std::string suffix;
+    std::string width_key = "width", height_key = "height";  // Resolution
+    int64_t guest_height = 0;  // Slider of render percent: shows the internal height for this console height
+    std::vector<ButtonSlot> buttons;  // ButtonMap
+    std::string pick = "both";        // Path: folder, file or both
+    std::vector<std::string> filters; // Path: file extensions without the dot
+};
+
+struct Page {
+    std::string id;
+    Text label;
+    bool advanced = false;  // a tab of the advanced options page rather than a page of its own
+};
+
+struct Preset {
+    Text label, help;
+    std::vector<std::pair<std::string, Value>> values;  // option key, value
+};
+
+// [install]: how a port's game is checked when the player installs it
+struct InstallSpec {
+    std::string check;             // a file of the game (in its disc image or folder) whose SHA-1 names the release
+    std::string sha1;              // the release the port was made from
+    Text version;                  // that release, as the player would look for it
+    std::string folder = "jogo";   // where an archive's game is kept, in the port's folder
+};
+
+struct Profile {
+    Text title, subtitle, legal;
+    std::string status = "ok";  // ok, or wip: listed in its library, not playable yet
+    Text status_text;           // what the card says when it is not playable
+    std::string mods_folder;    // [mods] folder: the port reads mods from there; empty, no mods
+    Text mods_help;             // [mods] help: how this port's mods are laid out
+    InstallSpec install;
+    std::string exe;                  // beside the launcher
+    std::string settings = "settings.toml";
+    std::string logs = "logs";
+    std::vector<std::string> saves;   // folders beside the exe holding the saves
+    std::string game_file;            // the file a game folder must hold (default.xbe, GOWA.elf ...)
+    std::string game_option;          // the Path option holding where the game is
+    std::vector<std::string> search;  // folders beside the exe or above it searched when that option is empty
+    std::string exe_option;           // an option whose value is the executable, for builds per CPU
+    std::vector<std::string> args;    // arguments, {key} replaced by that option's value
+    std::array<float, 3> accent{0.9f, 0.25f, 0.1f};
+    std::vector<Page> pages;
+    std::vector<Option> options;
+    std::vector<Preset> presets;
+    std::vector<std::pair<Text, Text>> credits;  // name, what for
+    std::vector<std::pair<std::string, Value>> defaults;  // what the game takes for a settings key it lacks
+
+    const Value* DefaultFor(const std::string& key) const;
+
+    bool Load(const fs::path& file, std::string& error);
+    const Option* Find(const std::string& key) const;
+};
+
+}  // namespace launcher

@@ -1,0 +1,18 @@
+# God of War: Ascension (PS3) port: listed in the hub while it is made.
+[game]
+title = "God of War: Ascension"
+subtitle = { pt = "Port nativo do PS3 · recompilação estática", en = "Native PS3 port · static recompilation", es = "Port nativo de PS3 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "gowa.exe"
+accent = [196, 150, 60]
+legal = { pt = "O port lê a sua própria cópia do jogo. God of War é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. God of War is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. God of War es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
+
+# the official art, from the player's own copy (PS3_GAME): the icon for the card, the background for the page
+[art]
+kind = "image"
+folder = "../arte/gow-ascension"
+include = ["PS3_GAME/ICON0.PNG", "PS3_GAME/PIC1.PNG"]
+card_only = 1
+seconds = 12
+trim = false

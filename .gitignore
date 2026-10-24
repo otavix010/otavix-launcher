@@ -1,0 +1,31 @@
+# build
+/out/
+
+# this development machine's hub (its own paths)
+/hub/hub.local.toml
+
+# art and music taken from the games: never published, each player's copy has its own
+/hub/arte/
+
+# catalogs: generated at release time by scripts/catalogo.py
+/hub/catalogo/
+
+# the server's local state and tools
+/servidor/node_modules/
+/servidor/.wrangler/
+/servidor/.dev.vars
+
+# runtime files when run from the tree
+hub_state.toml
+/dados/
+/cache/
+/reports/
+/ports/
+
+# editors
+.vs/
+.vscode/
+.idea/
+
+# this development machine's installer (its own paths)
+/scripts/instalar-local.cmd

@@ -1,0 +1,9 @@
+name = "otavix-launcher"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "otavix-launcher"
+# filled in by "wrangler d1 create otavix-launcher" (see LEIA-ME.md); any value works for local tests
+database_id = "00000000-0000-0000-0000-000000000000"

@@ -1,0 +1,96 @@
+# Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
+# repo: the port's GitHub repository; the launcher downloads and updates the port from its releases.
+# platforms: the port's state on each system: ok (playable), wip (in development), soon (planned); left out, not there.
+
+[hub]
+name = "Otavix Launcher"
+version = "1.0.0"
+update_repo = "otavix010/otavix-launcher"
+accent = [220, 30, 38]
+
+[servidor]
+url = ""                    # reports and port requests (see servidor/LEIA-ME.md); empty until it is up
+
+[[libraries]]
+id = "xbox"
+name = "Xbox"
+accent = [16, 124, 16]
+
+[[libraries]]
+id = "x360"
+name = "Xbox 360"
+accent = [16, 124, 16]
+
+[[libraries]]
+id = "ps1"
+name = "PlayStation 1"
+accent = [150, 150, 160]
+
+[[libraries]]
+id = "ps3"
+name = "PlayStation 3"
+accent = [0, 112, 209]
+
+[[libraries]]
+id = "j2me"
+name = { pt = "Celular (Java)", en = "Mobile (Java)", es = "Móvil (Java)" }
+accent = [227, 120, 30]
+
+[[games]]
+id = "fifa-street-2"
+library = "xbox"
+path = "ports/fifa-street-2"
+profile = "perfis/fifa-street-2.toml"
+repo = "otavix010/fifa-street-2-pc"
+platforms = { windows = "ok", linux = "soon" }
+
+[[games]]
+id = "gow-ascension"
+library = "ps3"
+path = "ports/gow-ascension"
+profile = "perfis/gow-ascension.toml"
+repo = "otavix010/gow-ascension-pc"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "gow-betrayal"
+library = "j2me"
+path = "ports/gow-betrayal"
+profile = "perfis/gow-betrayal.toml"
+repo = "otavix010/gow-betrayal-pc"
+platforms = { windows = "ok", linux = "ok" }
+
+[[games]]
+id = "infamous"
+library = "ps3"
+path = "ports/infamous"
+profile = "perfis/infamous.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "infamous-2"
+library = "ps3"
+path = "ports/infamous-2"
+profile = "perfis/infamous-2.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "asuras-wrath"
+library = "x360"
+path = "ports/asuras-wrath"
+profile = "perfis/asuras-wrath.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "dantes-inferno"
+library = "x360"
+path = "ports/dantes-inferno"
+profile = "perfis/dantes-inferno.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "silent-hill"
+library = "ps1"
+path = "ports/silent-hill"
+profile = "perfis/silent-hill.toml"
+platforms = { windows = "wip", linux = "soon" }

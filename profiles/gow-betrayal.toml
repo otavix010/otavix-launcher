@@ -1,0 +1,15 @@
+# God of War: Betrayal (Java ME) port: ready on Linux / SteamOS, the Windows build comes later.
+[game]
+title = "God of War: Betrayal"
+subtitle = { pt = "Port nativo do jogo de celular (Java ME)", en = "Native port of the mobile game (Java ME)", es = "Port nativo del juego de móvil (Java ME)" }
+status = "wip"
+status_text = { pt = "Em breve no Windows", en = "Coming to Windows", es = "Próximamente en Windows" }
+exe = "gowb-port.exe"
+game_file = "art/hero.png"
+search = ["."]
+accent = [190, 40, 30]
+
+[art]
+kind = "image"
+include = ["art/hero.png", "art/horizontal.png"]
+trim = false

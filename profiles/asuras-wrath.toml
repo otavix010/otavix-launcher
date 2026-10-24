@@ -1,0 +1,18 @@
+# Asura's Wrath (Xbox 360) port: listed in the hub while it is made.
+[game]
+title = "Asura's Wrath"
+subtitle = { pt = "Port nativo do Xbox 360 · recompilação estática", en = "Native Xbox 360 port · static recompilation", es = "Port nativo de Xbox 360 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "asura.exe"
+accent = [210, 110, 40]
+legal = { pt = "O port lê a sua própria cópia do jogo. Asura's Wrath é marca da Capcom; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Asura's Wrath is a trademark of Capcom; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Asura's Wrath es marca de Capcom; este proyecto no tiene relación con ella." }
+
+# pictures in arte/asuras-wrath: capa (the library card) and fundo, fundo1-4 (the page's background)
+[art]
+kind = "image"
+folder = "../arte/asuras-wrath"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false

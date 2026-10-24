@@ -1,0 +1,242 @@
+// Otavix Launcher's server: problem reports (kept, and mailed to the owner through Resend) and port requests with
+// their rankings. A Cloudflare Worker with a D1 database. The launcher sends JSON; answers are lines of tab-separated
+// fields.
+//
+// Secrets (wrangler secret put): ADMIN_TOKEN (the owner's launcher), RESEND_API_KEY and REPORT_TO (mail; without them
+// reports are only kept).
+
+const CONSOLES = ['xbox', 'x360', 'ps1', 'ps2', 'ps3', 'psp', 'vita', 'gc', 'wii', 'wiiu', 'nds', '3ds', 'j2me', 'outro'];
+const PERIODS = { semana: 7 * 86400, mes: 30 * 86400, tudo: 0 };
+
+export default {
+  async fetch(req, env) {
+    try {
+      return await route(req, env);
+    } catch (e) {
+      return text(500, 'erro no servidor: ' + (e && e.message ? e.message : e));
+    }
+  },
+};
+
+async function route(req, env) {
+  const url = new URL(req.url);
+  const p = url.pathname;
+  if (req.method === 'GET' && p === '/v1/ping') return text(200, 'ok');
+  if (req.method === 'POST' && p === '/v1/report') return report(req, env);
+  if (req.method === 'POST' && p === '/v1/pedidos') return pedir(req, env);
+  if (req.method === 'GET' && p === '/v1/ranking') return ranking(env, url, false);
+  if (p.startsWith('/v1/admin/')) {
+    if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
+    if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
+    if (req.method === 'GET' && p === '/v1/admin/comentarios') return comentarios(env, url);
+    if (req.method === 'GET' && p === '/v1/admin/reports') return reports(env);
+    if (req.method === 'POST' && p === '/v1/admin/ocultar') return ocultar(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/renomear') return renomear(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/juntar') return juntar(req, env);
+  }
+  return text(404, 'não encontrado');
+}
+
+// ------------------------------------------------------------------------------------------------ helpers
+
+function text(status, body) {
+  return new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+}
+
+// a field on a tab-separated line: no tabs or line breaks inside
+function f(v) {
+  return String(v ?? '').replace(/[\t\r\n]+/g, ' ');
+}
+
+async function body(req, max) {
+  const len = Number(req.headers.get('Content-Length') || 0);
+  if (len > max) throw new Error('grande demais');
+  const raw = await req.text();
+  if (raw.length > max) throw new Error('grande demais');
+  return JSON.parse(raw);
+}
+
+function now() {
+  return Math.floor(Date.now() / 1000);
+}
+
+// the player's address is kept only as a hash, to hold back floods
+async function ipHash(req) {
+  const ip = req.headers.get('CF-Connecting-IP') || 'local';
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('otavix:' + ip));
+  return [...new Uint8Array(d)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function install(req) {
+  const id = req.headers.get('X-Otavix-Install') || '';
+  return /^[0-9a-f]{32}$/.test(id) ? id : '';
+}
+
+// a game's name as a key: no accents, no punctuation, lower case
+export function chave(nome) {
+  return nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function b64(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+// ------------------------------------------------------------------------------------------------ reports
+
+async function report(req, env) {
+  const r = await body(req, 1_500_000);
+  const ip = await ipHash(req);
+  const t = now();
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE ip = ? AND quando > ?').bind(ip, t - 3600).first();
+  if (recent.n >= 5) return text(429, 'muitos reports nesta hora; tente mais tarde');
+  const desc = String(r.descricao || '').slice(0, 8000);
+  if (desc.trim().length < 5) return text(400, 'descrição vazia');
+  const contato = String(r.contato || '').slice(0, 200);
+  const info = r.sistema && typeof r.sistema === 'object' ? r.sistema : {};
+  const res = await env.DB.prepare(
+    'INSERT INTO reports (quando, ip, install, jogo, titulo, plataforma, versao, categoria, contato, descricao, sistema) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  )
+    .bind(t, ip, install(req), f(r.jogo).slice(0, 80), f(r.titulo).slice(0, 120), f(r.plataforma).slice(0, 40),
+      f(r.launcher).slice(0, 40), f(r.categoria).slice(0, 40), contato, desc, JSON.stringify(info).slice(0, 4000))
+    .run();
+  let mailed = 0;
+  if (env.RESEND_API_KEY && env.REPORT_TO) {
+    const lines = [
+      `Jogo: ${f(r.titulo)} (${f(r.jogo)})`,
+      `Plataforma: ${f(r.plataforma)} · launcher ${f(r.launcher)}`,
+      `Tipo: ${f(r.categoria)}`,
+      `Contato: ${contato || '(não deixou)'}`,
+      `Última saída do jogo: ${f(r.ultima_saida)}`,
+      '',
+      'O que aconteceu:',
+      desc,
+      '',
+      'Computador:',
+      ...Object.entries(info).map(([k, v]) => `  ${k}: ${f(v)}`),
+    ];
+    const attachments = [];
+    if (r.log) attachments.push({ filename: f(r.log_nome || 'log.txt'), content: b64(String(r.log).slice(0, 1_000_000)) });
+    if (r.config) attachments.push({ filename: 'settings.toml', content: b64(String(r.config).slice(0, 200_000)) });
+    const mail = {
+      from: 'Otavix Launcher <onboarding@resend.dev>',
+      to: [env.REPORT_TO],
+      subject: `[Report] ${f(r.titulo)} · ${f(r.categoria)} · ${f(r.plataforma)}`,
+      text: lines.join('\n'),
+      attachments,
+    };
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contato)) mail.reply_to = contato;
+    const sent = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(mail),
+    });
+    mailed = sent.ok ? 1 : 0;
+    await env.DB.prepare('UPDATE reports SET enviado = ? WHERE id = ?').bind(mailed, res.meta.last_row_id).run();
+  }
+  return text(200, mailed ? 'ok' : 'ok guardado');
+}
+
+async function reports(env) {
+  const rows = await env.DB.prepare(
+    'SELECT quando, titulo, plataforma, categoria, contato, descricao, enviado FROM reports ORDER BY quando DESC LIMIT 100'
+  ).all();
+  return text(200, rows.results.map((r) =>
+    [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado].map(f).join('\t')).join('\n'));
+}
+
+// ------------------------------------------------------------------------------------------------ port requests
+
+// a key merged into another counts as that one
+async function resolve(env, console, k) {
+  for (let i = 0; i < 8; i++) {
+    const row = await env.DB.prepare('SELECT alias_of FROM jogos WHERE console = ? AND chave = ?').bind(console, k).first();
+    if (!row || !row.alias_of) return k;
+    k = row.alias_of;
+  }
+  return k;
+}
+
+async function pedir(req, env) {
+  const r = await body(req, 20_000);
+  const id = install(req);
+  if (!id) return text(400, 'launcher sem identificação');
+  const console = String(r.console || '');
+  if (!CONSOLES.includes(console)) return text(400, 'console desconhecido');
+  const nome = String(r.nome || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  let k = chave(nome);
+  if (k.length < 2) return text(400, 'nome do jogo curto demais');
+  const ip = await ipHash(req);
+  const t = now();
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM votos WHERE ip = ? AND quando > ?').bind(ip, t - 3600).first();
+  if (recent.n >= 30) return text(429, 'muitos pedidos nesta hora; tente mais tarde');
+  k = await resolve(env, console, k);
+  // the catalog's box art: a libretro name or gametdb:<region>/<id>
+  const capa = f(String(r.capa || '').slice(0, 200));
+  await env.DB.prepare('INSERT OR IGNORE INTO jogos (console, chave, nome, capa) VALUES (?, ?, ?, ?)').bind(console, k, nome, capa).run();
+  if (capa) await env.DB.prepare("UPDATE jogos SET capa = ? WHERE console = ? AND chave = ? AND capa = ''").bind(capa, console, k).run();
+  const res = await env.DB.prepare(
+    'INSERT OR IGNORE INTO votos (install, console, chave, comentario, ip, quando) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(id, console, k, String(r.comentario || '').slice(0, 300), ip, t).run();
+  return text(200, res.meta.changes ? 'ok' : 'ja');
+}
+
+// console, key, name, votes, cover (for the owner: console, key, name, votes, hidden, comments, cover)
+async function ranking(env, url, admin) {
+  const since = PERIODS[url.searchParams.get('periodo')] ?? PERIODS.semana;
+  const from = since ? now() - since : 0;
+  const console = url.searchParams.get('console') || '';
+  const where = ['v.quando >= ?'];
+  const args = [from];
+  if (console && CONSOLES.includes(console)) {
+    where.push('j.console = ?');
+    args.push(console);
+  }
+  if (!admin) where.push('j.oculto = 0');
+  const rows = await env.DB.prepare(
+    `SELECT j.console, j.chave, j.nome, j.oculto, j.capa, COUNT(*) AS votos, SUM(v.comentario <> '') AS coments
+       FROM votos v JOIN jogos j ON j.console = v.console AND j.chave = v.chave
+      WHERE ${where.join(' AND ')} AND j.alias_of IS NULL
+      GROUP BY j.console, j.chave ORDER BY votos DESC, j.nome LIMIT ${admin ? 500 : 100}`
+  ).bind(...args).all();
+  return text(200, rows.results.map((r) =>
+    (admin ? [r.console, r.chave, r.nome, r.votos, r.oculto, r.coments, r.capa] : [r.console, r.chave, r.nome, r.votos, r.capa]).map(f).join('\t')).join('\n'));
+}
+
+async function comentarios(env, url) {
+  const rows = await env.DB.prepare(
+    "SELECT quando, comentario FROM votos WHERE console = ? AND chave = ? AND comentario <> '' ORDER BY quando DESC LIMIT 50"
+  ).bind(url.searchParams.get('console') || '', url.searchParams.get('chave') || '').all();
+  return text(200, rows.results.map((r) => [r.quando, r.comentario].map(f).join('\t')).join('\n'));
+}
+
+async function ocultar(req, env) {
+  const r = await body(req, 4000);
+  await env.DB.prepare('UPDATE jogos SET oculto = ? WHERE console = ? AND chave = ?').bind(r.oculto ? 1 : 0, r.console, r.chave).run();
+  return text(200, 'ok');
+}
+
+async function renomear(req, env) {
+  const r = await body(req, 4000);
+  const nome = String(r.nome || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (nome.length < 2) return text(400, 'nome curto demais');
+  await env.DB.prepare('UPDATE jogos SET nome = ? WHERE console = ? AND chave = ?').bind(nome, r.console, r.chave).run();
+  return text(200, 'ok');
+}
+
+// "de" counts as "para" from now on; its votes move over, a player's second vote for the same game dropped
+async function juntar(req, env) {
+  const r = await body(req, 4000);
+  const { console, de, para } = r;
+  if (!console || !de || !para || de === para) return text(400, 'pedido inválido');
+  await env.DB.batch([
+    env.DB.prepare('UPDATE OR IGNORE votos SET chave = ? WHERE console = ? AND chave = ?').bind(para, console, de),
+    env.DB.prepare('DELETE FROM votos WHERE console = ? AND chave = ?').bind(console, de),
+    env.DB.prepare('UPDATE jogos SET alias_of = ? WHERE console = ? AND chave = ?').bind(para, console, de),
+    env.DB.prepare('UPDATE jogos SET alias_of = ? WHERE console = ? AND alias_of = ?').bind(para, console, de),
+  ]);
+  return text(200, 'ok');
+}
