@@ -397,6 +397,13 @@ fs::path FindGame(Game& gm) {
         fs::path p = FromU8(chosen_path);
         return holds(p) ? p : fs::path();
     }
+    if (!gm.prof.install.folder.empty()) {
+        fs::path own = gm.entry.dir / FromU8(gm.prof.install.folder);
+        if (fs::is_directory(own, ec)) {
+            if (holds(own)) return own;
+            if (fs::path img = has_image(own); !img.empty()) return img;
+        }
+    }
     fs::path d = gm.entry.dir;
     for (int i = 0; i < 6; i++) {
         for (const std::string& s : gm.prof.search) {
@@ -1235,6 +1242,20 @@ bool PortCard(Game& gm) {
     return true;
 }
 
+// a finished install: its game becomes the one to play, whatever page is open and even with the window minimized
+void ApplyInstalls() {
+    for (auto& gp : g.games) {
+        Game& gm = *gp;
+        if (gm.install_taken || gm.installer.Get().stage != Installer::Stage::Done) continue;
+        gm.install_taken = true;
+        if (const Option* o = gm.prof.game_option.empty() ? nullptr : gm.prof.Find(gm.prof.game_option)) {
+            gm.store.Set(*o, U8(gm.installer.Get().game));
+            gm.store.Save();
+        }
+        StartArt(gm);
+    }
+}
+
 void ReportPage();
 
 void HomePage() {
@@ -1262,16 +1283,6 @@ void HomePage() {
         fs::path game = FindGame(gm);
         TakeInstallPick();
         Installer::Status is = gm.installer.Get();
-        // a finished install: its game becomes the one to play
-        if (is.stage == Installer::Stage::Done && !gm.install_taken) {
-            gm.install_taken = true;
-            if (const Option* o = gm.prof.game_option.empty() ? nullptr : gm.prof.Find(gm.prof.game_option)) {
-                gm.store.Set(*o, U8(is.game));
-                gm.store.Save();
-            }
-            StartArt(gm);
-            game = FindGame(gm);
-        }
         if (gm.installer.Busy()) {
             const char* what = is.stage == Installer::Stage::Extracting ? Tr(S::Unpacking)
                                : is.stage == Installer::Stage::Checking ? Tr(S::CheckingVersion)
@@ -2970,6 +2981,14 @@ void LoadGames() {
         if (here) fs::create_directories(e.dir, ec);
         fs::path settings = here ? e.dir / FromU8(gm->prof.settings) : data / "settings.toml";
         gm->store.Open(settings, data / "estado.toml");
+        // a port's first settings: its first preset, the recommended one
+        if (here && !fs::exists(settings, ec) && !gm->prof.presets.empty()) {
+            for (auto& [k, v] : gm->prof.presets[0].values) {
+                if (const Option* o = gm->prof.Find(k)) gm->store.Set(*o, v);
+                else gm->store.SetKey(k, v);
+            }
+            gm->store.Save();
+        }
         gm->art_spec = ReadArtSpec(e.profile);
         StartArt(*gm);
         g.games.push_back(std::move(gm));
@@ -3090,6 +3109,7 @@ int main(int argc, char** argv) {
         PollGame();
         TakeDialog();
         TakeArt();
+        ApplyInstalls();
         g.covers.Take();
         if (SDL_GetWindowFlags(g.win) & SDL_WINDOW_MINIMIZED) {
             SDL_Delay(50);

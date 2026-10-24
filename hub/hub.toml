@@ -1,10 +1,10 @@
-# Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
+﻿# Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
 # repo: the port's GitHub repository; the launcher downloads and updates the port from its releases.
 # platforms: the port's state on each system: ok (playable), wip (in development), soon (planned); left out, not there.
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.0"
+version = "1.0.1"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -33,7 +33,7 @@ accent = [0, 112, 209]
 
 [[libraries]]
 id = "j2me"
-name = { pt = "Celular (Java)", en = "Mobile (Java)", es = "Móvil (Java)" }
+name = { pt = "Celular (Java)", en = "Mobile (Java)", es = "MÃ³vil (Java)" }
 accent = [227, 120, 30]
 
 [[games]]
