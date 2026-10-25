@@ -49,19 +49,19 @@ help = { pt = "O port aponta para ela, não copia os 34 GB: deixe a pasta onde e
 key = "update"
 pick = "both"
 filters = ["pkg"]
-label = { pt = "O update 1.04", en = "The 1.04 update", es = "El update 1.04" }
-help = { pt = "O update 1.04 é grátis no servidor da Sony: o botão baixa o arquivo oficial e confere. Tem que ser a 1.04; o RPCS3 instala a mais recente (1.09), que o port não aceita. Também serve a pasta BCUS98232 de um update 1.04 já instalado no RPCS3, ou o .pkg dele.", en = "The 1.04 update is free on Sony's server: the button downloads the official file and checks it. It must be 1.04; RPCS3 installs the newest (1.09), which the port does not take. The BCUS98232 folder of a 1.04 update already installed in RPCS3, or its .pkg, also works.", es = "El update 1.04 es gratis en el servidor de Sony: el botón descarga el archivo oficial y lo comprueba. Tiene que ser la 1.04; RPCS3 instala la más reciente (1.09), que el port no acepta. También sirve la carpeta BCUS98232 de un update 1.04 ya instalado en RPCS3, o su .pkg." }
-download = { url = "http://b0.ww.np.dl.playstation.net/tppkg/np/BCUS98232/BCUS98232_T76/5525fbb7b6b5456d/UP9000-BCUS98232_00-GOWABDPATCH00001-A0104-V0100-PE.pkg", sha1 = "5a94c17aa07cb5181a505d3429c88ea3d9f4e4d0", size = 235060816, file = "UP9000-BCUS98232_00-GOWABDPATCH00001-A0104-V0100-PE.pkg", label = { pt = "Baixar o update 1.04 da Sony", en = "Download the 1.04 update from Sony", es = "Descargar el update 1.04 de Sony" } }
+label = { pt = "O update 1.04 (opcional)", en = "The 1.04 update (optional)", es = "El update 1.04 (opcional)" }
+help = { pt = "Se você não escolher nada, o gerador baixa o update 1.04 oficial do servidor da Sony (235 MB, grátis) e confere o arquivo. Se já tiver o .pkg do 1.04, ou a pasta BCUS98232 de um update 1.04 instalado no RPCS3, pode escolher aqui. Tem que ser a 1.04: a mais recente (1.09) não serve.", en = "If you pick nothing, the generator downloads the official 1.04 update from Sony's server (235 MB, free) and checks the file. If you already have the 1.04 .pkg, or the BCUS98232 folder of a 1.04 update installed in RPCS3, you can pick it here. It must be 1.04: the newest (1.09) does not work.", es = "Si no eliges nada, el generador descarga el update 1.04 oficial del servidor de Sony (235 MB, gratis) y comprueba el archivo. Si ya tienes el .pkg de la 1.04, o la carpeta BCUS98232 de un update 1.04 instalado en RPCS3, puedes elegirlo aquí. Tiene que ser la 1.04: la más reciente (1.09) no sirve." }
+auto = { pt = "Automático: o gerador baixa da Sony (recomendado)", en = "Automatic: the generator downloads it from Sony (recommended)", es = "Automático: el generador lo descarga de Sony (recomendado)" }
 
 [[install.inputs]]
 key = "firmware"
 pick = "both"
-filters = ["sprx"]
-label = { pt = "O firmware do PS3", en = "The PS3 firmware", es = "El firmware de PS3" }
-help = { pt = "O firmware oficial do PS3 é grátis no site da PlayStation (\"Baixar atualização do PS3\"). Instale-o no RPCS3 em File > Install Firmware e escolha aqui a pasta do RPCS3, ou o arquivo libsre.sprx.", en = "The official PS3 firmware is free on PlayStation's site (\"Download PS3 update\"). Install it in RPCS3 with File > Install Firmware and pick the RPCS3 folder here, or the libsre.sprx file.", es = "El firmware oficial de PS3 es gratis en el sitio de PlayStation (\"Descargar actualización de PS3\"). Instálalo en RPCS3 en File > Install Firmware y elige aquí la carpeta de RPCS3, o el archivo libsre.sprx." }
+filters = ["pup", "sprx"]
+label = { pt = "O firmware do PS3 (opcional)", en = "The PS3 firmware (optional)", es = "El firmware de PS3 (opcional)" }
+help = { pt = "Se você não escolher nada, o gerador baixa o firmware oficial do site da PlayStation (PS3UPDAT.PUP, uns 200 MB, grátis) e tira dele só o que o jogo usa. Se já tiver baixado o PS3UPDAT.PUP, escolha o arquivo aqui; também servem a pasta do RPCS3 com o firmware instalado e o arquivo libsre.sprx.", en = "If you pick nothing, the generator downloads the official firmware from PlayStation's site (PS3UPDAT.PUP, about 200 MB, free) and takes from it only what the game uses. If you already downloaded PS3UPDAT.PUP, pick the file here; an RPCS3 folder with the firmware installed and the libsre.sprx file also work.", es = "Si no eliges nada, el generador descarga el firmware oficial del sitio de PlayStation (PS3UPDAT.PUP, unos 200 MB, gratis) y saca de él solo lo que usa el juego. Si ya descargaste el PS3UPDAT.PUP, elige el archivo aquí; también sirven la carpeta de RPCS3 con el firmware instalado y el archivo libsre.sprx." }
+auto = { pt = "Automático: o gerador baixa do site da PlayStation (recomendado)", en = "Automatic: the generator downloads it from PlayStation's site (recommended)", es = "Automático: el generador lo descarga del sitio de PlayStation (recomendado)" }
 links = [
   { label = { pt = "Firmware (site da PlayStation)", en = "Firmware (PlayStation's site)", es = "Firmware (sitio de PlayStation)" }, url = "https://www.playstation.com/pt-br/support/hardware/ps3/system-software/" },
-  { label = { pt = "Baixar o RPCS3", en = "Get RPCS3", es = "Descargar RPCS3" }, url = "https://rpcs3.net/download" },
 ]
 
 [[install.steps]]

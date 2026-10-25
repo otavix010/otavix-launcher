@@ -2085,7 +2085,17 @@ void StartBuild(Game& gm, bool redo) {
                 out.replace(at, b.key.size() + 2, gm.store.GetOwn(b.key));
         return out;
     };
-    for (const std::string& a : in.command) args.push_back(expand(a));
+    for (const std::string& a : in.command) {
+        // an optional input left empty: its argument out, and the flag before it ("-Update", "{update}")
+        bool left_out = false;
+        for (const BuildInput& b : in.inputs)
+            if (!b.auto_text.Empty() && a == "{" + b.key + "}" && gm.store.GetOwn(b.key).empty()) left_out = true;
+        if (left_out) {
+            if (!args.empty() && args.back().rfind("-", 0) == 0) args.pop_back();
+            continue;
+        }
+        args.push_back(expand(a));
+    }
     if (redo)
         for (const std::string& a : in.redo) args.push_back(expand(a));
     std::vector<std::string> steps;
@@ -2224,16 +2234,28 @@ void BuildCard(Game& gm) {
     for (const BuildInput& b : in.inputs) {
         ImGui::PushID(b.key.c_str());
         std::string v = gm.store.GetOwn(b.key);
-        inputs_ok &= !v.empty();
+        bool optional = !b.auto_text.Empty();
+        inputs_ok &= !v.empty() || optional;
         ImGui::TextUnformatted(Tx(b.label));
         if (!b.help.Empty()) Dim(Tx(b.help));
-        ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
-                           v.empty() ? Tr(S::NotChosen) : v.c_str());
+        if (v.empty() && optional) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f, 0.85f, 0.5f, 1));
+            ImGui::TextWrapped("%s", Tx(b.auto_text));
+            ImGui::PopStyleColor();
+        } else {
+            ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
+                               v.empty() ? Tr(S::NotChosen) : v.c_str());
+        }
         if (b.folder) {
             if (ImGui::SmallButton(Tr(S::PickFolderBtn))) PickBuildInput(gm, b, false);
             if (b.file) ImGui::SameLine();
         }
         if (b.file && ImGui::SmallButton(Tr(S::PickFileBtn))) PickBuildInput(gm, b, true);
+        // an optional input picked: back to the generator's own
+        if (optional && !v.empty()) {
+            SameLineIfFits(Tr(S::Clear));
+            if (ImGui::SmallButton(Tr(S::Clear))) gm.store.SetOwn(b.key, "");
+        }
         // the official pages, and the file fetched for the player from its official server
         for (auto& [label, url] : b.links) {
             SameLineIfFits(Tx(label));
@@ -4923,6 +4945,16 @@ int main(int argc, char** argv) {
             continue;
         }
         ImGui_ImplSDLRenderer3_NewFrame();
+        // the controller moves through the launcher only while its window has the focus and none of its games runs
+        // (background events stay on for Back + Start, read on their own): a button pressed in another program, a
+        // game the launcher did not open included, must not press one here
+        static bool pad_on = true;
+        bool want_pad = !g.proc && (SDL_GetWindowFlags(g.win) & SDL_WINDOW_INPUT_FOCUS);
+        if (want_pad != pad_on) {
+            pad_on = want_pad;
+            if (want_pad) ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode_AutoFirst);
+            else ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode_Manual, nullptr, 0);
+        }
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         Frame();

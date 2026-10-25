@@ -108,6 +108,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
                 b.key = (*it)["key"].value_or(std::string());
                 b.label = ReadText((*it)["label"]);
                 b.help = ReadText((*it)["help"]);
+                b.auto_text = ReadText((*it)["auto"]);
                 std::string pick = (*it)["pick"].value_or(std::string("folder"));
                 b.folder = pick != "file";
                 b.file = pick != "folder";
