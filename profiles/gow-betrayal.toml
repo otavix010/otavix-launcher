@@ -29,6 +29,11 @@ card_only = 1
 seconds = 12
 trim = false
 
+[icon]
+# the window's and the desktop shortcut's: the jar's own (MIDlet-Icon), pixel art
+kind = "jar"
+pixel = true
+
 [[pages]]
 id = "game"
 advanced = true

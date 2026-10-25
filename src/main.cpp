@@ -29,6 +29,7 @@
 #include "closegame.h"
 #include "desempenho.h"
 #include "hub.h"
+#include "icon.h"
 #include "build.h"
 #include "install.h"
 #include "i18n.h"
@@ -61,6 +62,8 @@ struct Game {
     Store store;
     ArtSpec art_spec;
     ThemeSpec theme_spec;
+    IconSpec icon_spec;
+    GameIcon icon;  // its window's and its shortcut's
     bool theme_tried = false;  // the theme from the game was tried, this session or since its install
     Art art;
     std::mutex art_m;
@@ -773,6 +776,7 @@ void PollGame() {
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
         RecordSession(gm);
+        gm.icon.Release();
         // closed with an error: its page shows it, with the report ready
         if (code != 0 && !g.closing) {
             gm.crashed = true;
@@ -827,6 +831,13 @@ void WatchCloseCombo() {
     g.closing = true;
     asked = now;
     if (!AskToClose(pid)) EndProcessTree(pid);
+}
+
+// while a game runs: its windows get its icon (title bar, taskbar, Alt+Tab)
+void WatchIcon() {
+    if (!g.proc || g.proc_game < 0) return;
+    uint64_t pid = uint64_t(SDL_GetNumberProperty(SDL_GetProcessProperties(g.proc), SDL_PROP_PROCESS_PID_NUMBER, 0));
+    g.games[size_t(g.proc_game)]->icon.Apply(pid);
 }
 
 // ---------------------------------------------------------------------------------------------- option widgets
@@ -1112,7 +1123,22 @@ bool CaptureEvent(const SDL_Event& e) {
 
 // ---------------------------------------------------------------------------------------------- the art behind
 
+// the game's icon (its window's and its shortcut's), in the background: from the player's game, else the web
+void StartIcon(Game& gm) {
+    if (gm.icon_spec.Empty()) return;
+    std::vector<std::string> files;
+    for (const std::string& f : gm.icon_spec.files) {
+        // a path in an option the player has not filled in yet is left out
+        size_t a = f.find('{'), b = f.find('}');
+        if (a != std::string::npos && b != std::string::npos && Expand(gm, f.substr(a, b - a + 1)).empty()) continue;
+        files.push_back(Expand(gm, f));
+    }
+    fs::path id = FromU8(gm.entry.id);
+    gm.icon.Load(gm.icon_spec, FindGame(gm), files, g.hub_dir / "cache" / "arte" / id, g.hub_dir / "dados" / id / "icone.ico");
+}
+
 void StartArt(Game& gm) {
+    StartIcon(gm);
     if (gm.art_spec.Empty()) return;
     fs::path game = gm.art_spec.folder.empty() ? FindGame(gm) : gm.art_spec.folder;
     if (game.empty() && gm.art_spec.web.empty()) return;
@@ -1333,7 +1359,9 @@ void TakeInstallPick() {
 
 void MakeShortcut(Game& gm) {
     std::error_code ec;
-    fs::path icon = gm.entry.dir / FromU8(gm.prof.exe);
+    // the game's own icon, else its executable's
+    fs::path icon = gm.icon.Ico();
+    if (icon.empty() || !fs::is_regular_file(icon, ec)) icon = gm.entry.dir / FromU8(gm.prof.exe);
     if (!fs::is_regular_file(icon, ec)) icon.clear();
     std::string err;
     if (DesktopShortcut(Tx(gm.prof.title), "--jogo " + gm.entry.id, icon, g.hub_dir, err)) Toast(Tr(S::ShortcutDone));
@@ -4092,6 +4120,7 @@ void LoadGames() {
         }
         gm->art_spec = ReadArtSpec(e.profile);
         gm->theme_spec = ReadThemeSpec(e.profile);
+        gm->icon_spec = ReadIconSpec(e.profile);
         StartArt(*gm);
         g.games.push_back(std::move(gm));
     }
@@ -4221,6 +4250,7 @@ int main(int argc, char** argv) {
         PollGame();
         PeriodicChecks();
         WatchCloseCombo();
+        WatchIcon();
         TakeDialog();
         TakeArt();
         if (g.theme_made.exchange(false)) PlayTheme();

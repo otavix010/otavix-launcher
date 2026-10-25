@@ -36,16 +36,27 @@ std::set<DWORD> Tree(DWORD root) {
 struct Search {
     std::set<DWORD> tree;
     int found = 0;
+    std::vector<void*> windows;
 };
+
+bool OwnWindow(const Search& s, HWND w) {
+    DWORD pid = 0;
+    GetWindowThreadProcessId(w, &pid);
+    return s.tree.count(pid) && IsWindowVisible(w) && !GetWindow(w, GW_OWNER);
+}
 
 BOOL CALLBACK Ask(HWND w, LPARAM p) {
     auto* s = reinterpret_cast<Search*>(p);
-    DWORD pid = 0;
-    GetWindowThreadProcessId(w, &pid);
-    if (s->tree.count(pid) && IsWindowVisible(w) && !GetWindow(w, GW_OWNER)) {
+    if (OwnWindow(*s, w)) {
         PostMessageW(w, WM_CLOSE, 0, 0);
         s->found++;
     }
+    return TRUE;
+}
+
+BOOL CALLBACK Collect(HWND w, LPARAM p) {
+    auto* s = reinterpret_cast<Search*>(p);
+    if (OwnWindow(*s, w)) s->windows.push_back(w);
     return TRUE;
 }
 #endif
@@ -60,6 +71,17 @@ bool AskToClose(uint64_t pid) {
 #else
     (void)pid;
     return false;
+#endif
+}
+
+std::vector<void*> GameWindows(uint64_t pid) {
+#ifdef _WIN32
+    Search s{Tree(DWORD(pid))};
+    EnumWindows(Collect, reinterpret_cast<LPARAM>(&s));
+    return s.windows;
+#else
+    (void)pid;
+    return {};
 #endif
 }
 
