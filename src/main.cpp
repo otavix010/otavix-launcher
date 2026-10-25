@@ -2209,25 +2209,12 @@ void BuildOrUnpack(Game& gm, bool redo) {
     if (!UnpackInputs(gm, redo)) StartBuild(gm, redo);
 }
 
-// an input being unpacked: its progress; done, the folder found is the input and the generator goes on
-bool UnpackCard(Game& gm) {
+// an input being unpacked, done: the folder found is the input and the generator goes on (true while there is still
+// unpacking or the generator was started; the game's page and "update and make all" both move it on)
+bool UnpackStep(Game& gm) {
     if (gm.unpack_key.empty()) return false;
+    if (gm.installer.Busy()) return true;
     Installer::Status st = gm.installer.Get();
-    if (gm.installer.Busy()) {
-        const char* what = st.stage == Installer::Stage::Extracting ? Tr(S::Unpacking)
-                           : st.stage == Installer::Stage::Checking ? Tr(S::CheckingVersion)
-                                                                    : Tr(S::ReadingArchive);
-        ImGui::TextColored(Accent(1.3f), "● %s", what);
-        char pct[16];
-        std::snprintf(pct, sizeof(pct), "%.0f%%", st.progress * 100);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
-        ImGui::ProgressBar(st.stage == Installer::Stage::Extracting ? st.progress : -float(ImGui::GetTime()), ImVec2(-1, 0),
-                           st.stage == Installer::Stage::Extracting ? pct : "");
-        ImGui::PopStyleColor();
-        Dim(Tr(S::UnpackHelp));
-        if (ImGui::Button(Tr(S::Cancel))) gm.installer.Cancel();
-        return true;
-    }
     std::error_code ec;
     const BuildInput* input = nullptr;
     for (const BuildInput& b : gm.prof.install.inputs)
@@ -2252,6 +2239,44 @@ bool UnpackCard(Game& gm) {
     gm.store.Save();
     gm.unpack_key.clear();
     BuildOrUnpack(gm, gm.unpack_redo);
+    return true;
+}
+
+// an input being unpacked: its progress; done, the folder found is the input and the generator goes on
+bool UnpackCard(Game& gm) {
+    if (gm.unpack_key.empty()) return false;
+    Installer::Status st = gm.installer.Get();
+    if (gm.installer.Busy()) {
+        const char* what = st.stage == Installer::Stage::Extracting ? Tr(S::Unpacking)
+                           : st.stage == Installer::Stage::Checking ? Tr(S::CheckingVersion)
+                                                                    : Tr(S::ReadingArchive);
+        ImGui::TextColored(Accent(1.3f), "● %s", what);
+        char pct[16];
+        std::snprintf(pct, sizeof(pct), "%.0f%%", st.progress * 100);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
+        ImGui::ProgressBar(st.stage == Installer::Stage::Extracting ? st.progress : -float(ImGui::GetTime()), ImVec2(-1, 0),
+                           st.stage == Installer::Stage::Extracting ? pct : "");
+        ImGui::PopStyleColor();
+        Dim(Tr(S::UnpackHelp));
+        if (ImGui::Button(Tr(S::Cancel))) gm.installer.Cancel();
+        return true;
+    }
+    return UnpackStep(gm);
+}
+
+// every input the generator needs picked (an optional one, left on its "automatic", is not needed)
+bool InputsSet(Game& gm) {
+    for (const BuildInput& b : gm.prof.install.inputs)
+        if (b.auto_text.Empty() && gm.store.GetOwn(b.key).empty()) return false;
+    return true;
+}
+
+// a finished build: the port's version it was made with kept, once (true then)
+bool NoteBuild(Game& gm) {
+    if (gm.build.Get().stage != GameBuild::Stage::Done || gm.build_noted) return false;
+    gm.build_noted = true;
+    gm.store.SetOwn("built_version", InstalledPortVersion(gm.entry.dir));
+    gm.store.Save();
     return true;
 }
 
@@ -2287,10 +2312,7 @@ void BuildCard(Game& gm) {
         if (ImGui::Button(Tr(S::Cancel))) gm.build.Cancel();
         return;
     }
-    if (bs.stage == GameBuild::Stage::Done && !gm.build_noted) {
-        gm.build_noted = true;
-        gm.store.SetOwn("built_version", port);
-        gm.store.Save();
+    if (NoteBuild(gm)) {
         built = port;
         Toast(Tr(S::BuildDoneTitle));
     }
@@ -2300,8 +2322,7 @@ void BuildCard(Game& gm) {
         gm.store.Save();
         built = port;
     }
-    bool inputs_set = true;
-    for (const BuildInput& b : in.inputs) inputs_set &= !gm.store.GetOwn(b.key).empty();
+    bool inputs_set = InputsSet(gm);
     if (made && bs.stage != GameBuild::Stage::Failed && !gm.build_form) {
         ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::BuildDoneTitle));
         ImGui::TextDisabled("%s", U8(FindGame(gm)).c_str());
@@ -3223,6 +3244,219 @@ void NotesBlock(const std::string& repo, const std::string& installed, bool open
     }
 }
 
+// the ports installed and playable here, by their place in g.games
+std::vector<int> InstalledPorts() {
+    std::vector<int> installed;
+    for (size_t i = 0; i < g.games.size(); i++) {
+        Game& gm = *g.games[i];
+        if (!gm.entry.repo.empty() && gm.ok && Playable(gm, g.here) && PortPresent(gm)) installed.push_back(int(i));
+    }
+    return installed;
+}
+
+// "Update and make all": first each installed port in turn, its newest version looked up and installed; then, one
+// after the other, each game made on this PC made again when its port's code is newer than the one it was made with
+// (or made for the first time, its folders already picked). A game being played is waited for; a port whose update
+// failed is not made.
+struct BulkItem {
+    int game = -1;
+    bool updated = false, built = false;
+    bool current = false;       // already made with the port's code
+    bool needs_inputs = false;  // its folders not picked yet: made from its page
+    std::string error;
+};
+struct BulkRun {
+    std::vector<BulkItem> items;
+    size_t at = 0;
+    int pass = 0;   // 0: the ports updated, 1: the games made
+    int phase = 0;  // the current item's: 0 to start, 1 its version being looked up, 2 downloaded, 3 made
+    bool running = false, cancel = false, finished = false, waiting = false;
+} g_bulk;
+
+bool BulkFailed() {
+    for (const BulkItem& it : g_bulk.items)
+        if (!it.error.empty()) return true;
+    return false;
+}
+
+void StartBulk() {
+    g_bulk = {};
+    for (int i : InstalledPorts()) {
+        BulkItem it;
+        it.game = i;
+        g_bulk.items.push_back(it);
+    }
+    g_bulk.running = !g_bulk.items.empty();
+}
+
+void CancelBulk() {
+    if (!g_bulk.running || g_bulk.at >= g_bulk.items.size()) return;
+    g_bulk.cancel = true;
+    Game& gm = *g.games[size_t(g_bulk.items[g_bulk.at].game)];
+    if (g_bulk.pass == 0 && g_bulk.phase == 2) gm.fetcher.Cancel();
+    if (g_bulk.pass == 1 && g_bulk.phase == 3) {
+        if (gm.installer.Busy()) gm.installer.Cancel();
+        if (gm.build.Busy()) gm.build.Cancel();
+    }
+}
+
+// one look per frame, from the main loop: the settings page need not be open
+void BulkTick() {
+    // tests: LAUNCHER_UPDATE_ALL=1 presses the button once
+    if (static bool test = SDL_getenv("LAUNCHER_UPDATE_ALL") != nullptr; test) {
+        test = false;
+        StartBulk();
+    }
+    BulkRun& b = g_bulk;
+    if (!b.running) return;
+    auto next = [&] {
+        b.phase = 0;
+        if (++b.at >= b.items.size()) b.at = 0, b.pass++;
+    };
+    auto stop = [&] {
+        b.running = false;
+        b.finished = true;
+        b.waiting = false;
+    };
+    if (b.pass > 1) {
+        stop();
+        Toast(Tr(BulkFailed() ? S::UpdateAllDoneErrors : S::UpdateAllDone), 6000);
+        return;
+    }
+    BulkItem& it = b.items[b.at];
+    Game& gm = *g.games[size_t(it.game)];
+    // nothing new starts while a game is open
+    b.waiting = b.phase <= 1 && g.proc != nullptr;
+    if (b.phase == 0 && b.cancel) {
+        stop();
+        return;
+    }
+    if (b.pass == 0) {
+        if (b.phase == 0) {
+            if (g.proc || gm.fetcher.Busy()) return;  // also the game's own page downloading it
+            gm.port_checked = true;
+            gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
+            b.phase = 1;
+        } else if (b.phase == 1) {
+            if (gm.fetcher.Busy()) return;
+            PortFetcher::Status ps = gm.fetcher.Get();
+            std::string latest;
+            if (ps.stage == PortFetcher::Stage::Failed) {
+                it.error = ps.error;
+                next();
+            } else if (b.cancel || !PortHasUpdate(gm, latest)) {
+                next();
+            } else if (!g.proc) {
+                gm.fetcher.Install(gm.entry.Source(), gm.entry.dir);
+                b.phase = 2;
+            }
+        } else {
+            if (gm.fetcher.Busy()) return;
+            PortFetcher::Status ps = gm.fetcher.Get();
+            if (ps.stage == PortFetcher::Stage::Done) it.updated = true;
+            else it.error = b.cancel ? Tr(S::UpdateAllStopped) : ps.error.empty() ? Tr(S::PortFailed) : ps.error;
+            next();
+        }
+        return;
+    }
+    if (gm.prof.install.kind != "build" || !it.error.empty()) {
+        next();
+        return;
+    }
+    if (b.phase == 0) {
+        if (g.proc || gm.build.Busy() || !gm.unpack_key.empty()) return;  // also one started from the game's page
+        const InstallSpec& in = gm.prof.install;
+        std::error_code ec;
+        bool made = fs::is_regular_file(gm.entry.dir / FromU8(in.done), ec);
+        std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
+        if (made && built.empty()) built = port;  // as the game's page takes it
+        bool inputs_set = InputsSet(gm);
+        if (made && built == port) {
+            it.current = true;
+        } else if (!inputs_set) {
+            it.needs_inputs = true;
+        } else {
+            gm.unpack_error.clear();
+            gm.build_form = false;
+            BuildOrUnpack(gm, made);
+            b.phase = 3;
+            return;
+        }
+        next();
+        return;
+    }
+    // being made: an archive or disc image unpacked first, then the generator
+    if (UnpackStep(gm) || !gm.unpack_key.empty() || gm.build.Busy()) return;
+    GameBuild::Status bs = gm.build.Get();
+    if (b.cancel) {
+        it.error = Tr(S::UpdateAllStopped);
+    } else if (!gm.unpack_error.empty()) {
+        it.error = gm.unpack_error;
+    } else if (bs.stage == GameBuild::Stage::Done) {
+        NoteBuild(gm);
+        it.built = true;
+    } else {
+        // why, from the log's end: its last line that is not part of PowerShell's error record ("+ CategoryInfo",
+        // "+ FullyQualifiedErrorId", "No C:\...:123 caractere:5" / "At ...", the "~~~" under the command)
+        std::vector<std::string> lines;
+        for (size_t at = 0; at <= bs.error.size();) {
+            size_t nl = bs.error.find('\n', at);
+            if (nl == std::string::npos) nl = bs.error.size();
+            std::string l = bs.error.substr(at, nl - at);
+            while (!l.empty() && (l.back() == '\r' || l.back() == ' ')) l.pop_back();
+            size_t s = l.find_first_not_of(' ');
+            if (s != std::string::npos) lines.push_back(l.substr(s));
+            at = nl + 1;
+        }
+        for (auto l = lines.rbegin(); l != lines.rend() && it.error.empty(); ++l)
+            if ((*l)[0] != '+' && (*l)[0] != '~' && l->rfind("No ", 0) != 0 && l->rfind("At ", 0) != 0) it.error = *l;
+        if (it.error.size() > 200) it.error = it.error.substr(0, 200) + "...";
+        if (it.error.empty()) it.error = Tr(S::BuildFailedTitle);
+    }
+    next();
+}
+
+// a port's line under "Update and make all": what it did to that game, or what it is doing now
+void BulkLine(int game) {
+    const BulkRun& b = g_bulk;
+    if (!b.running && !b.finished) return;
+    for (size_t k = 0; k < b.items.size(); k++) {
+        const BulkItem& it = b.items[k];
+        if (it.game != game) continue;
+        Game& gm = *g.games[size_t(game)];
+        std::string text;
+        ImVec4 color(0.45f, 0.85f, 0.5f, 1);
+        if (b.running && b.pass == 1 && b.at == k && b.phase == 3) {
+            GameBuild::Status bs = gm.build.Get();
+            int total = int(gm.prof.install.steps.size()), cur = std::min(bs.step, total - 1);
+            char head[256];
+            if (bs.stage == GameBuild::Stage::Running)
+                std::snprintf(head, sizeof(head), Tr(S::BuildRunning), bs.step + 1 > total ? total : bs.step + 1, total,
+                              cur >= 0 ? Tx(gm.prof.install.steps[size_t(cur)].label) : "");
+            else
+                std::snprintf(head, sizeof(head), "%s", Tr(S::Unpacking));
+            text = head;
+            color = Accent(1.3f);
+        } else if (!it.error.empty()) {
+            char e[512];
+            std::snprintf(e, sizeof(e), Tr(S::UpdateAllFailed), it.error.c_str());
+            text = e;
+            color = ImVec4(0.95f, 0.45f, 0.4f, 1);
+        } else if (it.built) {
+            text = Tr(S::BuildDoneTitle);
+        } else if (it.current) {
+            text = Tr(S::UpdateAllCurrent);
+        } else if (it.needs_inputs) {
+            text = Tr(S::UpdateAllNeedsInputs);
+            color = ImGui::ColorConvertU32ToFloat4(StateColor("wip"));
+        }
+        if (text.empty()) return;
+        ImGui::SameLine();
+        ImGui::TextColored(color, "● %s", text.c_str());
+        return;
+    }
+}
+
 void SettingsUpdates() {
     ImGui::Text("%s: %s", Tr(S::Installed), g.hub.version.c_str());
     ImGui::Spacing();
@@ -3262,24 +3496,47 @@ void SettingsUpdates() {
 
     // the installed ports: each one's version and whether a newer one is out, looked up again on demand
     SubHeading(Tr(S::PortUpdates));
-    std::vector<int> installed;
-    for (size_t i = 0; i < g.games.size(); i++) {
-        Game& gm = *g.games[i];
-        if (!gm.entry.repo.empty() && gm.ok && Playable(gm, g.here) && PortPresent(gm)) installed.push_back(int(i));
-    }
+    std::vector<int> installed = InstalledPorts();
     if (installed.empty()) {
         Dim(Tr(S::NoPortsInstalled));
     } else {
         bool checking = false;
         for (int i : installed) checking |= g.games[size_t(i)]->fetcher.Busy();
-        ImGui::BeginDisabled(checking);
+        ImGui::BeginDisabled(checking || g_bulk.running);
         if (ImGui::Button(Tr(S::CheckPortsNow)))
             for (int i : installed) {
                 Game& gm = *g.games[size_t(i)];
                 gm.port_checked = true;
                 gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
             }
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::UpdateAll))) StartBulk();
         ImGui::EndDisabled();
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s", Tr(S::UpdateAllHelp));
+        if (g_bulk.running) {
+            ImGui::Spacing();
+            const BulkItem& cur = g_bulk.items[std::min(g_bulk.at, g_bulk.items.size() - 1)];
+            char head[256];
+            std::snprintf(head, sizeof(head), Tr(g_bulk.pass == 0 ? S::UpdateAllPorts : S::UpdateAllGames), int(g_bulk.at) + 1,
+                          int(g_bulk.items.size()), Tx(g.games[size_t(cur.game)]->prof.title));
+            ImGui::TextColored(Accent(1.3f), "● %s", head);
+            if (g_bulk.waiting) Dim(Tr(S::UpdateAllWaiting));
+            else if (g_bulk.cancel) Dim(Tr(S::UpdateAllStopped));
+            Dim(Tr(S::UpdateAllHelp));
+            ImGui::PushID("bulk");
+            ImGui::BeginDisabled(g_bulk.cancel);
+            if (ImGui::Button(Tr(S::Cancel))) CancelBulk();
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        } else if (g_bulk.finished) {
+            ImGui::Spacing();
+            if (g_bulk.cancel)
+                ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", Tr(S::UpdateAllStopped));
+            else if (BulkFailed())
+                ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::UpdateAllDoneErrors));
+            else
+                ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::UpdateAllDone));
+        }
         ImGui::Spacing();
         for (int i : installed) {
             Game& gm = *g.games[size_t(i)];
@@ -3313,6 +3570,7 @@ void SettingsUpdates() {
             } else if (ps.stage == PortFetcher::Stage::Ready) {
                 ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::PortUpToDate));
             }
+            BulkLine(i);
             ImGui::PopID();
         }
     }
@@ -5292,6 +5550,7 @@ int main(int argc, char** argv) {
         }
         PollGame();
         PeriodicChecks();
+        BulkTick();
         WatchCloseCombo();
         WatchIcon();
         TakeDialog();

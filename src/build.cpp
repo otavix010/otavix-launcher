@@ -213,7 +213,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
                                  FILE_ATTRIBUTE_NORMAL, nullptr);
         if (out == INVALID_HANDLE_VALUE) return fail("não foi possível criar " + U8(log), -1);
         // UTF-8 in the log: the console's code page would garble the generator's accents
-        std::string line = "chcp 65001 >/dev/null &";
+        std::string line = "chcp 65001 >nul &";
         for (const std::string& a : args) line += " " + N(Quote(W(ExpandEnv(a))));
         // the tree in a job: a cancel ends the generator and everything it started (compilers, python)
         HANDLE job = CreateJobObjectW(nullptr, nullptr);
@@ -233,12 +233,24 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
             std::lock_guard lock(m_);
             job_ = job;
         }
-        // progress: the steps whose mark is there, the current one's newest log line
-        while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
+        // progress: the steps whose mark is there, the current one's newest log line. The step's log is opened as
+        // little as possible, every 2 s and only once it grew: Windows PowerShell's Add-Content and Set-Content fail
+        // ("being used by another process") while any other process has the file open, even only reading it, and
+        // a generator writing its step log with them would fail the step
+        std::string last;
+        fs::path step_log;
+        uintmax_t step_size = 0;
+        for (int tick = 0; WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT; tick++) {
             int done = 0;
             while (done < int(steps.size()) && fs::exists(marks / (steps[size_t(done)] + ".ok"), ec)) done++;
-            std::string last = done < int(steps.size()) ? LastLine(marks / (steps[size_t(done)] + ".log")) : std::string();
-            if (last.empty()) last = LastLine(log);
+            fs::path cur = done < int(steps.size()) ? marks / (steps[size_t(done)] + ".log") : fs::path();
+            if (cur != step_log) step_log = cur, step_size = 0, last.clear();
+            if (tick % 4 == 0) {
+                uintmax_t size = step_log.empty() ? 0 : fs::file_size(step_log, ec);
+                if (ec) size = 0;
+                if (size != step_size) step_size = size, last = LastLine(step_log);
+                if (last.empty()) last = LastLine(log);  // the generator's own messages, through the handle it inherited
+            }
             std::lock_guard lock(m_);
             st_.step = done;
             st_.line = last;

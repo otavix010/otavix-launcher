@@ -379,6 +379,19 @@ constexpr Row kRows[] = {
     {"Deste jogo", "For this game", "De este juego"},
     {"Gerais (para qualquer jogo do PSXRecomp)", "General (for any PSXRecomp game)", "Generales (para cualquier juego de PSXRecomp)"},
     {"Nenhum mod encontrado em %s.", "No mods found in %s.", "No se encontraron mods en %s."},
+    {"Atualizar e gerar todos", "Update and make all", "Actualizar y generar todos"},
+    {"Atualiza os ports instalados, um de cada vez, e depois gera de novo, um após o outro, os jogos cujo código mudou. Gerar leva vários minutos por jogo: deixe o launcher aberto.",
+     "Updates the installed ports one at a time, then makes again, one after the other, the games whose code changed. Making takes several minutes per game: keep the launcher open.",
+     "Actualiza los ports instalados, uno a la vez, y luego genera de nuevo, uno tras otro, los juegos cuyo código cambió. Generar tarda varios minutos por juego: deja el launcher abierto."},
+    {"Atualizando os ports: %d de %d — %s", "Updating the ports: %d of %d — %s", "Actualizando los ports: %d de %d — %s"},
+    {"Gerando os jogos: %d de %d — %s", "Making the games: %d of %d — %s", "Generando los juegos: %d de %d — %s"},
+    {"Esperando o jogo aberto fechar.", "Waiting for the open game to close.", "Esperando a que se cierre el juego abierto."},
+    {"Ports atualizados e jogos gerados.", "Ports updated and games made.", "Ports actualizados y juegos generados."},
+    {"Interrompido.", "Stopped.", "Interrumpido."},
+    {"falhou: %s", "failed: %s", "falló: %s"},
+    {"jogo já gerado com este código", "game already made with this code", "juego ya generado con este código"},
+    {"para gerar, escolha o jogo na página dele", "to make it, pick the game on its page", "para generarlo, elige el juego en su página"},
+    {"Terminou, mas com falhas: veja abaixo.", "Finished, with failures: see below.", "Terminó, pero con fallos: mira abajo."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

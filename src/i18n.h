@@ -24,6 +24,8 @@ enum class S {
     IssueCopied, IssueNoBrowser, IssueNoBrowserReport, UnpackHelp, UnpackFailed,
     PortUpdates, CheckPortsNow, PortUpToDate, NoPortsInstalled,
     ModsPsxIntro, ModsPsxGame, ModsPsxFramework, ModsPsxNone,
+    UpdateAll, UpdateAllHelp, UpdateAllPorts, UpdateAllGames, UpdateAllWaiting, UpdateAllDone, UpdateAllStopped,
+    UpdateAllFailed, UpdateAllCurrent, UpdateAllNeedsInputs, UpdateAllDoneErrors,
     Count
 };
 
