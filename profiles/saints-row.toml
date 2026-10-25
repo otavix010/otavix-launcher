@@ -326,6 +326,11 @@ label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
 help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores fortes, com monitor de 120 Hz.", en = "Internal 4K, 120 fps and 16x filtering. For strong GPUs and processors, with a 120 Hz monitor.", es = "4K interno, 120 fps y filtro 16x. Para GPUs y procesadores potentes, con monitor de 120 Hz." }
 values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
+[[presets]]
+label = { pt = "4K (60 fps)", en = "4K (60 fps)", es = "4K (60 fps)" }
+help = { pt = "Para monitor 4K: 4K nativo (3x), 60 fps. Cravado numa RTX 5080.", en = "For a 4K monitor: native 4K (3x), 60 fps. Steady on an RTX 5080.", es = "Para monitor 4K: 4K nativo (3x), 60 fps. Constante en una RTX 5080." }
+values = { fps = 60, resolution_scale = 3, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
+
 [[credits]]
 name = "ReXGlue SDK (rexglue)"
 what = { pt = "recompilador estático e runtime do Xbox 360, derivado do Xenia (BSD-3)", en = "Xbox 360 static recompiler and runtime, derived from Xenia (BSD-3)", es = "recompilador estático y runtime de Xbox 360, derivado de Xenia (BSD-3)" }

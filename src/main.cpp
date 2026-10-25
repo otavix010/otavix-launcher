@@ -2648,6 +2648,23 @@ void HomePage() {
         // one card a preset, the one the settings match lit
         size_t n = gm.prof.presets.size();
         float gap = 14 * g.scale, w = (ImGui::GetContentRegionAvail().x - gap * float(n - 1)) / float(n);
+        // the "active" badge beside the name, or at the card's foot when a name leaves it no room (narrow cards)
+        float pad = 16 * g.scale, h = 128 * g.scale;
+        ImGui::PushFont(g.bold, 15);
+        ImVec2 badge = ImGui::CalcTextSize(Tr(S::ActivePreset));
+        ImGui::PopFont();
+        badge = ImVec2(badge.x + 16 * g.scale, badge.y + 6 * g.scale);
+        bool badge_below = false;
+        ImGui::PushFont(g.bold, 22);
+        for (const Preset& p : gm.prof.presets)
+            badge_below |= pad + ImGui::CalcTextSize(Tx(p.label)).x + 8 * g.scale + badge.x + pad > w;
+        ImGui::PopFont();
+        // every card as tall as the longest help wrapped to a card's width: four of them leave each one narrow
+        ImGui::PushFont(g.body, 16);
+        for (const Preset& p : gm.prof.presets)
+            h = std::max(h, pad + 34 * g.scale + ImGui::CalcTextSize(Tx(p.help), nullptr, false, w - pad * 2).y + pad +
+                                (badge_below ? badge.y + 8 * g.scale : 0));
+        ImGui::PopFont();
         bool any = false;
         for (size_t i = 0; i < n; i++) {
             const Preset& p = gm.prof.presets[i];
@@ -2662,7 +2679,6 @@ void HomePage() {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, Accent(0.8f));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12 * g.scale);
             ImVec2 at = ImGui::GetCursorScreenPos();
-            float h = 128 * g.scale;
             if (ImGui::Button("##card", ImVec2(w, h))) {
                 for (auto& [k, v] : p.values) SetKey(k, v);
                 Toast(Tx(p.label));
@@ -2671,17 +2687,14 @@ void HomePage() {
             ImGui::PopStyleColor(3);
             // the card's words over the button
             ImDrawList* dl = ImGui::GetWindowDrawList();
-            float pad = 16 * g.scale;
             dl->PushClipRect(at, ImVec2(at.x + w, at.y + h), true);
             ImGui::PushFont(g.bold, 22);
             dl->AddText(ImVec2(at.x + pad, at.y + pad), IM_COL32(255, 255, 255, 255), Tx(p.label));
             ImGui::PopFont();
             if (active) {
                 ImGui::PushFont(g.bold, 15);
-                ImVec2 ts = ImGui::CalcTextSize(Tr(S::ActivePreset));
-                ImVec2 b0(at.x + w - pad - ts.x - 16 * g.scale, at.y + pad);
-                dl->AddRectFilled(b0, ImVec2(at.x + w - pad, b0.y + ts.y + 6 * g.scale), ImGui::GetColorU32(Accent(1.1f)),
-                                  8 * g.scale);
+                ImVec2 b0(at.x + w - pad - badge.x, badge_below ? at.y + h - pad - badge.y : at.y + pad);
+                dl->AddRectFilled(b0, ImVec2(b0.x + badge.x, b0.y + badge.y), ImGui::GetColorU32(Accent(1.1f)), 8 * g.scale);
                 dl->AddText(ImVec2(b0.x + 8 * g.scale, b0.y + 3 * g.scale), IM_COL32(255, 255, 255, 255), Tr(S::ActivePreset));
                 ImGui::PopFont();
             }
