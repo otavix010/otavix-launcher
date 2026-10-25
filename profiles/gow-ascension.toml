@@ -130,11 +130,12 @@ target = "env"
 type = "choice"
 default = "1"
 label = { pt = "Resolução", en = "Resolution", es = "Resolución" }
-help = { pt = "A resolução em que o jogo desenha. 720p é a do PS3; mais alto deixa a imagem mais nítida e pede mais da placa de vídeo.", en = "The resolution the game draws at. 720p is the PS3's; higher is sharper and asks more of the graphics card.", es = "La resolución a la que el juego dibuja. 720p es la de PS3; más alta es más nítida y exige más a la tarjeta gráfica." }
+help = { pt = "A resolução em que o jogo desenha, em múltiplos dos 720p do PS3; a imagem é ajustada ao tamanho da janela. Mais alto deixa a imagem mais nítida e pede mais da placa de vídeo, não do processador. Numa tela 1080p, 1440p funciona como supersampling: desenha maior e reduz, com bordas mais limpas.", en = "The resolution the game draws at, in multiples of the PS3's 720p; the picture is fitted to the window. Higher is sharper and asks more of the graphics card, not of the processor. On a 1080p screen, 1440p works as supersampling: it draws bigger and scales down, with cleaner edges.", es = "La resolución a la que el juego dibuja, en múltiplos de los 720p de PS3; la imagen se ajusta al tamaño de la ventana. Más alta es más nítida y exige más a la tarjeta gráfica, no al procesador. En una pantalla 1080p, 1440p funciona como supersampling: dibuja más grande y reduce, con bordes más limpios." }
 choices = [
-  { value = "1", label = "720p (PS3)" },
-  { value = "2", label = "1440p" },
-  { value = "3", label = "4K" },
+  { value = "1", label = { pt = "720p (PS3, mais leve)", en = "720p (PS3, lightest)", es = "720p (PS3, más ligera)" } },
+  { value = "2", label = { pt = "1440p (supersampling em telas 1080p)", en = "1440p (supersampling on 1080p screens)", es = "1440p (supersampling en pantallas 1080p)" } },
+  { value = "3", label = "4K (2160p)" },
+  { value = "4", label = "5K (2880p)" },
 ]
 
 [[options]]
