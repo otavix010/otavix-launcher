@@ -1,10 +1,12 @@
 # Servidor do Otavix Launcher
 
-Recebe os **reports de problema**, que ficam guardados e chegam no seu e-mail, e os **pedidos de port**, com os rankings da semana, do mês e de todos os tempos. Roda de graça na Cloudflare (Workers + banco D1). O e-mail sai pelo Resend, que no plano grátis manda 3.000 por mês para o próprio dono da conta, sem precisar de domínio.
+Recebe os **reports de problema**, os **pedidos de port** (com os rankings da semana, do mês e de todos os tempos) e o **desempenho** das partidas de quem aceitou compartilhar. Roda de graça na Cloudflare (Workers + banco D1).
 
-Nada disso está no ar ainda. Para ativar:
+**No ar desde 25/10/2026:** `https://otavix-launcher.otavix-launcher-servidor.workers.dev`, banco `otavix-launcher` na conta do Otavix. Os reports ficam só guardados no banco e são lidos na aba **Administração** do launcher, com a chave de administrador; por escolha do dono, não há e-mail (o Resend, abaixo, é opcional e não está configurado).
 
-1. Crie uma conta grátis em https://dash.cloudflare.com e outra em https://resend.com. No Resend, gere uma API key em "API Keys".
+Para montar de novo, ou em outra conta:
+
+1. Crie uma conta grátis em https://dash.cloudflare.com. Só se quiser os reports também por e-mail: uma conta em https://resend.com e uma API key em "API Keys".
 2. Num terminal nesta pasta:
    ```
    npx wrangler login
@@ -15,8 +17,8 @@ Nada disso está no ar ainda. Para ativar:
    ```
    npx wrangler d1 execute otavix-launcher --remote --file=schema.sql
    npx wrangler secret put ADMIN_TOKEN      (uma senha longa, só sua)
-   npx wrangler secret put RESEND_API_KEY   (a chave do Resend)
-   npx wrangler secret put REPORT_TO        (o e-mail da conta do Resend)
+   npx wrangler secret put RESEND_API_KEY   (opcional: a chave do Resend)
+   npx wrangler secret put REPORT_TO        (opcional: o e-mail da conta do Resend)
    npx wrangler deploy
    ```
 4. O deploy mostra o endereço, algo como `https://otavix-launcher.<sua-conta>.workers.dev`. Coloque-o em `hub.toml`, em `[servidor] url`.
