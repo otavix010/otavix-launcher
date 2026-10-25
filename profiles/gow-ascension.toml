@@ -94,6 +94,10 @@ web = [
   "https://art.gametdb.com/ps3/coverHQ/US/BCUS98232.jpg",
 ]
 
+[icon]
+# the window's and the desktop shortcut's: the disc's ICON0
+files = ["{disco}/PS3_GAME/ICON0.PNG", "PS3_GAME/ICON0.PNG"]
+
 [[pages]]
 id = "video"
 advanced = true

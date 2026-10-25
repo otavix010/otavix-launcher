@@ -40,5 +40,9 @@ std::vector<ArtImage> LoadWebArt(const ArtSpec& spec, const fs::path& cache);
 
 // a file of the game: from the folder, or from the disc image's XDVDFS; limit: only its first bytes
 bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out, size_t limit = SIZE_MAX);
+// a PNG or JPG in memory
+bool DecodeImage(const std::vector<uint8_t>& bytes, ArtImage& out);
+// an Xbox xbe's title image (its $$XTIMAGE section: one DXT texture, the dashboard's icon of the game)
+bool XbeTitleImage(const std::vector<uint8_t>& xbe, ArtImage& out);
 
 }  // namespace launcher

@@ -113,6 +113,10 @@ web = [
   "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802545107d1/1033/background.jpg",
 ]
 
+[icon]
+# the window's and the desktop shortcut's: the game's tile in the Xbox 360 store
+web = ["http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802545107d1/1033/tile.png"]
+
 # ------------------------------------------------------------------------------------------------ video
 
 [[options]]

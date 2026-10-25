@@ -62,6 +62,11 @@ web = [
   "https://thumbnails.libretro.com/Microsoft%20-%20Xbox/Named_Snaps/FIFA%20Street%202%20%28USA%29.png",
 ]
 
+[icon]
+# the window's and the desktop shortcut's: the game's dashboard icon, in its xbe
+kind = "xbe"
+files = ["default.xbe"]
+
 # the page's theme, made by the launcher from the player's game: the menu song, the map's first 68 pieces
 [theme]
 kind = "ea-mpf"

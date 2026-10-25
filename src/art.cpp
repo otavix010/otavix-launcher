@@ -338,18 +338,47 @@ bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint
     return iso.Open(game) && iso.ReadFile(rel, out, limit);
 }
 
-bool ReadImageFile(const fs::path& file, ArtImage& out) {
-    std::vector<uint8_t> bytes;
-    if (!ReadAll(file, bytes) || bytes.empty()) return false;
+bool DecodeImage(const std::vector<uint8_t>& bytes, ArtImage& out) {
+    if (bytes.empty()) return false;
     int w, h, n;
     uint8_t* px = stbi_load_from_memory(bytes.data(), int(bytes.size()), &w, &h, &n, 4);
     if (!px) return false;
-    out.name = U8(file.filename());
     out.w = w;
     out.h = h;
     out.rgba.assign(px, px + size_t(w) * h * 4);
     stbi_image_free(px);
     return true;
+}
+
+bool ReadImageFile(const fs::path& file, ArtImage& out) {
+    std::vector<uint8_t> bytes;
+    if (!ReadAll(file, bytes) || !DecodeImage(bytes, out)) return false;
+    out.name = U8(file.filename());
+    return true;
+}
+
+bool XbeTitleImage(const std::vector<uint8_t>& xbe, ArtImage& out) {
+    if (xbe.size() < 0x180 || std::memcmp(xbe.data(), "XBEH", 4) != 0) return false;
+    uint32_t base = Le32(&xbe[0x104]), count = Le32(&xbe[0x11C]), headers = Le32(&xbe[0x120]) - base;
+    for (uint32_t i = 0; i < count; i++) {
+        size_t h = size_t(headers) + size_t(i) * 56;
+        if (h + 56 > xbe.size()) return false;
+        uint32_t raw = Le32(&xbe[h + 12]), size = Le32(&xbe[h + 16]), name = Le32(&xbe[h + 20]) - base;
+        if (name + 10 > xbe.size() || std::memcmp(&xbe[name], "$$XTIMAGE", 10) != 0) continue;
+        if (size_t(raw) + size > xbe.size() || size < 32) return false;
+        // XPR0: the resource's header (common, data, lock, format, size) after the file's, its texels after the headers
+        const uint8_t* x = &xbe[raw];
+        if (std::memcmp(x, "XPR0", 4) != 0) return false;
+        uint32_t header = Le32(x + 8), data = Le32(x + 16), format = Le32(x + 24);
+        int kind = (format >> 8 & 0xFF) == 0x0C ? 1 : (format >> 8 & 0xFF) == 0x0E ? 3 : (format >> 8 & 0xFF) == 0x0F ? 5 : 0;
+        int w = 1 << (format >> 20 & 15), hgt = 1 << (format >> 24 & 15);
+        if (!kind || size_t(header) + data >= size) return false;
+        out.name = "$$XTIMAGE";
+        out.w = w;
+        out.h = hgt;
+        return Dxt(x + header + data, size - header - data, w, hgt, kind, out.rgba);
+    }
+    return false;
 }
 
 std::vector<ArtImage> LoadWebArt(const ArtSpec& spec, const fs::path& cache) {
