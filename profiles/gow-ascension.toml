@@ -22,7 +22,7 @@ kind = "build"
 done = "out/gerar/7_jogar.ok"
 marks = "out/gerar"
 command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Disco", "{disco}", "-Update", "{update}", "-Firmware", "{firmware}"]
-redo = ["-Refazer"]
+redo = ["-RefazerDe", "4"]  # new code of the port: the PPU, SPU and build steps again, not the disc nor the firmware
 version = { pt = "God of War: Ascension dos EUA (BCUS98232), o disco e o update 1.04", en = "God of War: Ascension, US (BCUS98232): the disc and the 1.04 update", es = "God of War: Ascension de EE. UU. (BCUS98232): el disco y el update 1.04" }
 time = { pt = "Leva de 4 a 20 minutos, conforme o processador, e só uma vez. Precisa de uns 10 GB livres.", en = "It takes 4 to 20 minutes depending on the processor, and only once. About 10 GB free are needed.", es = "Tarda de 4 a 20 minutos según el procesador, y solo una vez. Hacen falta unos 10 GB libres." }
 
@@ -123,6 +123,32 @@ label = { pt = "Monitor", en = "Monitor", es = "Monitor" }
 choices = [
   { value = "0", label = { pt = "Principal", en = "Main", es = "Principal" } },
   { value = "2", label = { pt = "Secundário", en = "Second", es = "Secundario" } },
+]
+
+[[options]]
+page = "video"
+key = "GOWA_FRAMEGEN"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Quadros intermediários", en = "In-between frames", es = "Fotogramas intermedios" }
+help = { pt = "Gera um quadro entre cada dois do jogo, deixando o movimento mais fluido. Funciona melhor com o jogo acima de uns 40 fps.", en = "Makes a frame between every two of the game's, for smoother motion. Works best with the game above about 40 fps.", es = "Genera un fotograma entre cada dos del juego, con un movimiento más fluido. Funciona mejor con el juego por encima de unos 40 fps." }
+choices = [
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+]
+
+[[options]]
+page = "video"
+key = "GOWA_MLAA_BYPASS"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Anti-aliasing do PS3 (MLAA)", en = "PS3 anti-aliasing (MLAA)", es = "Antialiasing de PS3 (MLAA)" }
+help = { pt = "O MLAA original roda no processador. Desligado é mais rápido, principalmente em processadores sem AVX-512.", en = "The original MLAA runs on the processor. Off is faster, above all on processors without AVX-512.", es = "El MLAA original corre en el procesador. Desactivado es más rápido, sobre todo en procesadores sin AVX-512." }
+choices = [
+  { value = "1", label = { pt = "Desligado (mais rápido)", en = "Off (faster)", es = "Desactivado (más rápido)" } },
+  { value = "0", label = { pt = "Ligado", en = "On", es = "Activado" } },
 ]
 
 [[presets]]

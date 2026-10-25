@@ -56,12 +56,18 @@ A página **Como usar**, dentro do launcher, explica tudo passo a passo.
 | [God of War: Betrayal](https://github.com/otavix010/gow-betrayal-pc) | Celular (Java) | jogável | jogável |
 | [God of War: Ascension](https://github.com/otavix010/gow-ascension-pc) | PlayStation 3 | jogável (gerado no seu PC) | em breve |
 | inFAMOUS, inFAMOUS 2 | PlayStation 3 | em desenvolvimento | em breve |
-| Asura's Wrath, Dante's Inferno, Saints Row, Dirt 2, Army of Two (os três) | Xbox 360 | em desenvolvimento | em breve |
+| Asura's Wrath, Dante's Inferno, DiRT 2, Saints Row | Xbox 360 | em desenvolvimento (já rodam; gerados no seu PC) | em breve |
+| Army of Two (os três) | Xbox 360 | em desenvolvimento | em breve |
 | Silent Hill | PlayStation 1 | em desenvolvimento | em breve |
 
 O God of War: Ascension é gerado no seu PC: o launcher baixa o código do port, confere as ferramentas (Python e Visual
 Studio Build Tools, com botões que instalam), pede o disco, o update 1.04 e o firmware do PS3 e traduz e compila o jogo
 uma vez (de 4 a 20 minutos). Nada do jogo vem com o launcher nem com o port.
+
+Os ports de Xbox 360 seguem o mesmo modelo: o launcher pede a `.iso` do jogo, o gerador do port baixa as ferramentas
+(o SDK da ReXGlue e um Clang portátil, uns 330 MB, uma vez para todos), traduz o código do jogo e compila. O jogo lê a
+`.iso` direto. As opções seguem as do FIFA: resolução interna até 4K, FSR 1 ou CAS da AMD com nitidez, FXAA, filtro
+anisotrópico, taxa de quadros real acima da do console (60, 120, 144) e contador de fps.
 
 Capas e fundos vêm de bases públicas (a loja do Xbox 360, o GameTDB, as miniaturas do libretro) e ficam em cache; a
 arte e a música tema da sua própria cópia, quando o port sabe ler, entram no lugar.

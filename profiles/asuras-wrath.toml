@@ -1,12 +1,88 @@
-# Asura's Wrath (Xbox 360) port: listed in the hub while it is made.
+# Asura's Wrath (Xbox 360) port: made on the player's PC. The launcher downloads the port's code, the player points at
+# their .iso, and the port's generator (gerar.ps1) fetches the tools (the ReXGlue SDK and a portable Clang), reads the
+# game's executable from the .iso, translates its PowerPC code to C++ and compiles it there. The game then reads the
+# .iso in place. Option keys are the port's own (asuraswrath.toml beside it, here opcoes.toml at the port's root).
 [game]
 title = "Asura's Wrath"
 subtitle = { pt = "Port nativo do Xbox 360 · recompilação estática", en = "Native Xbox 360 port · static recompilation", es = "Port nativo de Xbox 360 · recompilación estática" }
-status = "wip"
-status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
-exe = "asura.exe"
+exe = "out/build/win-amd64-release/asuraswrath.exe"
+workdir = "exe"
+port_file = "gerar.ps1"
+game_file = "assets/default.xex"
+settings = "opcoes.toml"
+args = ["--game_data_root", "{dir}/assets", "--iso", "{iso}", "--user_data_root", "{dir}/saves", "--cache_root", "{dir}/cache"]
+env = { PORT_OPCOES = "{dir}/opcoes.toml" }
+logs = "out"
+saves = ["saves"]
 accent = [210, 110, 40]
-legal = { pt = "O port lê a sua própria cópia do jogo. Asura's Wrath é marca da Capcom; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Asura's Wrath is a trademark of Capcom; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Asura's Wrath es marca de Capcom; este proyecto no tiene relación con ella." }
+legal = { pt = "O port lê a sua própria cópia do jogo: nada do jogo vem com ele, o código é gerado no seu PC. Asura's Wrath é marca da Capcom; este projeto não tem relação com ela nem com a Microsoft.", en = "The port reads your own copy of the game: none of the game ships with it, the code is made on your PC. Asura's Wrath is a trademark of Capcom; this project is not affiliated with Capcom or Microsoft.", es = "El port lee tu propia copia del juego: nada del juego viene con él, el código se genera en tu PC. Asura's Wrath es marca de Capcom; este proyecto no tiene relación con ella ni con Microsoft." }
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "graphics"
+advanced = true
+label = { pt = "Gráficos", en = "Graphics", es = "Gráficos" }
+
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+# what the port takes for a key its options file lacks
+[defaults]
+fullscreen = true
+fps = 60
+resolution_scale = 2
+filtro = "fsr"
+nitidez = 70
+swap_post_effect = "none"
+anisotropic_override = 5
+mostrar_fps = false
+user_language = 1
+
+# made on this PC by the port's generator, steps marked in out\gerar
+[install]
+kind = "build"
+done = "out/gerar/5_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}"]
+redo = ["-RefazerDe", "3"]  # new code of the port: the translation and the build again, not the tools nor the .iso
+version = { pt = "Asura's Wrath (World), a imagem .iso do disco do Xbox 360", en = "Asura's Wrath (World), the Xbox 360 disc's .iso image", es = "Asura's Wrath (World), la imagen .iso del disco de Xbox 360" }
+time = { pt = "Leva de 5 a 20 minutos, conforme o processador, e só uma vez. Baixa uns 330 MB de ferramentas e precisa de uns 6 GB livres.", en = "It takes 5 to 20 minutes depending on the processor, and only once. It downloads about 330 MB of tools and needs about 6 GB free.", es = "Tarda de 5 a 20 minutos según el procesador, y solo una vez. Descarga unos 330 MB de herramientas y necesita unos 6 GB libres." }
+
+[[install.prereqs]]
+name = "Visual Studio Build Tools (C++ e CMake)"
+check = "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 Microsoft.VisualStudio.Component.VC.CMake.Project -property installationPath"
+output = true
+install = "winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\""
+help = { pt = "Compila o jogo (uns 5 GB). Se o Build Tools já estiver instalado sem o CMake: abra o Visual Studio Installer, clique em Modificar e marque \"C++ CMake tools for Windows\".", en = "It compiles the game (about 5 GB). If Build Tools is installed without CMake: open the Visual Studio Installer, click Modify and tick \"C++ CMake tools for Windows\".", es = "Compila el juego (unos 5 GB). Si Build Tools ya está instalado sin CMake: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ CMake tools for Windows\"." }
+
+[[install.inputs]]
+key = "iso"
+pick = "file"
+filters = ["iso"]
+label = { pt = "A imagem do disco (.iso)", en = "The disc image (.iso)", es = "La imagen del disco (.iso)" }
+help = { pt = "O port lê a .iso direto, não copia os 8 GB: deixe o arquivo onde está.", en = "The port reads the .iso in place, it does not copy the 8 GB: leave the file where it is.", es = "El port lee la .iso directamente, no copia los 8 GB: deja el archivo donde está." }
+
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_jogo"
+label = { pt = "executável do jogo", en = "the game's executable", es = "ejecutable del juego" }
+[[install.steps]]
+id = "3_traducao"
+label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
+[[install.steps]]
+id = "4_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "5_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
 
 # pictures in arte/asuras-wrath: capa (the library card) and fundo, fundo1-4 (the page's background)
 [art]
@@ -16,9 +92,168 @@ include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fund
 card_only = 1
 seconds = 12
 trim = false
-
 # public pictures (a store's box and background), until the player's copy gives its own
 web = [
   "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d80243430817/1033/boxartlg.jpg",
   "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d80243430817/1033/background.jpg",
 ]
+
+# ------------------------------------------------------------------------------------------------ video
+
+[[options]]
+page = "video"
+key = "fullscreen"
+type = "toggle"
+default = true
+label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" }
+help = { pt = "Tela cheia sem bordas. Desligado, o jogo abre numa janela que pode ser redimensionada.", en = "Borderless fullscreen. Off, the game opens in a resizable window.", es = "Pantalla completa sin bordes. Desactivado, el juego se abre en una ventana que se puede redimensionar." }
+
+[[options]]
+page = "video"
+key = "monitor"
+type = "choice"
+default = 0
+label = { pt = "Monitor", en = "Monitor", es = "Monitor" }
+help = { pt = "Em qual monitor o jogo abre.", en = "Which monitor the game opens on.", es = "En qué monitor se abre el juego." }
+choices = [
+  { value = 0, label = { pt = "Padrão", en = "Default", es = "Predeterminado" } },
+  { value = 1, label = { pt = "Principal", en = "Primary", es = "Principal" } },
+  { value = 2, label = { pt = "Segundo", en = "Second", es = "Segundo" } },
+  { value = 3, label = { pt = "Terceiro", en = "Third", es = "Tercero" } },
+]
+
+[[options]]
+page = "video"
+key = "fps"
+type = "choice"
+default = 60
+label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
+help = { pt = "O jogo original roda a 30 fps. Aqui ele desenha cada quadro de verdade a 60 ou mais (não são quadros gerados por IA). Acima de 60, use um monitor com essa taxa.", en = "The original game runs at 30 fps. Here it really draws every frame at 60 or more (no AI-generated frames). Above 60, use a monitor with that refresh rate.", es = "El juego original va a 30 fps. Aquí dibuja cada fotograma de verdad a 60 o más (no son fotogramas generados por IA). Por encima de 60, usa un monitor con esa tasa." }
+choices = [
+  { value = 30, label = { pt = "30 fps (original)", en = "30 fps (original)", es = "30 fps (original)" } },
+  { value = 60, label = "60 fps" },
+  { value = 120, label = "120 fps" },
+  { value = 144, label = "144 fps" },
+]
+
+[[options]]
+page = "video"
+key = "mostrar_fps"
+type = "toggle"
+default = false
+label = { pt = "Mostrar fps", en = "Show fps", es = "Mostrar fps" }
+help = { pt = "A taxa de quadros do jogo no canto da tela.", en = "The game's frame rate in a corner of the screen.", es = "La tasa de fotogramas del juego en una esquina de la pantalla." }
+
+# ------------------------------------------------------------------------------------------------ graphics
+
+[[options]]
+page = "graphics"
+key = "resolution_scale"
+type = "choice"
+default = 2
+label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
+help = { pt = "O Xbox 360 desenha o jogo em 720p. Aqui ele pode desenhar em 2x ou 3x isso: a imagem fica bem mais nítida e pede mais da placa de vídeo.", en = "The Xbox 360 draws the game at 720p. Here it can draw at 2x or 3x that: a much sharper picture that asks more of the graphics card.", es = "La Xbox 360 dibuja el juego a 720p. Aquí puede dibujarlo a 2x o 3x eso: la imagen queda mucho más nítida y exige más a la tarjeta gráfica." }
+choices = [
+  { value = 1, label = "720p (Xbox 360)" },
+  { value = 2, label = "1440p (2x)" },
+  { value = 3, label = "4K (3x)" },
+]
+
+[[options]]
+page = "graphics"
+key = "filtro"
+type = "choice"
+default = "fsr"
+label = { pt = "Ampliação para a tela", en = "Scaling to the screen", es = "Escalado a la pantalla" }
+help = { pt = "Como a imagem chega à resolução do monitor. FSR 1 (AMD) amplia com bordas nítidas; CAS (AMD) só dá nitidez; bilinear é a ampliação simples. DLSS e XeSS precisam de dados de movimento que os jogos do Xbox 360 não têm.", en = "How the picture reaches the monitor's resolution. FSR 1 (AMD) upscales with crisp edges; CAS (AMD) only sharpens; bilinear is the plain upscale. DLSS and XeSS need motion data Xbox 360 games don't have.", es = "Cómo llega la imagen a la resolución del monitor. FSR 1 (AMD) amplía con bordes nítidos; CAS (AMD) solo da nitidez; bilineal es el escalado simple. DLSS y XeSS necesitan datos de movimiento que los juegos de Xbox 360 no tienen." }
+choices = [
+  { value = "fsr", label = "AMD FidelityFX FSR 1" },
+  { value = "cas", label = "AMD FidelityFX CAS" },
+  { value = "bilinear", label = { pt = "Bilinear", en = "Bilinear", es = "Bilineal" } },
+]
+
+[[options]]
+page = "graphics"
+key = "nitidez"
+type = "slider"
+default = 70
+min = 0
+max = 100
+step = 10
+suffix = "%"
+label = { pt = "Nitidez", en = "Sharpness", es = "Nitidez" }
+help = { pt = "A nitidez do FSR ou do CAS. 0% é a mais suave.", en = "FSR's or CAS's sharpening. 0% is the softest.", es = "La nitidez de FSR o CAS. 0% es la más suave." }
+
+[[options]]
+page = "graphics"
+key = "swap_post_effect"
+type = "choice"
+default = "none"
+label = { pt = "Anti-aliasing (FXAA)", en = "Anti-aliasing (FXAA)", es = "Antialiasing (FXAA)" }
+help = { pt = "Suaviza os serrilhados da imagem final. Com a resolução interna em 2x ou 3x quase não é preciso.", en = "Smooths the final picture's jagged edges. With the internal resolution at 2x or 3x it is hardly needed.", es = "Suaviza los bordes dentados de la imagen final. Con la resolución interna a 2x o 3x casi no hace falta." }
+choices = [
+  { value = "none", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "fxaa", label = "FXAA" },
+  { value = "fxaa_extreme", label = { pt = "FXAA forte", en = "Strong FXAA", es = "FXAA fuerte" } },
+]
+
+[[options]]
+page = "graphics"
+key = "anisotropic_override"
+type = "choice"
+default = 5
+label = { pt = "Filtro anisotrópico", en = "Anisotropic filtering", es = "Filtro anisotrópico" }
+help = { pt = "Deixa as texturas nítidas vistas de lado (chão, paredes).", en = "Keeps textures sharp seen at an angle (floors, walls).", es = "Mantiene nítidas las texturas vistas de lado (suelo, paredes)." }
+choices = [
+  { value = -1, label = { pt = "Como o jogo pede", en = "As the game asks", es = "Como pide el juego" } },
+  { value = 3, label = "4x" },
+  { value = 4, label = "8x" },
+  { value = 5, label = "16x" },
+]
+
+# ------------------------------------------------------------------------------------------------ game
+
+[[options]]
+page = "game"
+key = "user_language"
+type = "choice"
+default = 1
+label = { pt = "Idioma", en = "Language", es = "Idioma" }
+help = { pt = "O idioma do console, que o jogo segue nos textos e nas vozes. Este disco tem inglês, espanhol, francês, alemão, italiano e japonês.", en = "The console's language, which the game follows for text and voices. This disc has English, Spanish, French, German, Italian and Japanese.", es = "El idioma de la consola, que el juego sigue en textos y voces. Este disco tiene inglés, español, francés, alemán, italiano y japonés." }
+choices = [
+  { value = 1, label = "English" },
+  { value = 5, label = "Español" },
+  { value = 4, label = "Français" },
+  { value = 3, label = "Deutsch" },
+  { value = 6, label = "Italiano" },
+  { value = 2, label = "日本語" },
+]
+
+# ------------------------------------------------------------------------------------------------ presets
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "Recomendado. 60 fps, resolução interna 1440p, FSR 1 e filtro 16x.", en = "Recommended. 60 fps, 1440p internal resolution, FSR 1 and 16x filtering.", es = "Recomendado. 60 fps, resolución interna 1440p, FSR 1 y filtro 16x." }
+values = { fps = 60, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
+
+[[presets]]
+label = { pt = "Leve", en = "Light", es = "Ligero" }
+help = { pt = "Para GPUs de entrada e notebooks: 720p do Xbox 360 com FSR 1 e FXAA, 60 fps.", en = "For entry GPUs and laptops: the Xbox 360's 720p with FSR 1 and FXAA, 60 fps.", es = "Para GPUs de entrada y portátiles: los 720p de Xbox 360 con FSR 1 y FXAA, 60 fps." }
+values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 80, swap_post_effect = "fxaa", anisotropic_override = 3 }
+
+[[presets]]
+label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
+help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores fortes, com monitor de 120 Hz.", en = "Internal 4K, 120 fps and 16x filtering. For strong GPUs and processors, with a 120 Hz monitor.", es = "4K interno, 120 fps y filtro 16x. Para GPUs y procesadores potentes, con monitor de 120 Hz." }
+values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
+
+[[credits]]
+name = "ReXGlue SDK (rexglue)"
+what = { pt = "recompilador estático e runtime do Xbox 360, derivado do Xenia (BSD-3)", en = "Xbox 360 static recompiler and runtime, derived from Xenia (BSD-3)", es = "recompilador estático y runtime de Xbox 360, derivado de Xenia (BSD-3)" }
+
+[[credits]]
+name = "Xenia"
+what = { pt = "emulador de Xbox 360 em que o runtime se baseia (BSD-3)", en = "the Xbox 360 emulator the runtime builds on (BSD-3)", es = "el emulador de Xbox 360 en que se basa el runtime (BSD-3)" }
+
+[[credits]]
+name = "boma (xenia-canary/game-patches)"
+what = { pt = "achou onde o jogo trava os 30 fps", en = "found where the game holds 30 fps", es = "encontró dónde el juego fija los 30 fps" }

@@ -508,6 +508,9 @@ std::string Expand(Game& gm, const std::string& s) {
                 if (key == "game") out += U8(FindGame(gm));
                 else if (key == "dir") out += U8(gm.entry.dir);
                 else if (const Option* o = gm.prof.Find(key)) out += ToText(gm.store.Get(*o));
+                else
+                    for (const BuildInput& b : gm.prof.install.inputs)  // what the player pointed at when making it
+                        if (b.key == key) out += gm.store.GetOwn(key);
                 i = e;
                 continue;
             }

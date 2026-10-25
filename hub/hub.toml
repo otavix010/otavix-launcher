@@ -4,7 +4,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.8"
+version = "1.0.9"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -33,7 +33,7 @@ accent = [0, 112, 209]
 
 [[libraries]]
 id = "j2me"
-name = { pt = "Celular (Java)", en = "Mobile (Java)", es = "MÃ³vil (Java)" }
+name = { pt = "Celular (Java)", en = "Mobile (Java)", es = "Móvil (Java)" }
 accent = [227, 120, 30]
 
 [[games]]
@@ -79,15 +79,21 @@ platforms = { windows = "wip", linux = "soon" }
 [[games]]
 id = "asuras-wrath"
 library = "x360"
-path = "ports/asuras-wrath"
+# made on each PC from the port's code (gerar.ps1), like the GoW
+path = "%SystemDrive%/OtavixPorts/asuras-wrath"
 profile = "perfis/asuras-wrath.toml"
+repo = "otavix010/asuras-wrath-pc"
+branch = "main"
 platforms = { windows = "wip", linux = "soon" }
 
 [[games]]
 id = "dantes-inferno"
 library = "x360"
-path = "ports/dantes-inferno"
+# made on each PC from the port's code (gerar.ps1)
+path = "%SystemDrive%/OtavixPorts/dantes-inferno"
 profile = "perfis/dantes-inferno.toml"
+repo = "otavix010/dantes-inferno-pc"
+branch = "main"
 platforms = { windows = "wip", linux = "soon" }
 
 [[games]]
@@ -100,15 +106,21 @@ platforms = { windows = "wip", linux = "soon" }
 [[games]]
 id = "saints-row"
 library = "x360"
-path = "ports/saints-row"
+# made on each PC from the port's code (gerar.ps1)
+path = "%SystemDrive%/OtavixPorts/saints-row"
 profile = "perfis/saints-row.toml"
+repo = "otavix010/saints-row-pc"
+branch = "main"
 platforms = { windows = "wip", linux = "soon" }
 
 [[games]]
 id = "dirt-2"
 library = "x360"
-path = "ports/dirt-2"
+# made on each PC from the port's code (gerar.ps1)
+path = "%SystemDrive%/OtavixPorts/dirt-2"
 profile = "perfis/dirt-2.toml"
+repo = "otavix010/dirt-2-pc"
+branch = "main"
 platforms = { windows = "wip", linux = "soon" }
 
 [[games]]
