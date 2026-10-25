@@ -1,5 +1,5 @@
-// Otavix Launcher's server: problem reports (kept, and mailed to the owner through Resend) and port requests with
-// their rankings. A Cloudflare Worker with a D1 database. The launcher sends JSON; answers are lines of tab-separated
+// Otavix Launcher's server: problem reports (kept, and mailed to the owner through Resend; the owner's answer goes
+// back to the launcher that sent it) and port requests with their rankings. A Cloudflare Worker with a D1 database. The launcher sends JSON; answers are lines of tab-separated
 // fields.
 //
 // Secrets (wrangler secret put): ADMIN_TOKEN (the owner's launcher), RESEND_API_KEY and REPORT_TO (mail; without them
@@ -28,6 +28,7 @@ async function route(req, env) {
   if (req.method === 'POST' && p === '/v1/desempenho') return desempenho(req, env);
   if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
+  if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
     if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
@@ -36,6 +37,7 @@ async function route(req, env) {
     if (req.method === 'POST' && p === '/v1/admin/ocultar') return ocultar(req, env);
     if (req.method === 'POST' && p === '/v1/admin/renomear') return renomear(req, env);
     if (req.method === 'POST' && p === '/v1/admin/juntar') return juntar(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/responder') return responder(req, env);
   }
   return text(404, 'não encontrado');
 }
@@ -145,10 +147,34 @@ async function report(req, env) {
 
 async function reports(env) {
   const rows = await env.DB.prepare(
-    'SELECT quando, titulo, plataforma, categoria, contato, descricao, enviado FROM reports ORDER BY quando DESC LIMIT 100'
+    'SELECT id, quando, titulo, plataforma, categoria, contato, descricao, enviado, resposta FROM reports ORDER BY quando DESC LIMIT 100'
   ).all();
+  // the id and the answer last: older launchers read the fields before them by position
   return text(200, rows.results.map((r) =>
-    [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado].map(f).join('\t')).join('\n'));
+    [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado, r.id, r.resposta]
+      .map(f).join('\t')).join('\n'));
+}
+
+// the owner's answer to a report (empty takes it back)
+async function responder(req, env) {
+  const r = await body(req, 8000);
+  const id = Number(r.id);
+  if (!Number.isInteger(id) || id <= 0) return text(400, 'qual report?');
+  const resposta = String(r.resposta || '').trim().slice(0, 1000);
+  await env.DB.prepare('UPDATE reports SET resposta = ?, respondido = ? WHERE id = ?').bind(resposta, resposta ? now() : 0, id).run();
+  return text(200, 'ok');
+}
+
+// the answers to this launcher's own reports: id, game, title, kind, the report's start, the answer, when
+async function respostas(req, env) {
+  const id = install(req);
+  if (!id) return text(400, 'sem identificador');
+  const rows = await env.DB.prepare(
+    "SELECT id, jogo, titulo, categoria, descricao, resposta, respondido FROM reports WHERE install = ? AND resposta <> '' " +
+      'ORDER BY respondido DESC LIMIT 50'
+  ).bind(id).all();
+  return text(200, rows.results.map((r) =>
+    [r.id, r.jogo, r.titulo, r.categoria, r.descricao.slice(0, 200), r.resposta, r.respondido].map(f).join('\t')).join('\n'));
 }
 
 // ------------------------------------------------------------------------------------------------ performance

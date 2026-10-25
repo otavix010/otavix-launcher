@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS reports (
   contato TEXT NOT NULL,
   descricao TEXT NOT NULL,
   sistema TEXT NOT NULL,
-  enviado INTEGER NOT NULL DEFAULT 0
+  enviado INTEGER NOT NULL DEFAULT 0,
+  resposta TEXT NOT NULL DEFAULT '',     -- the owner's answer, read by the launcher that sent it
+  respondido INTEGER NOT NULL DEFAULT 0  -- when it was answered (migracao-respostas.sql for a database made before)
 );
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip, quando);
 

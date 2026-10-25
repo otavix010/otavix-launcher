@@ -16,6 +16,7 @@ Para montar de novo, ou em outra conta:
 3. Crie as tabelas e as senhas:
    ```
    npx wrangler d1 execute otavix-launcher --remote --file=schema.sql
+   (banco criado antes de 25/10/2026: rode uma vez também o migracao-respostas.sql, que acrescenta a resposta do dono aos reports)
    npx wrangler secret put ADMIN_TOKEN      (uma senha longa, só sua)
    npx wrangler secret put RESEND_API_KEY   (opcional: a chave do Resend)
    npx wrangler secret put REPORT_TO        (opcional: o e-mail da conta do Resend)

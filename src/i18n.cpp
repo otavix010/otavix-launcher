@@ -348,6 +348,16 @@ constexpr Row kRows[] = {
     {"Você já tinha pedido %s.", "You had already requested %s.", "Ya habías pedido %s."},
     {"Pedido", "Requested", "Pedido"},
     {"Procurar", "Search", "Buscar"},
+    {"Resposta do desenvolvedor", "A reply from the developer", "Respuesta del desarrollador"},
+    {"Seu report:", "Your report:", "Tu reporte:"},
+    {"Entendi", "Got it", "Entendido"},
+    {"Respostas aos seus reports", "Replies to your reports", "Respuestas a tus reportes"},
+    {"Responder", "Reply", "Responder"},
+    {"A resposta aparece no launcher de quem enviou o report (num aviso e na página do jogo).",
+     "The reply shows in the launcher that sent the report (in a notice and on the game's page).",
+     "La respuesta aparece en el launcher que envió el reporte (en un aviso y en la página del juego)."},
+    {"Enviar resposta", "Send reply", "Enviar respuesta"},
+    {"Sua resposta", "Your reply", "Tu respuesta"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

@@ -246,6 +246,13 @@ struct App {
     std::string admin_msg, adm_console, adm_key;
     char adm_name[96] = "", admin_key[160] = "";
     std::string admin_token;  // the server's key, kept sealed by Windows in hub_state.toml
+    char adm_reply[1024] = "";  // the owner's answer being written to a report, and that report's id
+    std::string adm_reply_id;
+    // the owner's answers to the reports sent from this computer: id, game, title, kind, the report's start, the
+    // answer, when; those not seen yet are shown in a pop-up
+    Call answers_call;
+    std::vector<std::vector<std::string>> answers;
+    std::vector<size_t> answers_new;
     // a mod .zip picked in the file dialog
     std::string zip_path;
     bool zip_ready = false;
@@ -665,6 +672,7 @@ void OpenGame(int i);
 std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
 const std::string& Server();
 Headers ServerHeaders(bool admin = false);
+const std::string& Str(const std::vector<std::string>& row, size_t i);
 
 // ---------------------------------------------------------------------------------------------- performance
 
@@ -1614,6 +1622,9 @@ void PeriodicChecks() {
     if (g.last_check && now - g.last_check < 6ull * 3600 * 1000) return;
     bool first = g.last_check == 0;
     g.last_check = now;
+    // the owner's answers to the reports sent from here
+    if (!Server().empty() && g.answers_call.Get() == Call::State::Idle)
+        g.answers_call.Start("GET", Server() + "/v1/respostas", ServerHeaders(), "");
     if (!g.state.Bool("check_updates", true)) return;
     UpdateCheck u = g.updater.Get();
     // on start the launcher's own look is already on its way
@@ -1634,8 +1645,23 @@ void PeriodicChecks() {
 void MarkdownText(const std::string& md);
 
 // pop-ups over any page: the first measured session's question about sharing, a newer launcher, newer ports
+// an answer is seen as its report and its time: an answer changed later shows again
+std::string AnswerMark(const std::vector<std::string>& row) { return Str(row, 0) + ":" + Str(row, 6); }
+
 void Notices() {
     if (g.perf_call.Get() == Call::State::Done) g.perf_call.Reset();  // a session sent: nothing to show
+    HttpResult ar;
+    if (g.answers_call.Get(&ar) == Call::State::Done) {
+        if (ar.Ok()) {
+            g.answers = Lines(ar.body);
+            std::string seen = "," + g.state.Str("answers_seen", "") + ",";
+            g.answers_new.clear();
+            for (size_t i = 0; i < g.answers.size(); i++)
+                if (!Str(g.answers[i], 5).empty() && seen.find("," + AnswerMark(g.answers[i]) + ",") == std::string::npos)
+                    g.answers_new.push_back(i);
+        }
+        g.answers_call.Reset();
+    }
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
     float width = std::min(io.DisplaySize.x * 0.85f, 780 * g.scale);
@@ -1781,6 +1807,39 @@ void Notices() {
             for (auto& [i, latest] : ports) g.state.Set(("ignored_port_" + g.games[size_t(i)]->entry.id).c_str(), latest);
             ImGui::CloseCurrentPopup();
         }
+        ImGui::EndPopup();
+    }
+
+    // the owner's answers to reports sent from here, each once
+    if (!g.answers_new.empty() && !any_open) {
+        ImGui::OpenPopup("answers");
+        any_open = true;
+    }
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(width, 0));
+    if (ImGui::BeginPopupModal("answers", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::AnswerTitle));
+        ImGui::PopFont();
+        for (size_t i : g.answers_new) {
+            if (i >= g.answers.size()) continue;
+            const auto& row = g.answers[i];
+            ImGui::Spacing();
+            ImGui::TextColored(Accent(1.3f), "%s · %s", Str(row, 2).c_str(), Str(row, 3).c_str());
+            Dim((std::string(Tr(S::AnswerYourReport)) + " \"" + Str(row, 4) + "\"").c_str());
+            ImGui::TextWrapped("%s", Str(row, 5).c_str());
+        }
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        if (ImGui::Button(Tr(S::AnswerOk))) {
+            // the marks of the answers there are now: those of answers gone drop out
+            std::string seen;
+            for (const auto& row : g.answers) seen += (seen.empty() ? "" : ",") + AnswerMark(row);
+            g.state.Set("answers_seen", seen);
+            g.answers_new.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor();
         ImGui::EndPopup();
     }
     ImGui::PopFont();
@@ -3462,6 +3521,23 @@ void ReportPage() {
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::OpenReports))) OpenPath(g.hub_dir / "reports");
     if (!g.rep_msg.empty()) ImGui::TextWrapped("%s", g.rep_msg.c_str());
+
+    // the owner's answers to this game's reports sent from here
+    bool heading = false;
+    for (const auto& row : g.answers) {
+        if (Str(row, 1) != gm.entry.id || Str(row, 5).empty()) continue;
+        if (!heading) {
+            ImGui::Dummy(ImVec2(0, 10 * g.scale));
+            ImGui::Separator();
+            ImGui::PushFont(g.bold, 22);
+            ImGui::TextUnformatted(Tr(S::AnswersHere));
+            ImGui::PopFont();
+            heading = true;
+        }
+        ImGui::Spacing();
+        Dim((std::string(Tr(S::AnswerYourReport)) + " \"" + Str(row, 4) + "\"").c_str());
+        ImGui::TextWrapped("%s", Str(row, 5).c_str());
+    }
 }
 
 // ---------------------------------------------------------------------------------------------- port requests
@@ -4085,8 +4161,9 @@ void AdminPage() {
     ImGui::TextUnformatted(Tr(S::RecentReports));
     ImGui::PopFont();
     if (g.admin_reports.empty()) Dim(Tr(S::NoRequests));
+    bool open_reply = false;
     for (size_t i = 0; i < g.admin_reports.size(); i++) {
-        const auto& row = g.admin_reports[i];  // when, title, platform, kind, contact, description, mailed
+        const auto& row = g.admin_reports[i];  // when, title, platform, kind, contact, description, mailed, id, answer
         SDL_DateTime d{};
         SDL_TimeToDateTime(SDL_Time(std::atoll(Str(row, 0).c_str())) * SDL_NS_PER_SECOND, &d, true);
         ImGui::PushID(int(i));
@@ -4099,9 +4176,35 @@ void AdminPage() {
             ImGui::TextDisabled("(%s)", Tr(S::Mailed));
         }
         Dim(Str(row, 5).c_str());
+        if (!Str(row, 8).empty()) {
+            ImGui::PushStyleColor(ImGuiCol_Text, Accent(1.3f));
+            ImGui::TextWrapped("%s: %s", Tr(S::Answered), Str(row, 8).c_str());
+            ImGui::PopStyleColor();
+        }
+        // the id comes from the server as digits; a server without answers sends none
+        const std::string& id = Str(row, 7);
+        if (!id.empty() && id.find_first_not_of("0123456789") == std::string::npos && ImGui::SmallButton(Tr(S::AnswerBtn))) {
+            g.adm_reply_id = id;
+            std::snprintf(g.adm_reply, sizeof(g.adm_reply), "%s", Str(row, 8).c_str());
+            open_reply = true;
+        }
         ImGui::Spacing();
         ImGui::PopID();
     }
+    if (open_reply) ImGui::OpenPopup("reply");
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16 * g.scale, 14 * g.scale));
+    if (ImGui::BeginPopup("reply")) {
+        Dim(Tr(S::AnswerLabel));
+        ImGui::InputTextMultiline("##reply", g.adm_reply, sizeof(g.adm_reply), ImVec2(620 * g.scale, 150 * g.scale));
+        if (ImGui::Button(Tr(S::AnswerSend))) {
+            AdminPost("responder", "{\"id\":" + g.adm_reply_id + ",\"resposta\":" + Json(g.adm_reply) + "}");
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::Cancel))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar();
 }
 
 // ---------------------------------------------------------------------------------------------- mods
