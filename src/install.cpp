@@ -74,6 +74,13 @@ std::string Lower(std::string s) {
 
 std::string Ext(const fs::path& p) { return Lower(U8(p.extension())); }
 
+bool ReadWhole(const fs::path& p, std::vector<uint8_t>& out) {
+    std::ifstream f(p, std::ios::binary);
+    if (!f) return false;
+    out.assign(std::istreambuf_iterator<char>(f), {});
+    return true;
+}
+
 uint64_t FolderBytes(const fs::path& d) {
     uint64_t n = 0;
     std::error_code ec;
@@ -118,7 +125,7 @@ std::vector<fs::path> Candidates(const fs::path& dir, const InstallSpec& spec) {
             continue;
         }
         const fs::path& p = it->path();
-        if (it->is_regular_file(ec) && IsDiscImage(p)) out.push_back(p);
+        if (it->is_regular_file(ec) && (IsDiscImage(p) || IsGameFile(p, spec))) out.push_back(p);
         else if (it->is_directory(ec) && !spec.check.empty() && fs::is_regular_file(p / FromU8(spec.check), ec)) out.push_back(p);
     }
     return out;
@@ -140,6 +147,13 @@ bool IsArchive(const fs::path& p) {
 bool IsDiscImage(const fs::path& p) {
     std::string e = Ext(p);
     return e == ".iso" || e == ".xiso";
+}
+
+bool IsGameFile(const fs::path& p, const InstallSpec& spec) {
+    std::string e = Ext(p);
+    for (const std::string& f : spec.files)
+        if (e == "." + Lower(f)) return true;
+    return false;
 }
 
 void Installer::Start(const fs::path& source, const fs::path& dest, const InstallSpec& spec) {
@@ -258,14 +272,24 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     bool ok = false;
     for (const fs::path& c : found) {
         std::vector<uint8_t> bytes;
-        if (!spec.check.empty() && ReadGameFile(c, spec.check, bytes) &&
-            Lower(Sha1Hex(bytes.data(), bytes.size())) == Lower(spec.sha1)) {
+        bool read = spec.check.empty() ? IsGameFile(c, spec) && ReadWhole(c, bytes) : ReadGameFile(c, spec.check, bytes);
+        if (read && Lower(Sha1Hex(bytes.data(), bytes.size())) == Lower(spec.sha1)) {
             pick = c;
             ok = true;
             break;
         }
     }
     if (spec.sha1.empty()) ok = true;
+    // a game of one file is copied into the port's folder: cleaning Downloads does not lose it
+    if (work.empty() && IsGameFile(pick, spec)) {
+        fs::create_directories(dest, ec);
+        fs::path final = dest / pick.filename();
+        if (fs::absolute(final, ec) != fs::absolute(pick, ec)) {
+            fs::copy_file(pick, final, fs::copy_options::overwrite_existing, ec);
+            if (ec) return fail("não foi possível copiar o jogo: " + ec.message());
+        }
+        pick = final;
+    }
     // an archive's game moves out of the unpacking folder into the port's; the rest of it goes
     if (!work.empty()) {
         fs::path final = dest / pick.filename();

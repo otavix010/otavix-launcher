@@ -1,15 +1,179 @@
-# God of War: Betrayal (Java ME) port: ready on Linux / SteamOS, the Windows build comes later.
+# God of War: Betrayal (Java ME) port, on Windows and on Linux / SteamOS: what the launcher shows. Copied beside the
+# launcher as launcher.toml. The port takes its choices as arguments (args below), not from a settings file: the
+# options keep them in the port's settings.toml for the launcher's own use.
+
 [game]
 title = "God of War: Betrayal"
 subtitle = { pt = "Port nativo do jogo de celular (Java ME)", en = "Native port of the mobile game (Java ME)", es = "Port nativo del juego de móvil (Java ME)" }
-status = "wip"
-status_text = { pt = "Em breve no Windows", en = "Coming to Windows", es = "Próximamente en Windows" }
-exe = "gowb-port.exe"
-game_file = "art/hero.png"
-search = ["."]
+exe = "GoW Betrayal.exe"
+logs = "logs"
+saves = ["save"]
+game_option = "game_path"
+args = ["--jogo", "{game}", "--idioma", "{idioma}", "--largura", "{largura}", "--efeitos", "{efeitos}", "--filter", "{filtro}", "{janela}", "{laterais}", "{musica_fases}"]
 accent = [190, 40, 30]
+legal = { pt = "Este launcher e o port não trazem nenhum arquivo do jogo. Eles leem o seu próprio arquivo .jar de God of War: Betrayal. God of War é marca da Sony Interactive Entertainment; este projeto de fãs não tem relação com a Sony nem com os autores do jogo.", en = "This launcher and the port ship no game files. They read your own God of War: Betrayal .jar file. God of War is a trademark of Sony Interactive Entertainment; this fan project is not affiliated with Sony or the game's makers.", es = "Este launcher y el port no incluyen ningún archivo del juego. Leen tu propio archivo .jar de God of War: Betrayal. God of War es marca de Sony Interactive Entertainment; este proyecto de fans no tiene relación con Sony ni con los autores del juego." }
+
+# the game is one file: picked, copied into jogo\ and checked
+[install]
+files = ["jar"]
+sha1 = "e947d7c9c8955879b46061e19fea0dab10f6e409"
+version = { pt = "God of War: Betrayal para celular, em inglês, 240x320, versão 0.1.95 (o arquivo .jar)", en = "God of War: Betrayal for mobile phones, English, 240x320, version 0.1.95 (the .jar file)", es = "God of War: Betrayal para móviles, en inglés, 240x320, versión 0.1.95 (el archivo .jar)" }
+help = { pt = "Escolha o arquivo .jar do jogo que você tem. O launcher copia para a pasta do port e confere a versão; outras versões podem funcionar, mas sem a tradução.", en = "Pick the game's .jar file you have. The launcher copies it into the port's folder and checks the version; other versions may work, but without the translation.", es = "Elige el archivo .jar del juego que tienes. El launcher lo copia a la carpeta del port y comprueba la versión; otras versiones pueden funcionar, pero sin la traducción." }
+folder = "jogo"
 
 [art]
 kind = "image"
-include = ["art/hero.png", "art/horizontal.png"]
+folder = "../arte/gow-betrayal"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg"]
+card_only = 1
+seconds = 12
 trim = false
+
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+# ------------------------------------------------------------------------------------------------ game
+
+[[options]]
+page = "game"
+key = "idioma"
+type = "choice"
+default = "pt-BR"
+label = { pt = "Idioma do jogo", en = "Game language", es = "Idioma del juego" }
+help = { pt = "O port traz a tradução para o português do Brasil; em inglês fica o texto original.", en = "The port carries a Brazilian Portuguese translation; English is the original text.", es = "El port trae la traducción al portugués de Brasil; en inglés queda el texto original." }
+choices = [
+  { value = "pt-BR", label = "Português (Brasil)" },
+  { value = "en", label = "English" },
+]
+
+[[options]]
+page = "game"
+key = "game_path"
+type = "path"
+pick = "file"
+filters = ["jar"]
+label = { pt = "Arquivo do jogo", en = "Game file", es = "Archivo del juego" }
+help = { pt = "O .jar do jogo. Em branco, o port procura na pasta jogo dele, em Downloads e na Área de Trabalho.", en = "The game's .jar. Empty, the port looks in its jogo folder, in Downloads and on the Desktop.", es = "El .jar del juego. Vacío, el port busca en su carpeta jogo, en Descargas y en el Escritorio." }
+
+# ------------------------------------------------------------------------------------------------ video
+
+[[options]]
+page = "video"
+key = "largura"
+type = "choice"
+default = "auto"
+label = { pt = "Formato da imagem", en = "Picture shape", es = "Formato de la imagen" }
+help = { pt = "Tela inteira: o jogo enxerga mais do cenário dos lados, na proporção do monitor. Original: a tela em pé do celular (240x320), com faixas nos lados.", en = "Full screen: the game shows more of the level at the sides, in the monitor's shape. Original: the phone's upright screen (240x320), with bars at the sides.", es = "Pantalla completa: el juego muestra más del escenario a los lados, en la proporción del monitor. Original: la pantalla vertical del móvil (240x320), con franjas a los lados." }
+choices = [
+  { value = "auto", label = { pt = "Tela inteira", en = "Full screen", es = "Pantalla completa" } },
+  { value = "240", label = { pt = "Original, em pé", en = "Original, upright", es = "Original, vertical" } },
+]
+
+[[options]]
+page = "video"
+key = "janela"
+type = "choice"
+default = ""
+label = { pt = "Modo de exibição", en = "Display mode", es = "Modo de pantalla" }
+choices = [
+  { value = "", label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" } },
+  { value = "--windowed", label = { pt = "Janela", en = "Window", es = "Ventana" } },
+]
+
+[[options]]
+page = "video"
+key = "filtro"
+type = "choice"
+default = "sharp"
+label = { pt = "Ampliação", en = "Scaling", es = "Ampliación" }
+help = { pt = "Nítida: pixels nítidos, só a borda entre eles suavizada (bom em qualquer tamanho de tela). Pixels: sem nenhuma suavização. Suave: imagem suavizada.", en = "Sharp: crisp pixels, only the edge between them smoothed (good at any screen size). Pixels: no smoothing at all. Smooth: a smoothed picture.", es = "Nítida: píxeles nítidos, solo el borde entre ellos suavizado (bueno en cualquier tamaño de pantalla). Píxeles: sin ningún suavizado. Suave: imagen suavizada." }
+choices = [
+  { value = "sharp", label = { pt = "Nítida", en = "Sharp", es = "Nítida" } },
+  { value = "nearest", label = { pt = "Pixels", en = "Pixels", es = "Píxeles" } },
+  { value = "smooth", label = { pt = "Suave", en = "Smooth", es = "Suave" } },
+]
+
+[[options]]
+page = "video"
+key = "laterais"
+type = "choice"
+default = ""
+label = { pt = "Laterais no formato original", en = "Sides in the original shape", es = "Laterales en el formato original" }
+help = { pt = "Com a tela em pé do celular, o que aparece dos lados.", en = "With the phone's upright screen, what shows at the sides.", es = "Con la pantalla vertical del móvil, lo que aparece a los lados." }
+choices = [
+  { value = "", label = { pt = "Fundo desfocado", en = "Blurred background", es = "Fondo desenfocado" } },
+  { value = "--no-ambient", label = { pt = "Pretas", en = "Black", es = "Negras" } },
+]
+
+# ------------------------------------------------------------------------------------------------ audio
+
+[[options]]
+page = "audio"
+key = "efeitos"
+type = "choice"
+default = "realcados"
+label = { pt = "Efeitos sonoros", en = "Sound effects", es = "Efectos de sonido" }
+help = { pt = "Corrigidos: as notas graves demais de alguns efeitos, que no original soam como grunhido, ficam no tom certo. Originais: como no celular.", en = "Fixed: the too-low notes of some effects, which sound like grunts in the original, play at the right pitch. Original: as on the phone.", es = "Corregidos: las notas demasiado graves de algunos efectos, que en el original suenan como gruñidos, quedan en el tono correcto. Originales: como en el móvil." }
+choices = [
+  { value = "realcados", label = { pt = "Corrigidos", en = "Fixed", es = "Corregidos" } },
+  { value = "original", label = { pt = "Originais", en = "Original", es = "Originales" } },
+]
+
+[[options]]
+page = "audio"
+key = "musica_fases"
+type = "choice"
+default = ""
+label = { pt = "Música nas fases", en = "Music in the levels", es = "Música en las fases" }
+help = { pt = "O tema do jogo tocando também nas fases. No celular ele só toca nos menus.", en = "The game's theme playing in the levels too. On the phone it only plays in the menus.", es = "El tema del juego sonando también en las fases. En el móvil solo suena en los menús." }
+choices = [
+  { value = "", label = { pt = "Ligada", en = "On", es = "Activada" } },
+  { value = "--sem-musica-fases", label = { pt = "Desligada", en = "Off", es = "Desactivada" } },
+]
+
+# ------------------------------------------------------------------------------------------------ presets
+
+[[presets]]
+label = { pt = "Tela inteira", en = "Full screen", es = "Pantalla completa" }
+help = { pt = "Recomendado. Tela cheia na proporção do monitor, com o tema também nas fases e os efeitos corrigidos.", en = "Recommended. Fullscreen in the monitor's shape, with the theme in the levels too and the fixed effects.", es = "Recomendado. Pantalla completa en la proporción del monitor, con el tema también en las fases y los efectos corregidos." }
+values = { largura = "auto", janela = "", efeitos = "realcados", musica_fases = "" }
+
+[[presets]]
+label = { pt = "Como no celular", en = "As on the phone", es = "Como en el móvil" }
+help = { pt = "A tela em pé de 240x320 e os sons originais, sem o tema nas fases.", en = "The upright 240x320 screen and the original sounds, without the theme in the levels.", es = "La pantalla vertical de 240x320 y los sonidos originales, sin el tema en las fases." }
+values = { largura = "240", janela = "", efeitos = "original", musica_fases = "--sem-musica-fases" }
+
+[[presets]]
+label = { pt = "Janela", en = "Window", es = "Ventana" }
+help = { pt = "O jogo numa janela, para jogar ao lado de outras coisas.", en = "The game in a window, to play beside other things.", es = "El juego en una ventana, para jugar junto a otras cosas." }
+values = { largura = "auto", janela = "--windowed" }
+
+# ------------------------------------------------------------------------------------------------ credits
+
+[[credits]]
+name = "LWJGL"
+what = { pt = "janela, OpenGL, áudio e controles (BSD)", en = "window, OpenGL, audio and controllers (BSD)", es = "ventana, OpenGL, audio y mandos (BSD)" }
+
+[[credits]]
+name = "ASM (OW2)"
+what = { pt = "ajustes no código do jogo ao carregar (BSD)", en = "changes to the game's code as it loads (BSD)", es = "ajustes en el código del juego al cargar (BSD)" }
+
+[[credits]]
+name = "GeneralUser GS (S. Christian Collins)"
+what = { pt = "SoundFont da música", en = "the music's SoundFont", es = "SoundFont de la música" }
+
+[[credits]]
+name = "Eclipse Temurin"
+what = { pt = "o Java que vem junto (GPLv2 com Classpath Exception)", en = "the bundled Java (GPLv2 with Classpath Exception)", es = "el Java incluido (GPLv2 con Classpath Exception)" }

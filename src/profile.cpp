@@ -77,6 +77,10 @@ bool Profile::Load(const fs::path& file, std::string& error) {
     install.sha1 = std::as_const(t)["install"]["sha1"].value_or(std::string());
     install.version = ReadText(std::as_const(t)["install"]["version"]);
     install.folder = std::as_const(t)["install"]["folder"].value_or(std::string("jogo"));
+    if (const toml::array* f = std::as_const(t)["install"]["files"].as_array())
+        for (auto& e : *f)
+            if (auto v = e.value<std::string>()) install.files.push_back(*v);
+    install.help = ReadText(std::as_const(t)["install"]["help"]);
     exe = g["exe"].value_or(std::string());
     settings = g["settings"].value_or(settings);
     logs = g["logs"].value_or(logs);

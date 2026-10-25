@@ -90,6 +90,8 @@ struct InstallSpec {
     std::string sha1;              // the release the port was made from
     Text version;                  // that release, as the player would look for it
     std::string folder = "jogo";   // where an archive's game is kept, in the port's folder
+    std::vector<std::string> files;  // a game that is one file: its extensions (jar); copied into folder, its SHA-1 checked
+    Text help;                       // what the player picks, for such a game
 };
 
 struct Profile {

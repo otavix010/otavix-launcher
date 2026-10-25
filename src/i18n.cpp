@@ -273,6 +273,8 @@ constexpr Row kRows[] = {
     {"Agora não", "Not now", "Ahora no"},
     {"Para fechar o jogo: segure Back + Start (Select + Start) por 2 segundos, ou Alt+F4.", "To close the game: hold Back + Start (Select + Start) for 2 seconds, or Alt+F4.", "Para cerrar el juego: mantén Back + Start (Select + Start) 2 segundos, o Alt+F4."},
     {"Fechar o jogo segurando Back + Start", "Close the game by holding Back + Start", "Cerrar el juego manteniendo Back + Start"},
+    {"Escolher o arquivo do jogo", "Pick the game file", "Elegir el archivo del juego"},
+    {"O launcher copia o arquivo para a pasta do port e confere a versão.", "The launcher copies the file into the port's folder and checks the version.", "El launcher copia el archivo a la carpeta del port y comprueba la versión."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

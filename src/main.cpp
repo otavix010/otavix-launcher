@@ -407,8 +407,13 @@ fs::path FindGame(Game& gm) {
     if (!gm.prof.install.folder.empty()) {
         fs::path own = gm.entry.dir / FromU8(gm.prof.install.folder);
         if (fs::is_directory(own, ec)) {
-            if (holds(own)) return own;
-            if (fs::path img = has_image(own); !img.empty()) return img;
+            if (!gm.prof.install.files.empty()) {
+                for (auto& e : fs::directory_iterator(own, ec))
+                    if (e.is_regular_file(ec) && IsGameFile(e.path(), gm.prof.install)) return e.path();
+            } else {
+                if (holds(own)) return own;
+                if (fs::path img = has_image(own); !img.empty()) return img;
+            }
         }
     }
     fs::path d = gm.entry.dir;
@@ -537,7 +542,12 @@ void Launch(int index) {
     if (const Option* o = gm.prof.exe_option.empty() ? nullptr : gm.prof.Find(gm.prof.exe_option))
         exe = ToText(gm.store.Get(*o));
     std::vector<std::string> args{U8(gm.entry.dir / FromU8(exe))};
-    for (const std::string& a : gm.prof.args) args.push_back(Expand(gm, a));
+    for (const std::string& a : gm.prof.args) {
+        std::string v = Expand(gm, a);
+        // an option standing alone that is only a flag ("--windowed" or nothing) leaves no empty argument behind
+        if (v.empty() && a.size() > 2 && a.front() == '{' && a.back() == '}' && a != "{game}") continue;
+        args.push_back(v);
+    }
     std::vector<const char*> argv;
     for (auto& a : args) argv.push_back(a.c_str());
     argv.push_back(nullptr);
@@ -1075,7 +1085,7 @@ void InstallPicked(void*, const char* const* files, int) {
 }
 
 // what the player downloaded: an archive or a disc image, or the folder of a game already unpacked
-enum class Pick { Download, Image, Folder };
+enum class Pick { Download, Image, Folder, File };
 
 void PickInstall(Pick what) {
     {
@@ -1087,6 +1097,19 @@ void PickInstall(Pick what) {
     if (const char* home = SDL_getenv("USERPROFILE")) start = std::string(home) + "\\Downloads";
     if (what == Pick::Folder) {
         SDL_ShowOpenFolderDialog(InstallPicked, nullptr, g.win, start.c_str(), false);
+    } else if (what == Pick::File) {
+        // the profile's extensions: "Jogo (.jar)", "jar"
+        static std::string name, pattern;
+        name = "Jogo (";
+        pattern.clear();
+        for (const std::string& e : G().prof.install.files) {
+            name += (pattern.empty() ? "." : ", .") + e;
+            pattern += (pattern.empty() ? "" : ";") + e;
+        }
+        name += ")";
+        static SDL_DialogFileFilter filter;
+        filter = {name.c_str(), pattern.c_str()};
+        SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, &filter, 1, start.c_str(), false);
     } else if (what == Pick::Image) {
         static const SDL_DialogFileFilter kImage[] = {{"Imagem do disco (.iso)", "iso;xiso"}};
         SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kImage, 1, start.c_str(), false);
@@ -1503,10 +1526,12 @@ void HomePage() {
                     }
                 }
             }
-            if (Playable(gm, g.here) && ImGui::SmallButton(Tr(S::ChangeGame))) PickInstall(Pick::Download);
+            if (Playable(gm, g.here) && ImGui::SmallButton(Tr(S::ChangeGame)))
+                PickInstall(gm.prof.install.files.empty() ? Pick::Download : Pick::File);
         } else {
             ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::GameNotInstalled));
-            ImGui::TextWrapped("%s", Tr(S::InstallHelp));
+            bool one_file = !gm.prof.install.files.empty();
+            ImGui::TextWrapped("%s", one_file && !gm.prof.install.help.Empty() ? Tx(gm.prof.install.help) : Tr(S::InstallHelp));
             if (!gm.prof.install.version.Empty()) {
                 ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
                 ImGui::SameLine();
@@ -1532,20 +1557,26 @@ void HomePage() {
                 ImGui::PopFont();
                 return pressed;
             };
-            if (way("##auto", Tr(S::InstallAuto), Tr(S::InstallAutoText), true)) PickInstall(Pick::Download);
-            ImGui::SameLine(0, gap);
-            if (way("##manual", Tr(S::InstallManual), Tr(S::InstallManualText), gm.manual_open)) gm.manual_open = !gm.manual_open;
-            if (gm.manual_open) {
-                ImGui::Spacing();
-                ImGui::TextUnformatted(Tr(S::ManualSteps));
-                ImGui::Indent();
-                ImGui::TextWrapped("%s", Tr(S::ManualStep1));
-                ImGui::TextWrapped("%s", Tr(S::ManualStep2));
-                ImGui::TextWrapped("%s", Tr(S::ManualStep3));
-                ImGui::Unindent();
-                if (ImGui::Button(Tr(S::PickImage))) PickInstall(Pick::Image);
-                ImGui::SameLine();
-                if (ImGui::Button(Tr(S::HaveFolder))) PickInstall(Pick::Folder);
+            if (one_file) {
+                // one file to pick: the launcher copies and checks it
+                w = ImGui::GetContentRegionAvail().x;
+                if (way("##file", Tr(S::InstallFile), Tr(S::InstallFileText), true)) PickInstall(Pick::File);
+            } else {
+                if (way("##auto", Tr(S::InstallAuto), Tr(S::InstallAutoText), true)) PickInstall(Pick::Download);
+                ImGui::SameLine(0, gap);
+                if (way("##manual", Tr(S::InstallManual), Tr(S::InstallManualText), gm.manual_open)) gm.manual_open = !gm.manual_open;
+                if (gm.manual_open) {
+                    ImGui::Spacing();
+                    ImGui::TextUnformatted(Tr(S::ManualSteps));
+                    ImGui::Indent();
+                    ImGui::TextWrapped("%s", Tr(S::ManualStep1));
+                    ImGui::TextWrapped("%s", Tr(S::ManualStep2));
+                    ImGui::TextWrapped("%s", Tr(S::ManualStep3));
+                    ImGui::Unindent();
+                    if (ImGui::Button(Tr(S::PickImage))) PickInstall(Pick::Image);
+                    ImGui::SameLine();
+                    if (ImGui::Button(Tr(S::HaveFolder))) PickInstall(Pick::Folder);
+                }
             }
             if (is.stage == Installer::Stage::Failed)
                 ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s: %s", Tr(S::InstallFailed), is.error.c_str());
