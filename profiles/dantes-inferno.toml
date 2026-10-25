@@ -28,6 +28,16 @@ advanced = true
 label = { pt = "Gráficos", en = "Graphics", es = "Gráficos" }
 
 [[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
+[[pages]]
 id = "game"
 advanced = true
 label = { pt = "Jogo", en = "Game", es = "Juego" }
@@ -42,6 +52,10 @@ nitidez = 70
 swap_post_effect = "none"
 anisotropic_override = 5
 mostrar_fps = false
+volume = 100
+vibration = true
+zona_morta_esquerda = 0
+zona_morta_direita = 0
 user_language = 1
 
 # made on this PC by the port's generator, steps marked in out\gerar
@@ -162,10 +176,11 @@ key = "filtro"
 type = "choice"
 default = "fsr"
 label = { pt = "Ampliação para a tela", en = "Scaling to the screen", es = "Escalado a la pantalla" }
-help = { pt = "Como a imagem chega à resolução do monitor. FSR 1 (AMD) amplia com bordas nítidas; CAS (AMD) só dá nitidez; bilinear é a ampliação simples. DLSS e XeSS precisam de dados de movimento que os jogos do Xbox 360 não têm.", en = "How the picture reaches the monitor's resolution. FSR 1 (AMD) upscales with crisp edges; CAS (AMD) only sharpens; bilinear is the plain upscale. DLSS and XeSS need motion data Xbox 360 games don't have.", es = "Cómo llega la imagen a la resolución del monitor. FSR 1 (AMD) amplía con bordes nítidos; CAS (AMD) solo da nitidez; bilineal es el escalado simple. DLSS y XeSS necesitan datos de movimiento que los juegos de Xbox 360 no tienen." }
+help = { pt = "Como a imagem chega à resolução do monitor. FSR 1 (AMD) amplia com bordas nítidas; CAS (AMD) só dá nitidez; FSR 3 usa os quadros anteriores, com movimento estimado (os jogos do Xbox 360 não fornecem o real), e pode deixar rastros: experimental; bilinear é a ampliação simples. DLSS e XeSS precisam do movimento real.", en = "How the picture reaches the monitor's resolution. FSR 1 (AMD) upscales with crisp edges; CAS (AMD) only sharpens; FSR 3 uses the previous frames with estimated motion (Xbox 360 games don't give the real one) and may leave trails: experimental; bilinear is the plain upscale. DLSS and XeSS need the real motion.", es = "Cómo llega la imagen a la resolución del monitor. FSR 1 (AMD) amplía con bordes nítidos; CAS (AMD) solo da nitidez; FSR 3 usa los fotogramas anteriores con movimiento estimado (los juegos de Xbox 360 no dan el real) y puede dejar estelas: experimental; bilineal es el escalado simple. DLSS y XeSS necesitan el movimiento real." }
 choices = [
   { value = "fsr", label = "AMD FidelityFX FSR 1" },
   { value = "cas", label = "AMD FidelityFX CAS" },
+  { value = "fsr3", label = { pt = "AMD FidelityFX FSR 3 (temporal, experimental)", en = "AMD FidelityFX FSR 3 (temporal, experimental)", es = "AMD FidelityFX FSR 3 (temporal, experimental)" } },
   { value = "bilinear", label = { pt = "Bilinear", en = "Bilinear", es = "Bilineal" } },
 ]
 
@@ -207,6 +222,54 @@ choices = [
   { value = 4, label = "8x" },
   { value = 5, label = "16x" },
 ]
+
+# ------------------------------------------------------------------------------------------------ audio
+
+[[options]]
+page = "audio"
+key = "volume"
+type = "slider"
+default = 100
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Volume geral", en = "Master volume", es = "Volumen general" }
+help = { pt = "Volume de todo o som do jogo. A música e os efeitos têm volume próprio nas opções do jogo.", en = "Volume of all the game's sound. Music and effects have their own volume in the game's options.", es = "Volumen de todo el sonido del juego. La música y los efectos tienen volumen propio en las opciones del juego." }
+
+# ------------------------------------------------------------------------------------------------ controls
+
+[[options]]
+page = "controls"
+key = "vibration"
+type = "toggle"
+default = true
+label = { pt = "Vibração", en = "Vibration", es = "Vibración" }
+help = { pt = "A vibração do controle, como no Xbox 360.", en = "The controller's rumble, as on the Xbox 360.", es = "La vibración del mando, como en Xbox 360." }
+
+[[options]]
+page = "controls"
+key = "zona_morta_esquerda"
+type = "slider"
+default = 0
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta do analógico esquerdo", en = "Left stick dead zone", es = "Zona muerta del stick izquierdo" }
+help = { pt = "Aumente se o personagem anda sozinho com o analógico solto (controle gasto). 0% é o original.", en = "Raise it if the character drifts with the stick released (worn controller). 0% is the original.", es = "Súbela si el personaje se mueve solo con el stick suelto (mando gastado). 0% es el original." }
+
+[[options]]
+page = "controls"
+key = "zona_morta_direita"
+type = "slider"
+default = 0
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta do analógico direito", en = "Right stick dead zone", es = "Zona muerta del stick derecho" }
+help = { pt = "Aumente se a câmera se move sozinha com o analógico solto. 0% é o original.", en = "Raise it if the camera moves by itself with the stick released. 0% is the original.", es = "Súbela si la cámara se mueve sola con el stick suelto. 0% es el original." }
 
 # ------------------------------------------------------------------------------------------------ game
 

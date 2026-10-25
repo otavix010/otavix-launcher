@@ -28,6 +28,16 @@ advanced = true
 label = { pt = "Gráficos", en = "Graphics", es = "Gráficos" }
 
 [[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
+[[pages]]
 id = "game"
 advanced = true
 label = { pt = "Jogo", en = "Game", es = "Juego" }
@@ -35,13 +45,17 @@ label = { pt = "Jogo", en = "Game", es = "Juego" }
 # what the port takes for a key its options file lacks
 [defaults]
 fullscreen = true
-fps = 30
+fps = 60
 resolution_scale = 2
 filtro = "fsr"
 nitidez = 70
 swap_post_effect = "none"
 anisotropic_override = 5
 mostrar_fps = false
+volume = 100
+vibration = true
+zona_morta_esquerda = 0
+zona_morta_direita = 0
 user_language = 1
 
 # made on this PC by the port's generator, steps marked in out\gerar
@@ -126,11 +140,12 @@ choices = [
 page = "video"
 key = "fps"
 type = "choice"
-default = 30
+default = 60
 label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
 help = { pt = "O jogo original roda a 30 fps. Aqui ele desenha cada quadro de verdade a 60 ou mais (não são quadros gerados por IA). Acima de 60, use um monitor com essa taxa.", en = "The original game runs at 30 fps. Here it really draws every frame at 60 or more (no AI-generated frames). Above 60, use a monitor with that refresh rate.", es = "El juego original va a 30 fps. Aquí dibuja cada fotograma de verdad a 60 o más (no son fotogramas generados por IA). Por encima de 60, usa un monitor con esa tasa." }
 choices = [
   { value = 30, label = { pt = "30 fps (original)", en = "30 fps (original)", es = "30 fps (original)" } },
+  { value = 60, label = "60 fps" },
 ]
 
 [[options]]
@@ -162,10 +177,11 @@ key = "filtro"
 type = "choice"
 default = "fsr"
 label = { pt = "Ampliação para a tela", en = "Scaling to the screen", es = "Escalado a la pantalla" }
-help = { pt = "Como a imagem chega à resolução do monitor. FSR 1 (AMD) amplia com bordas nítidas; CAS (AMD) só dá nitidez; bilinear é a ampliação simples. DLSS e XeSS precisam de dados de movimento que os jogos do Xbox 360 não têm.", en = "How the picture reaches the monitor's resolution. FSR 1 (AMD) upscales with crisp edges; CAS (AMD) only sharpens; bilinear is the plain upscale. DLSS and XeSS need motion data Xbox 360 games don't have.", es = "Cómo llega la imagen a la resolución del monitor. FSR 1 (AMD) amplía con bordes nítidos; CAS (AMD) solo da nitidez; bilineal es el escalado simple. DLSS y XeSS necesitan datos de movimiento que los juegos de Xbox 360 no tienen." }
+help = { pt = "Como a imagem chega à resolução do monitor. FSR 1 (AMD) amplia com bordas nítidas; CAS (AMD) só dá nitidez; FSR 3 usa os quadros anteriores, com movimento estimado (os jogos do Xbox 360 não fornecem o real), e pode deixar rastros: experimental; bilinear é a ampliação simples. DLSS e XeSS precisam do movimento real.", en = "How the picture reaches the monitor's resolution. FSR 1 (AMD) upscales with crisp edges; CAS (AMD) only sharpens; FSR 3 uses the previous frames with estimated motion (Xbox 360 games don't give the real one) and may leave trails: experimental; bilinear is the plain upscale. DLSS and XeSS need the real motion.", es = "Cómo llega la imagen a la resolución del monitor. FSR 1 (AMD) amplía con bordes nítidos; CAS (AMD) solo da nitidez; FSR 3 usa los fotogramas anteriores con movimiento estimado (los juegos de Xbox 360 no dan el real) y puede dejar estelas: experimental; bilineal es el escalado simple. DLSS y XeSS necesitan el movimiento real." }
 choices = [
   { value = "fsr", label = "AMD FidelityFX FSR 1" },
   { value = "cas", label = "AMD FidelityFX CAS" },
+  { value = "fsr3", label = { pt = "AMD FidelityFX FSR 3 (temporal, experimental)", en = "AMD FidelityFX FSR 3 (temporal, experimental)", es = "AMD FidelityFX FSR 3 (temporal, experimental)" } },
   { value = "bilinear", label = { pt = "Bilinear", en = "Bilinear", es = "Bilineal" } },
 ]
 
@@ -208,6 +224,54 @@ choices = [
   { value = 5, label = "16x" },
 ]
 
+# ------------------------------------------------------------------------------------------------ audio
+
+[[options]]
+page = "audio"
+key = "volume"
+type = "slider"
+default = 100
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Volume geral", en = "Master volume", es = "Volumen general" }
+help = { pt = "Volume de todo o som do jogo. A música e os efeitos têm volume próprio nas opções do jogo.", en = "Volume of all the game's sound. Music and effects have their own volume in the game's options.", es = "Volumen de todo el sonido del juego. La música y los efectos tienen volumen propio en las opciones del juego." }
+
+# ------------------------------------------------------------------------------------------------ controls
+
+[[options]]
+page = "controls"
+key = "vibration"
+type = "toggle"
+default = true
+label = { pt = "Vibração", en = "Vibration", es = "Vibración" }
+help = { pt = "A vibração do controle, como no Xbox 360.", en = "The controller's rumble, as on the Xbox 360.", es = "La vibración del mando, como en Xbox 360." }
+
+[[options]]
+page = "controls"
+key = "zona_morta_esquerda"
+type = "slider"
+default = 0
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta do analógico esquerdo", en = "Left stick dead zone", es = "Zona muerta del stick izquierdo" }
+help = { pt = "Aumente se o personagem anda sozinho com o analógico solto (controle gasto). 0% é o original.", en = "Raise it if the character drifts with the stick released (worn controller). 0% is the original.", es = "Súbela si el personaje se mueve solo con el stick suelto (mando gastado). 0% es el original." }
+
+[[options]]
+page = "controls"
+key = "zona_morta_direita"
+type = "slider"
+default = 0
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta do analógico direito", en = "Right stick dead zone", es = "Zona muerta del stick derecho" }
+help = { pt = "Aumente se a câmera se move sozinha com o analógico solto. 0% é o original.", en = "Raise it if the camera moves by itself with the stick released. 0% is the original.", es = "Súbela si la cámara se mueve sola con el stick suelto. 0% es el original." }
+
 # ------------------------------------------------------------------------------------------------ game
 
 [[options]]
@@ -229,18 +293,18 @@ choices = [
 
 [[presets]]
 label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "Recomendado. 30 fps, resolução interna 1440p, FSR 1 e filtro 16x.", en = "Recommended. 30 fps, 1440p internal resolution, FSR 1 and 16x filtering.", es = "Recomendado. 30 fps, resolución interna 1440p, FSR 1 y filtro 16x." }
-values = { fps = 30, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
+help = { pt = "Recomendado. 60 fps, resolução interna 1440p, FSR 1 e filtro 16x.", en = "Recommended. 60 fps, 1440p internal resolution, FSR 1 and 16x filtering.", es = "Recomendado. 60 fps, resolución interna 1440p, FSR 1 y filtro 16x." }
+values = { fps = 60, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[presets]]
 label = { pt = "Leve", en = "Light", es = "Ligero" }
-help = { pt = "Para GPUs de entrada e notebooks: 720p do Xbox 360 com FSR 1 e FXAA, 30 fps.", en = "For entry GPUs and laptops: the Xbox 360's 720p with FSR 1 and FXAA, 30 fps.", es = "Para GPUs de entrada y portátiles: los 720p de Xbox 360 con FSR 1 y FXAA, 30 fps." }
-values = { fps = 30, resolution_scale = 1, filtro = "fsr", nitidez = 80, swap_post_effect = "fxaa", anisotropic_override = 3 }
+help = { pt = "Para GPUs de entrada e notebooks: 720p do Xbox 360 com FSR 1 e FXAA, 60 fps.", en = "For entry GPUs and laptops: the Xbox 360's 720p with FSR 1 and FXAA, 60 fps.", es = "Para GPUs de entrada y portátiles: los 720p de Xbox 360 con FSR 1 y FXAA, 60 fps." }
+values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 80, swap_post_effect = "fxaa", anisotropic_override = 3 }
 
 [[presets]]
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
-help = { pt = "4K interno, 30 fps e filtro 16x. Para GPUs e processadores fortes.", en = "Internal 4K, 30 fps and 16x filtering. For strong GPUs and processors.", es = "4K interno, 30 fps y filtro 16x. Para GPUs y procesadores potentes." }
-values = { fps = 30, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
+help = { pt = "4K interno, 60 fps e filtro 16x. Para GPUs e processadores fortes.", en = "Internal 4K, 60 fps and 16x filtering. For strong GPUs and processors.", es = "4K interno, 60 fps y filtro 16x. Para GPUs y procesadores potentes." }
+values = { fps = 60, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[credits]]
 name = "ReXGlue SDK (rexglue)"
