@@ -289,9 +289,9 @@ std::string StateLabel(const Game& gm, Platform p) {
 const char* Tr(S s) { return T(g.lang, s); }
 const char* Tx(const Text& t) { return t.Get(g.lang).c_str(); }
 
-void Toast(const std::string& s) {
+void Toast(const std::string& s, Uint64 ms = 3500) {
     g.toast = s;
-    g.toast_until = SDL_GetTicks() + 3500;
+    g.toast_until = SDL_GetTicks() + ms;
 }
 
 // one colour for the launcher's chrome everywhere; a game's own colour only tints its art
@@ -670,6 +670,7 @@ void Launch(int index) {
 
 void OpenGame(int i);
 std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+void OpenIssue(Game& gm, const std::string& kind, const std::string& what);
 const std::string& Server();
 Headers ServerHeaders(bool admin = false);
 const std::string& Str(const std::vector<std::string>& row, size_t i);
@@ -1887,8 +1888,12 @@ std::string ExitText(int code) {
 }
 
 // a new issue on the port's repository (the launcher's for a game without one), filled in: what happened, the
-// computer, the versions, the settings and the end of the log, shortened to fit in the address
-std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what) {
+// computer, the versions, the settings and the end of the log, the log shortened until the address is under limit
+struct Issue {
+    std::string repo, title, body, url;
+};
+
+Issue MakeIssue(Game& gm, const std::string& kind, const std::string& what, size_t limit) {
     if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
     std::string repo = gm.entry.repo.empty() ? g.hub.update_repo : gm.entry.repo;
     std::string port = InstalledPortVersion(gm.entry.dir);
@@ -1905,23 +1910,64 @@ std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what)
     std::string config = FileTail(gm.entry.dir / FromU8(gm.prof.settings), 4096);
     fs::path log = NewestFile(gm.entry.dir / FromU8(gm.prof.logs));
     std::string tail = log.empty() ? std::string() : FileTail(log, 64 * 1024);
-    // the address holds about 8 000 characters: the log loses lines from its start until the whole fits
+    Issue is{repo, gm.prof.title.Get(Lang::Pt) + ": " + kind};
     auto build = [&](const std::string& logpart) {
-        std::string body = head;
-        if (!config.empty()) body += "\n<details><summary>Configurações</summary>\n\n```toml\n" + config + "\n```\n</details>\n";
+        is.body = head;
+        if (!config.empty()) is.body += "\n<details><summary>Configurações</summary>\n\n```toml\n" + config + "\n```\n</details>\n";
         if (!logpart.empty())
-            body += "\n<details><summary>Final do log (" + U8(log.filename()) + ")</summary>\n\n```\n" + logpart + "\n```\n</details>\n";
-        body += "\nSe houver arquivos na pasta `CrashDumps` do port, compacte e arraste para cá.";
-        std::string title = gm.prof.title.Get(Lang::Pt) + ": " + kind;
-        return "https://github.com/" + repo + "/issues/new?title=" + PercentEncode(title) + "&body=" + PercentEncode(body);
+            is.body += "\n<details><summary>Final do log (" + U8(log.filename()) + ")</summary>\n\n```\n" + logpart + "\n```\n</details>\n";
+        is.body += "\nSe houver arquivos na pasta `CrashDumps` do port, compacte e arraste para cá.";
+        is.url = "https://github.com/" + repo + "/issues/new?title=" + PercentEncode(is.title) + "&body=" + PercentEncode(is.body);
     };
-    std::string url = build(tail);
-    while (url.size() > 7800 && !tail.empty()) {
+    build(tail);
+    while (is.url.size() > limit && !tail.empty()) {
         size_t cut = tail.find('\n', tail.size() / 4);
         tail = cut == std::string::npos ? std::string() : tail.substr(cut + 1);
-        url = build(tail);
+        build(tail);
     }
-    return url;
+    return is;
+}
+
+// the address GitHub takes: about 8 000 characters
+std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what) { return MakeIssue(gm, kind, what, 7800).url; }
+
+// past this an address may not reach the page: Windows hands it to the browser through the command the browser
+// registered, and some browsers or systems cut it or refuse it
+constexpr size_t kShortIssue = 2000;
+
+// the issue in the browser. A long report goes by the clipboard: the page opens with the title and a line asking to
+// paste it. When the system does not open the browser, the player is told, with the address (or the report) copied.
+void OpenIssue(Game& gm, const std::string& kind, const std::string& what) {
+    Issue is = MakeIssue(gm, kind, what, 7800);
+    // tests: LAUNCHER_ISSUE_FILE=path keeps the address there instead of opening the browser
+    if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) {
+        std::ofstream(f) << is.url;
+        return;
+    }
+    std::string url = is.url;
+    bool pasted = false;
+    if (url.size() > kShortIssue) {
+        // GitHub takes a body of up to 65 536 characters: the log can be longer this way
+        Issue full = MakeIssue(gm, kind, what, 120000);
+        pasted = SDL_SetClipboardText(full.body.c_str());
+        if (pasted)
+            url = "https://github.com/" + is.repo + "/issues/new?title=" + PercentEncode(is.title) + "&body=" +
+                  PercentEncode("O launcher copiou o relatório completo: apague esta linha e cole aqui (Ctrl+V).");
+    }
+    if (SDL_OpenURL(url.c_str())) {
+        if (pasted) Toast(Tr(S::IssueCopied), 9000);
+        // a full-screen launcher would stay over the browser
+        if (g.state.Str("window_mode", "window") == "fullscreen") SDL_MinimizeWindow(g.win);
+        return;
+    }
+    char b[320];
+    if (pasted) {
+        std::snprintf(b, sizeof(b), Tr(S::IssueNoBrowserReport), is.repo.c_str());
+    } else {
+        SDL_SetClipboardText(url.c_str());
+        std::snprintf(b, sizeof(b), "%s", Tr(S::IssueNoBrowser));
+    }
+    Toast(b, 12000);
 }
 
 void CrashCard(Game& gm) {
@@ -1939,10 +1985,7 @@ void CrashCard(Game& gm) {
     if (ImGui::Button(Tr(S::SendToGitHub))) {
         std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
                       gm.last_minutes);
-        std::string url = IssueUrl(gm, "Crash", std::string(b) + "\n\n**O que eu estava fazendo:** (conte aqui)");
-        // tests: LAUNCHER_ISSUE_FILE=path keeps the address there instead of opening the browser
-        if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) std::ofstream(f) << url;
-        else SDL_OpenURL(url.c_str());
+        OpenIssue(gm, "Crash", std::string(b) + "\n\n**O que eu estava fazendo:** (conte aqui)");
         gm.crashed = false;
     }
     ImGui::PopStyleColor();
@@ -2314,7 +2357,7 @@ void BuildCard(Game& gm) {
         ImGui::PopStyleColor();
         if (ImGui::SmallButton(Tr(S::SendToGitHub))) {
             std::string what = "A geração parou (código " + std::to_string(bs.code) + "):\n\n```\n" + bs.error + "\n```";
-            SDL_OpenURL(IssueUrl(gm, "Geração", what).c_str());
+            OpenIssue(gm, "Geração", what);
         }
     }
 }
@@ -3288,6 +3331,7 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
 
 void CrashCard(Game& gm);
 std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+void OpenIssue(Game& gm, const std::string& kind, const std::string& what);
 
 // ---------------------------------------------------------------------------------------------- performance pages
 
@@ -3538,7 +3582,7 @@ void ReportPage() {
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::SendToGitHub))) {
         std::string what = std::string("**Tipo:** ") + T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]) + "\n\n" + g.rep_desc;
-        SDL_OpenURL(IssueUrl(gm, T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]), what).c_str());
+        OpenIssue(gm, T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]), what);
     }
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::OpenReports))) OpenPath(g.hub_dir / "reports");

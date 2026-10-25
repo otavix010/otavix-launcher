@@ -358,6 +358,15 @@ constexpr Row kRows[] = {
      "La respuesta aparece en el launcher que envió el reporte (en un aviso y en la página del juego)."},
     {"Enviar resposta", "Send reply", "Enviar respuesta"},
     {"Sua resposta", "Your reply", "Tu respuesta"},
+    {"O relatório completo foi copiado: na página do GitHub, cole com Ctrl+V.",
+     "The full report was copied: paste it on the GitHub page with Ctrl+V.",
+     "El reporte completo se copió: pégalo en la página de GitHub con Ctrl+V."},
+    {"Não deu para abrir o navegador. O link foi copiado: cole no navegador.",
+     "The browser did not open. The link was copied: paste it in your browser.",
+     "No se pudo abrir el navegador. El enlace se copió: pégalo en el navegador."},
+    {"Não deu para abrir o navegador. O relatório foi copiado: abra github.com/%s/issues/new e cole com Ctrl+V.",
+     "The browser did not open. The report was copied: open github.com/%s/issues/new and paste it with Ctrl+V.",
+     "No se pudo abrir el navegador. El reporte se copió: abre github.com/%s/issues/new y pégalo con Ctrl+V."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
