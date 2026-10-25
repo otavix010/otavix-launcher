@@ -632,6 +632,7 @@ void Launch(int index) {
     if (g.state.Bool("osd", false)) {
         SDL_SetEnvironmentVariable(env, "OTAVIX_OSD", "1", true);
         SDL_SetEnvironmentVariable(env, "GOWA_OSD", "1", true);
+        SDL_SetEnvironmentVariable(env, "SH_OSD", "1", true);  // Silent Hill (PSXRecomp): its sh1.medidor mod
     }
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
