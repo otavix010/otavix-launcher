@@ -228,6 +228,32 @@ choices = [
   { value = "0", label = { pt = "Ligado", en = "On", es = "Activado" } },
 ]
 
+[[options]]
+page = "video"
+key = "GOWA_TEX_WW"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Atualização de texturas", en = "Texture updates", es = "Actualización de texturas" }
+help = { pt = "Rápido: o jogo só recarrega uma textura quando o Windows avisa que ela mudou. Se aparecerem texturas pretas, piscando ou com a cor errada (como as mãos do Kratos amarelas), troque para \"Conferir sempre\" e conte para a gente se resolveu: custa uns 5 a 10% a mais de processador.", en = "Fast: the game reloads a texture only when Windows reports that it changed. If textures show up black, flickering or in the wrong colour (like Kratos's yellow hands), switch to \"Always check\" and tell us whether it fixed it: it costs about 5 to 10% more processor time.", es = "Rápido: el juego solo recarga una textura cuando Windows avisa que cambió. Si aparecen texturas negras, parpadeando o con el color equivocado (como las manos amarillas de Kratos), cambia a \"Comprobar siempre\" y cuéntanos si se resolvió: cuesta un 5 a 10% más de procesador." }
+choices = [
+  { value = "1", label = { pt = "Rápido (padrão)", en = "Fast (default)", es = "Rápido (por defecto)" } },
+  { value = "0", label = { pt = "Conferir sempre (mais compatível)", en = "Always check (more compatible)", es = "Comprobar siempre (más compatible)" } },
+]
+
+[[options]]
+page = "video"
+key = "GOWA_TEX_HASH_SAMPLE"
+target = "env"
+type = "choice"
+default = "1024"
+label = { pt = "Texturas grandes", en = "Large textures", es = "Texturas grandes" }
+help = { pt = "Como o jogo confere se uma textura grande (acima de 1 MB) mudou: por amostra, mais rápido, ou inteira. Use \"Conferir inteiras\" junto com \"Conferir sempre\" acima se as texturas erradas continuarem.", en = "How the game checks whether a large texture (over 1 MB) changed: by sample, faster, or whole. Use \"Check whole\" together with \"Always check\" above if the wrong textures stay.", es = "Cómo el juego comprueba si una textura grande (más de 1 MB) cambió: por muestra, más rápido, o entera. Usa \"Comprobar enteras\" junto con \"Comprobar siempre\" arriba si las texturas erróneas siguen." }
+choices = [
+  { value = "1024", label = { pt = "Por amostra (padrão)", en = "By sample (default)", es = "Por muestra (por defecto)" } },
+  { value = "0", label = { pt = "Conferir inteiras (mais lento)", en = "Check whole (slower)", es = "Comprobar enteras (más lento)" } },
+]
+
 [[presets]]
 label = { pt = "Leve", en = "Light", es = "Ligero" }
 help = { pt = "720p, como no PS3. Para PCs mais modestos.", en = "720p, as on the PS3. For more modest PCs.", es = "720p, como en PS3. Para PCs más modestos." }
