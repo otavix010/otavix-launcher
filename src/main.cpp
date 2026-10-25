@@ -25,6 +25,7 @@
 
 #include "art.h"
 #include "catalog.h"
+#include "closegame.h"
 #include "hub.h"
 #include "install.h"
 #include "i18n.h"
@@ -175,6 +176,7 @@ struct App {
 #endif
     Platform view = here;  // the version shown on the open game's page
     Music music;
+    bool closing = false;  // the player closed the game from the controller: its exit is no error
     std::string install_id;  // random, made on the first start: one vote per game and computer
     // the server: port requests and their rankings
     Call rank_call, vote_call;
@@ -548,6 +550,8 @@ void Launch(int index) {
     } else if (on_play == "minimize") {
         SDL_MinimizeWindow(g.win);
     }
+    // the controller now plays the game: the launcher's menus stop reading it (only Back + Start is watched)
+    if (g.proc) ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode_Manual, nullptr, 0);
 }
 
 void OpenGame(int i);
@@ -565,16 +569,59 @@ void PollGame() {
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
         // closed with an error: its page shows it, with the report ready
-        if (code != 0) {
+        if (code != 0 && !g.closing) {
             gm.crashed = true;
             if (g.cur != g.proc_game || g.screen != Screen::Game) OpenGame(g.proc_game);
             // tests: LAUNCHER_ISSUE_FILE=path gets the report's address as soon as the game fails
             if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) std::ofstream(f) << IssueUrl(gm, "Crash", "teste");
         }
     }
+    g.closing = false;
+    ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode_AutoFirst);
     SDL_RestoreWindow(g.win);
     SDL_RaiseWindow(g.win);
     PlayTheme();
+}
+
+// Back (Select) and Start held together on any controller
+bool CloseComboHeld() {
+    int n = 0;
+    SDL_JoystickID* ids = SDL_GetGamepads(&n);
+    bool held = false;
+    for (int i = 0; i < n && !held; i++) {
+        SDL_Gamepad* pad = SDL_GetGamepadFromID(ids[i]);
+        if (!pad) pad = SDL_OpenGamepad(ids[i]);
+        held = pad && SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK) && SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
+    }
+    SDL_free(ids);
+    return held;
+}
+
+// while a game runs: Back + Start for 2 s asks it to close, as its window's X would; after 5 s more it is ended
+void WatchCloseCombo() {
+    static Uint64 since = 0, asked = 0;
+    if (!g.proc) {
+        since = asked = 0;
+        return;
+    }
+    uint64_t pid = uint64_t(SDL_GetNumberProperty(SDL_GetProcessProperties(g.proc), SDL_PROP_PROCESS_PID_NUMBER, 0));
+    Uint64 now = SDL_GetTicks();
+    if (asked) {
+        if (now - asked > 5000 && now - asked < 6000) EndProcessTree(pid);
+        return;
+    }
+    // tests: LAUNCHER_CLOSE_AFTER=seconds holds Back + Start from that long after the game started
+    static const char* test = SDL_getenv("LAUNCHER_CLOSE_AFTER");
+    bool held = test ? now - g.started > Uint64(std::atoi(test)) * 1000 : g.state.Bool("close_combo", true) && CloseComboHeld();
+    if (!held) {
+        since = 0;
+        return;
+    }
+    if (!since) since = now;
+    if (now - since < 2000) return;
+    g.closing = true;
+    asked = now;
+    if (!AskToClose(pid)) EndProcessTree(pid);
 }
 
 // ---------------------------------------------------------------------------------------------- option widgets
@@ -1096,6 +1143,9 @@ void TutorialPage() {
         T3("Controle: A seleciona, B volta, LB e RB trocam as páginas, LT e RT trocam as abas.",
            "Controller: A selects, B goes back, LB and RB switch pages, LT and RT switch tabs.",
            "Mando: A selecciona, B vuelve, LB y RB cambian de página, LT y RT cambian de pestaña."),
+        T3("Para fechar o jogo pelo controle, segure Back + Start (Select + Start no PlayStation) por 2 segundos. No teclado, Alt+F4.",
+           "To close the game from the controller, hold Back + Start (Select + Start on PlayStation) for 2 seconds. On the keyboard, Alt+F4.",
+           "Para cerrar el juego con el mando, mantén Back + Start (Select + Start en PlayStation) 2 segundos. En el teclado, Alt+F4."),
         T3("Na página do jogo dá para criar um atalho na área de trabalho que abre direto nele.",
            "On the game's page you can make a desktop shortcut that opens straight into it.",
            "En la página del juego puedes crear un acceso directo en el escritorio que abre directo en él."),
@@ -1561,6 +1611,7 @@ void HomePage() {
     ImGui::PopStyleColor(3);
     ImGui::PopFont();
     if (playing) ImGui::TextDisabled("%s", Tr(S::Running));
+    if (g.state.Bool("close_combo", true) && g.state.Str("on_play", "minimize") != "close") Dim(Tr(S::CloseHint));
     ImGui::Spacing();
     if (ImGui::SmallButton(Tr(S::DesktopShortcut))) MakeShortcut(gm);
 }
@@ -1957,6 +2008,10 @@ void SettingsGeneral() {
         g.music.SetVolume(float(vol) / 100.0f);
     }
     ImGui::EndDisabled();
+    ImGui::Spacing();
+    bool combo = g.state.Bool("close_combo", true);
+    RowLabel(Tr(S::CloseCombo));
+    if (ImGui::Checkbox("##combo", &combo)) g.state.Set("close_combo", combo);
     ImGui::Spacing();
     bool last = g.state.Bool("start_last", false);
     RowLabel(Tr(S::StartLast));
@@ -3168,6 +3223,7 @@ int FindGameIndex(const std::string& id) {
 }  // namespace
 
 int main(int argc, char** argv) {
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");  // Back + Start reaches us while a game runs
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_AUDIO)) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Otavix Launcher", SDL_GetError(), nullptr);
         return 1;
@@ -3271,6 +3327,7 @@ int main(int argc, char** argv) {
             if (e.type == SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED || e.type == SDL_EVENT_DISPLAY_ADDED) ModesOfPrimary();
         }
         PollGame();
+        WatchCloseCombo();
         TakeDialog();
         TakeArt();
         ApplyInstalls();

@@ -271,6 +271,8 @@ constexpr Row kRows[] = {
     {"Mande o erro para o GitHub: a página abre já preenchida com o seu sistema, as versões e o final do log; conte o que estava fazendo e clique em \"Submit new issue\" (precisa de uma conta grátis do GitHub).", "Send the error to GitHub: the page opens filled in with your system, the versions and the end of the log; say what you were doing and click \"Submit new issue\" (a free GitHub account is needed).", "Envía el error a GitHub: la página se abre ya completa con tu sistema, las versiones y el final del log; cuenta qué hacías y haz clic en \"Submit new issue\" (hace falta una cuenta gratuita de GitHub)."},
     {"Enviar o erro para o GitHub", "Send the error to GitHub", "Enviar el error a GitHub"},
     {"Agora não", "Not now", "Ahora no"},
+    {"Para fechar o jogo: segure Back + Start (Select + Start) por 2 segundos, ou Alt+F4.", "To close the game: hold Back + Start (Select + Start) for 2 seconds, or Alt+F4.", "Para cerrar el juego: mantén Back + Start (Select + Start) 2 segundos, o Alt+F4."},
+    {"Fechar o jogo segurando Back + Start", "Close the game by holding Back + Start", "Cerrar el juego manteniendo Back + Start"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
