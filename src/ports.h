@@ -23,14 +23,17 @@ public:
         uint64_t done = 0;      // downloaded so far
         std::string error;
     };
-    void Check(const std::string& repo);                      // the newest release, on a thread
+    // the newest release, on a thread; for a port that follows a branch, given the installed commit, newer commits
+    // that only touch documentation (README, docs/, .md, LICENSE) leave the installed one as the newest
+    void Check(const std::string& repo, const std::string& installed = {});
     void Install(const std::string& repo, const fs::path& dir);  // download and unpack it, on a thread
     void Cancel() { cancel_ = true; }
     Status Get();
     bool Busy();
 
 private:
-    bool Latest(const std::string& repo, std::string& url, std::string& digest);  // fills st_.latest and size
+    // fills st_.latest and size
+    bool Latest(const std::string& repo, std::string& url, std::string& digest, const std::string& installed = {});
     std::mutex m_;
     Status st_;
     std::atomic<bool> cancel_ = false;

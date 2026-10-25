@@ -1543,7 +1543,7 @@ bool PortCard(Game& gm) {
     bool present = PortPresent(gm);
     if (!gm.port_checked && !gm.fetcher.Busy()) {
         gm.port_checked = true;
-        gm.fetcher.Check(gm.entry.Source());
+        gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
     }
     if (gm.fetcher.Busy() && ps.stage != PortFetcher::Stage::Checking) {
         ImGui::TextColored(Accent(1.3f), "● %s", ps.stage == PortFetcher::Stage::Unpacking ? Tr(S::UnpackingPort) : Tr(S::DownloadingPort));
@@ -1626,7 +1626,7 @@ void PeriodicChecks() {
         Game& gm = *gp;
         if (gm.entry.repo.empty() || !gm.ok || !Playable(gm, g.here) || !PortPresent(gm) || gm.fetcher.Busy()) continue;
         gm.port_checked = true;
-        gm.fetcher.Check(gm.entry.Source());
+        gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
     }
     g.ports_shown = false;
 }

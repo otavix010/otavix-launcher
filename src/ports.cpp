@@ -55,6 +55,23 @@ void Merge(const fs::path& from, const fs::path& to, std::error_code& ec) {
     }
 }
 
+// whether every file changed between two commits is documentation, which changes nothing of the port
+bool OnlyDocs(const std::string& repo, const std::string& from, const std::string& to) {
+    HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/compare/" + from + "..." + to,
+                               {{"Accept", "application/vnd.github+json"}}, "");
+    size_t files = r.Ok() ? r.body.find("\"files\"") : std::string::npos;
+    if (files == std::string::npos) return false;
+    int n = 0;
+    for (size_t at = r.body.find("\"filename\"", files); at != std::string::npos;
+         at = r.body.find("\"filename\"", at + 1), n++) {
+        std::string name = Lower(Field(r.body, "filename", at));
+        bool doc = name.rfind("docs/", 0) == 0 || name.rfind(".github/", 0) == 0 || name == "license" ||
+                   name == ".gitignore" || (name.size() > 3 && name.compare(name.size() - 3, 3, ".md") == 0);
+        if (!doc) return false;
+    }
+    return n > 0;
+}
+
 }  // namespace
 
 std::string InstalledPortVersion(const fs::path& dir) {
@@ -75,19 +92,22 @@ bool PortFetcher::Busy() {
     return s == Stage::Checking || s == Stage::Downloading || s == Stage::Unpacking;
 }
 
-bool PortFetcher::Latest(const std::string& source, std::string& url, std::string& digest) {
+bool PortFetcher::Latest(const std::string& source, std::string& url, std::string& digest,
+                         const std::string& installed) {
     size_t at_branch = source.find('@');
     if (at_branch != std::string::npos) {
         std::string repo = source.substr(0, at_branch), branch = source.substr(at_branch + 1);
         HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/commits/" + branch,
                                    {{"Accept", "application/vnd.github+json"}}, "");
-        std::lock_guard lock(m_);
         std::string sha = r.Ok() ? Field(r.body, "sha") : std::string();
+        bool docs_only = sha.size() >= 12 && !installed.empty() && sha.compare(0, 12, installed) != 0 &&
+                         OnlyDocs(repo, installed, sha);
+        std::lock_guard lock(m_);
         if (sha.size() < 12) {
             st_.error = r.Ok() ? "resposta inesperada do GitHub" : r.error;
             return false;
         }
-        st_.latest = sha.substr(0, 12);
+        st_.latest = docs_only ? installed : sha.substr(0, 12);
         st_.size = 0;
         url = "https://codeload.github.com/" + repo + "/zip/" + sha;
         digest.clear();
@@ -117,16 +137,16 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
     return false;
 }
 
-void PortFetcher::Check(const std::string& repo) {
+void PortFetcher::Check(const std::string& repo, const std::string& installed) {
     {
         std::lock_guard lock(m_);
         if (st_.stage == Stage::Checking || st_.stage == Stage::Downloading || st_.stage == Stage::Unpacking) return;
         st_ = {};
         st_.stage = Stage::Checking;
     }
-    std::thread([this, repo] {
+    std::thread([this, repo, installed] {
         std::string url, digest;
-        bool ok = Latest(repo, url, digest);
+        bool ok = Latest(repo, url, digest, installed);
         std::lock_guard lock(m_);
         st_.stage = ok ? Stage::Ready : Stage::Failed;
     }).detach();
