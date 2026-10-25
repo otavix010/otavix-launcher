@@ -51,6 +51,7 @@ filtro = "fsr"
 nitidez = 70
 swap_post_effect = "none"
 anisotropic_override = 5
+alvos = "auto"
 mostrar_fps = false
 volume = 100
 vibration = true
@@ -222,6 +223,19 @@ choices = [
   { value = 3, label = "4x" },
   { value = 4, label = "8x" },
   { value = 5, label = "16x" },
+]
+
+[[options]]
+page = "graphics"
+key = "alvos"
+type = "choice"
+default = "auto"
+label = { pt = "Render targets", en = "Render targets", es = "Render targets" }
+help = { pt = "Como a memória de vídeo do Xbox 360 (EDRAM) é imitada. A imagem é a mesma; o que muda é o trabalho da placa de vídeo, e qual caminho pesa menos depende do jogo. Automático usa o que foi medido melhor para este jogo.", en = "How the Xbox 360's video memory (EDRAM) is imitated. The picture is the same; what changes is the graphics card's work, and which path is lighter depends on the game. Automatic uses the one measured best for this game.", es = "Cómo se imita la memoria de vídeo de la Xbox 360 (EDRAM). La imagen es la misma; lo que cambia es el trabajo de la tarjeta gráfica, y qué camino pesa menos depende del juego. Automático usa el que se midió mejor para este juego." }
+choices = [
+  { value = "auto", label = { pt = "Automático", en = "Automatic", es = "Automático" } },
+  { value = "rov", label = "ROV" },
+  { value = "rtv", label = "RTV" },
 ]
 
 # ------------------------------------------------------------------------------------------------ audio
