@@ -112,6 +112,19 @@ label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
 
 [[options]]
 page = "video"
+key = "GOWA_TELA_CHEIA"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Modo de tela", en = "Display mode", es = "Modo de pantalla" }
+help = { pt = "Tela cheia sem bordas ou janela. No jogo, F11 ou Alt+Enter alternam, e Esc sai da tela cheia.", en = "Borderless fullscreen or a window. In game, F11 or Alt+Enter switch, and Esc leaves fullscreen.", es = "Pantalla completa sin bordes o ventana. En el juego, F11 o Alt+Enter alternan, y Esc sale de la pantalla completa." }
+choices = [
+  { value = "1", label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" } },
+  { value = "0", label = { pt = "Janela", en = "Window", es = "Ventana" } },
+]
+
+[[options]]
+page = "video"
 key = "GOWA_RES_SCALE"
 target = "env"
 type = "choice"
