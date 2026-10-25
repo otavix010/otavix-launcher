@@ -58,8 +58,7 @@ void ReleaseNotes::Fetch(const std::string& repo) {
         state_[repo] = State::Loading;
     }
     std::thread([this, repo] {
-        HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/releases?per_page=15",
-                                   {{"Accept", "application/vnd.github+json"}}, "");
+        HttpResult r = GitHubApi("repos/" + repo + "/releases?per_page=15");
         std::vector<Release> list = r.Ok() ? ParseReleases(r.body) : std::vector<Release>{};
         std::lock_guard lock(m_);
         releases_[repo] = std::move(list);

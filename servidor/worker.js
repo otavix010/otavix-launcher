@@ -32,6 +32,7 @@ async function route(req, env) {
   if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
+  if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
     if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
@@ -92,6 +93,114 @@ function b64(s) {
   let bin = '';
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(bin);
+}
+
+// ------------------------------------------------------------------------------------------------ GitHub
+
+// GitHub for the launchers, through here: without a login GitHub's API answers 60 requests an hour per address, many
+// players share one (carrier-grade NAT), a launcher asks about itself and each port, and Cloudflare's own addresses
+// are often over that limit too. So a branch's newest commit comes from git's public endpoint (no API), a release from
+// the API or else from its public page, and each answer is kept in the database for a few minutes; the last good one
+// is served, however old, while GitHub refuses. Only the project's repositories and the requests the launcher makes.
+// GITHUB_TOKEN (optional secret) raises the API's limit.
+const GH_OWNERS = ['otavix010'];
+const GH_UA = { 'User-Agent': 'otavix-launcher-servidor' };
+const GH_RULES = [
+  // the path, how long an answer is fresh (s), how it is looked up
+  { re: /^repos\/(([\w.-]+)\/[\w.-]+)\/releases\/latest$/, ttl: 600, how: 'latest' },
+  { re: /^repos\/(([\w.-]+)\/[\w.-]+)\/releases$/, ttl: 600, how: 'api' },
+  { re: /^repos\/(([\w.-]+)\/[\w.-]+)\/commits\/([\w./-]+)$/, ttl: 300, how: 'branch' },
+  { re: /^repos\/(([\w.-]+)\/[\w.-]+)\/compare\/[0-9a-f]{7,40}\.\.\.[0-9a-f]{7,40}$/, ttl: 30 * 86400, how: 'files' },
+];
+
+function jsonResponse(status, corpo) {
+  return new Response(corpo, { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+}
+
+async function githubApi(env, key) {
+  const headers = { ...GH_UA, Accept: 'application/vnd.github+json' };
+  if (env.GITHUB_TOKEN) headers.Authorization = 'Bearer ' + env.GITHUB_TOKEN;
+  try {
+    const res = await fetch('https://api.github.com/' + key, { headers });
+    return { status: res.status, corpo: await res.text() };
+  } catch {
+    return null;
+  }
+}
+
+// a branch's newest commit from git's smart HTTP (refs/heads/<branch>), as the API's {"sha": ...}
+async function githubBranch(repo, branch) {
+  try {
+    const res = await fetch(`https://github.com/${repo}.git/info/refs?service=git-upload-pack`, { headers: GH_UA });
+    if (!res.ok) return { status: res.status === 404 ? 404 : 502, corpo: '{"message":"repositório não encontrado"}' };
+    const refs = await res.text();
+    const m = refs.match(new RegExp('([0-9a-f]{40}) refs/heads/' + branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\0\\n]'));
+    return m ? { status: 200, corpo: JSON.stringify({ sha: m[1] }) } : { status: 404, corpo: '{"message":"branch não encontrado"}' };
+  } catch {
+    return null;
+  }
+}
+
+// the newest release from its public page, as the API's fields the launcher reads (each asset's size and digest
+// before its browser_download_url)
+async function githubReleasePage(repo) {
+  try {
+    const r = await fetch(`https://github.com/${repo}/releases/latest`, { redirect: 'manual', headers: GH_UA });
+    const tag = ((r.headers.get('Location') || '').match(/\/releases\/tag\/([^/?#]+)$/) || [])[1];
+    if (!tag) return r.status === 302 || r.status === 404 ? { status: 404, corpo: '{"message":"Not Found"}' } : null;
+    const page = await fetch(`https://github.com/${repo}/releases/expanded_assets/${tag}`, { headers: GH_UA });
+    if (!page.ok) return null;
+    const html = await page.text();
+    const assets = [];
+    for (const li of html.split('<li')) {
+      const href = (li.match(/href="(\/[^"]+\/releases\/download\/[^"]+)"/) || [])[1];
+      if (!href) continue;
+      const url = 'https://github.com' + href.replace(/&amp;/g, '&');
+      const head = await fetch(url, { method: 'HEAD', headers: GH_UA });
+      assets.push({
+        name: decodeURIComponent(url.split('/').pop()),
+        size: Number(head.headers.get('Content-Length') || 0),
+        digest: (li.match(/sha256:[0-9a-f]{64}/) || [null])[0],
+        browser_download_url: url,
+      });
+    }
+    const t = decodeURIComponent(tag);
+    return { status: 200, corpo: JSON.stringify({ tag_name: t, html_url: `https://github.com/${repo}/releases/tag/${tag}`, assets }) };
+  } catch {
+    return null;
+  }
+}
+
+async function github(env, url) {
+  const path = url.pathname.slice('/v1/github/'.length);
+  if (url.search && !/^\?per_page=\d{1,3}$/.test(url.search)) return text(400, 'consulta não permitida');
+  const rule = GH_RULES.find((r) => r.re.test(path));
+  const m = rule ? path.match(rule.re) : null;
+  if (!m || !GH_OWNERS.includes(m[2].toLowerCase())) return text(403, 'fora do projeto');
+  const key = path + url.search;
+  const t = now();
+  const row = await env.DB.prepare('SELECT status, corpo, quando FROM github WHERE caminho = ?').bind(key).first();
+  if (row && t - row.quando < rule.ttl) return jsonResponse(row.status, row.corpo);
+  let got = null;
+  if (rule.how === 'branch') {
+    got = await githubBranch(m[1], m[3]);
+  } else {
+    got = await githubApi(env, key);
+    if (got && got.status === 200 && rule.how === 'files')
+      got.corpo = JSON.stringify({ files: (JSON.parse(got.corpo).files || []).map((f) => ({ filename: f.filename })) });
+    if (rule.how === 'latest' && !(got && (got.status === 200 || got.status === 404))) got = (await githubReleasePage(m[1])) || got;
+  }
+  if (got && (got.status === 200 || got.status === 404)) {
+    if (got.corpo.length < 1_500_000)
+      await env.DB.prepare(
+        'INSERT INTO github (caminho, status, corpo, quando) VALUES (?, ?, ?, ?) ' +
+          'ON CONFLICT (caminho) DO UPDATE SET status = excluded.status, corpo = excluded.corpo, quando = excluded.quando'
+      ).bind(key, got.status, got.corpo, t).run();
+    return jsonResponse(got.status, got.corpo);
+  }
+  // GitHub refused (its limit) or did not answer: the last copy, however old
+  if (row) return jsonResponse(row.status, row.corpo);
+  return jsonResponse(got ? got.status : 502, got ? got.corpo : '{"message":"GitHub não respondeu"}');
 }
 
 // ------------------------------------------------------------------------------------------------ reports

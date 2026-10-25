@@ -57,8 +57,7 @@ void Merge(const fs::path& from, const fs::path& to, std::error_code& ec) {
 
 // whether every file changed between two commits is documentation, which changes nothing of the port
 bool OnlyDocs(const std::string& repo, const std::string& from, const std::string& to) {
-    HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/compare/" + from + "..." + to,
-                               {{"Accept", "application/vnd.github+json"}}, "");
+    HttpResult r = GitHubApi("repos/" + repo + "/compare/" + from + "..." + to);
     size_t files = r.Ok() ? r.body.find("\"files\"") : std::string::npos;
     if (files == std::string::npos) return false;
     int n = 0;
@@ -97,8 +96,7 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
     size_t at_branch = source.find('@');
     if (at_branch != std::string::npos) {
         std::string repo = source.substr(0, at_branch), branch = source.substr(at_branch + 1);
-        HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/commits/" + branch,
-                                   {{"Accept", "application/vnd.github+json"}}, "");
+        HttpResult r = GitHubApi("repos/" + repo + "/commits/" + branch);
         std::string sha = r.Ok() ? Field(r.body, "sha") : std::string();
         bool docs_only = sha.size() >= 12 && !installed.empty() && sha.compare(0, 12, installed) != 0 &&
                          OnlyDocs(repo, installed, sha);
@@ -114,8 +112,7 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
         return true;
     }
     const std::string& repo = source;
-    HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/releases/latest",
-                               {{"Accept", "application/vnd.github+json"}}, "");
+    HttpResult r = GitHubApi("repos/" + repo + "/releases/latest");
     std::lock_guard lock(m_);
     if (!r.Ok()) {
         st_.error = r.status == 404 ? "ainda não há versão publicada" : r.error;

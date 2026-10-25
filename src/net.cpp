@@ -125,6 +125,31 @@ void Call::Reset() {
     token_++;
 }
 
+namespace {
+std::mutex g_github_m;
+std::string g_github_proxy;
+}  // namespace
+
+void SetGitHubProxy(const std::string& server) {
+    std::lock_guard lock(g_github_m);
+    g_github_proxy = server;
+}
+
+HttpResult GitHubApi(const std::string& path) {
+    std::string proxy;
+    {
+        std::lock_guard lock(g_github_m);
+        proxy = g_github_proxy;
+    }
+    const Headers accept{{"Accept", "application/vnd.github+json"}};
+    if (!proxy.empty()) {
+        HttpResult r = HttpRequest("GET", proxy + "/v1/github/" + path, accept, "");
+        // GitHub's own "not found" (no release yet) is an answer too; anything else from the server, try GitHub
+        if (r.Ok() || (r.status == 404 && r.body.find("\"message\"") != std::string::npos)) return r;
+    }
+    return HttpRequest("GET", "https://api.github.com/" + path, accept, "");
+}
+
 std::string Json(const std::string& s) {
     std::string o = "\"";
     for (unsigned char c : s) {

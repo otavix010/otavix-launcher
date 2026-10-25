@@ -23,6 +23,12 @@ struct HttpResult {
 // http:// or https://, blocking
 HttpResult HttpRequest(const std::string& method, const std::string& url, const Headers& headers, const std::string& body);
 
+// GitHub's API (a path such as "repos/<owner>/<repo>/releases/latest"), blocking: through the launcher's server when
+// there is one (it keeps the answers and has ways round GitHub's 60-an-hour limit per address, which players sharing
+// an address hit), else, or when the server cannot answer, straight from GitHub
+void SetGitHubProxy(const std::string& server);
+HttpResult GitHubApi(const std::string& path);
+
 // one request at a time, in the background
 class Call {
 public:

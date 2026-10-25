@@ -52,6 +52,15 @@ CREATE TABLE IF NOT EXISTS anexos (
 );
 CREATE INDEX IF NOT EXISTS anexos_report ON anexos (report);
 
+-- GitHub's answers for the launchers, kept a few minutes (and served stale while GitHub refuses): see github() in
+-- worker.js (migracao-github.sql for a database made before).
+CREATE TABLE IF NOT EXISTS github (
+  caminho TEXT PRIMARY KEY,    -- the API path asked, with its query
+  status INTEGER NOT NULL,
+  corpo TEXT NOT NULL,
+  quando INTEGER NOT NULL
+);
+
 -- Sessions' performance, sent only by launchers whose player agreed: the computer's parts by model, the game and its
 -- options, the frame rate. No address is kept with them: the hourly limit counts in a table of its own.
 CREATE TABLE IF NOT EXISTS desempenho (

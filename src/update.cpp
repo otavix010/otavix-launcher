@@ -75,8 +75,7 @@ void Updater::Start(const std::string& repo, const std::string& installed) {
     }
     std::thread([this, repo, installed] {
         UpdateCheck r;
-        HttpResult h = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/releases/latest",
-                                   {{"Accept", "application/vnd.github+json"}}, "");
+        HttpResult h = GitHubApi("repos/" + repo + "/releases/latest");
         if (h.Ok()) {
             r.latest = Field(h.body, "tag_name");
             r.url = Field(h.body, "html_url");

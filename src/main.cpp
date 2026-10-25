@@ -5658,6 +5658,7 @@ int main(int argc, char** argv) {
     g.hub_dir = FromU8(SDL_GetBasePath());
     g.state.Open(g.hub_dir / "hub_state.toml");
     g.hub_ok = g.hub.Load(g.hub_dir, g.hub_error);
+    SetGitHubProxy(g.hub.server_url);  // GitHub through the server: see GitHubApi
     std::string lang = g.state.Str("language", "auto");
     g.lang = lang == "pt" ? Lang::Pt : lang == "en" ? Lang::En : lang == "es" ? Lang::Es : SystemLang();
 
