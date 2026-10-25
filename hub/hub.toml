@@ -99,9 +99,12 @@ platforms = { windows = "ok", linux = "soon" }
 [[games]]
 id = "silent-hill"
 library = "ps1"
-path = "ports/silent-hill"
+# made on each PC from the port's code (gerar.ps1)
+path = "%SystemDrive%/OtavixPorts/silent-hill"
 profile = "perfis/silent-hill.toml"
-platforms = { windows = "wip", linux = "soon" }
+repo = "otavix010/silent-hill-pc"
+branch = "main"
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "saints-row"

@@ -1,14 +1,17 @@
-# Silent Hill (PlayStation 1) port: listed in the hub while it is made.
+# Silent Hill (PlayStation 1) port: made on the player's PC by the port's generator (gerar.ps1 of
+# otavix010/silent-hill-pc), from their own disc (the European SLES-01514). The game reads its files beside
+# build-release/SilentHill.exe.
 [game]
 title = "Silent Hill"
 subtitle = { pt = "Port nativo do PlayStation 1 · recompilação estática", en = "Native PlayStation 1 port · static recompilation", es = "Port nativo de PlayStation 1 · recompilación estática" }
-status = "wip"
-status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
 exe = "build-release/SilentHill.exe"
+workdir = "exe"
+port_file = "gerar.ps1"
+logs = "out"
 # the runtime reads its files beside the exe
 settings = "build-release/settings.toml"
 ini = "build-release/input.ini"
-saves = ["build-release/saves"]
+saves = ["saves"]  # memory cards: the runtime keeps them at the port's root (game.toml memcard_dir)
 # the input.ini the game makes on its first start, for a launcher that writes it before that
 ini_template = """
 ; PSXRecomp input mapping. PSX buttons are active when any listed
@@ -67,6 +70,45 @@ web = [
 ]
 
 # PSXRecomp's mods: packages in mods/bundled (with the build) and mods/installed, choices in mods/state.toml
+
+[install]
+kind = "build"
+done = "out/gerar/5_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Disco", "{disco}"]
+redo = ["-RefazerDe", "3"]  # new code of the port: the translation and the build again, not the tools nor the disc
+version = { pt = "Silent Hill europeu (SLES-01514), a imagem do disco do PlayStation (.cue com o .bin, ou .chd)", en = "Silent Hill, European (SLES-01514): the PlayStation disc's image (.cue with its .bin, or .chd)", es = "Silent Hill europeo (SLES-01514): la imagen del disco de PlayStation (.cue con su .bin, o .chd)" }
+time = { pt = "Leva de 2 a 10 minutos, conforme o processador, e só uma vez. Baixa o PSXRecomp e um compilador próprio.", en = "It takes 2 to 10 minutes depending on the processor, and only once. It downloads PSXRecomp and a compiler of its own.", es = "Tarda de 2 a 10 minutos según el procesador, y solo una vez. Descarga PSXRecomp y un compilador propio." }
+
+[[install.prereqs]]
+name = "Python 3"
+check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\""
+install = "winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements"
+help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
+
+[[install.inputs]]
+key = "disco"
+pick = "both"
+filters = ["cue", "chd", "7z", "zip", "rar"]
+label = { pt = "O disco (o .cue ou o .chd, a pasta com ele, ou um .7z, .zip ou .rar)", en = "The disc (the .cue or .chd, the folder with it, or a .7z, .zip or .rar)", es = "El disco (el .cue o el .chd, la carpeta con él, o un .7z, .zip o .rar)" }
+help = { pt = "Tem que ser o Silent Hill europeu (SLES-01514); o gerador confere a cópia e avisa se for outra versão. Um arquivo compactado é extraído uma vez para a pasta do port.", en = "It must be the European Silent Hill (SLES-01514); the generator checks the copy and says so when it is another version. An archive is extracted once into the port's folder.", es = "Tiene que ser el Silent Hill europeo (SLES-01514); el generador comprueba la copia y avisa si es otra versión. Un archivo comprimido se extrae una vez en la carpeta del port." }
+
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_disco"
+label = { pt = "conferindo o disco", en = "checking the disc", es = "comprobando el disco" }
+[[install.steps]]
+id = "3_traduzir"
+label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
+[[install.steps]]
+id = "4_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "5_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
+
 [mods]
 kind = "psxrecomp"
 folder = "build-release/mods"
@@ -160,29 +202,6 @@ choices = [
   { value = "adaptive", label = { pt = "Adaptativa", en = "Adaptive", es = "Adaptativa" } },
   { value = "vrr", label = "G-Sync / FreeSync" },
   { value = "off", label = { pt = "Desligada", en = "Off", es = "Desactivada" } },
-]
-
-[[options]]
-page = "video"
-key = "video.frame_interpolation"
-type = "toggle"
-default = false
-label = { pt = "Movimento suave", en = "Smooth motion", es = "Movimiento suave" }
-help = { pt = "O jogo roda a 50 ou 60 como no PlayStation; isto calcula quadros intermediários até a taxa do monitor (ou a escolhida abaixo), sem acelerar o jogo.", en = "The game runs at 50 or 60 as on the PlayStation; this works out in-between frames up to the monitor's rate (or the one chosen below), without speeding the game up.", es = "El juego corre a 50 o 60 como en PlayStation; esto calcula cuadros intermedios hasta la tasa del monitor (o la elegida abajo), sin acelerar el juego." }
-
-[[options]]
-page = "video"
-key = "video.frame_interpolation_fps"
-type = "choice"
-default = 0
-label = { pt = "Taxa do movimento suave", en = "Smooth motion's rate", es = "Tasa del movimiento suave" }
-choices = [
-  { value = 0, label = { pt = "A do monitor", en = "The monitor's", es = "La del monitor" } },
-  { value = 90, label = "90 fps" },
-  { value = 120, label = "120 fps" },
-  { value = 144, label = "144 fps" },
-  { value = 165, label = "165 fps" },
-  { value = 240, label = "240 fps" },
 ]
 
 [[options]]
