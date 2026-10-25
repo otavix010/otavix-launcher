@@ -3257,6 +3257,63 @@ void SettingsUpdates() {
             break;
     }
 
+    // the installed ports: each one's version and whether a newer one is out, looked up again on demand
+    SubHeading(Tr(S::PortUpdates));
+    std::vector<int> installed;
+    for (size_t i = 0; i < g.games.size(); i++) {
+        Game& gm = *g.games[i];
+        if (!gm.entry.repo.empty() && gm.ok && Playable(gm, g.here) && PortPresent(gm)) installed.push_back(int(i));
+    }
+    if (installed.empty()) {
+        Dim(Tr(S::NoPortsInstalled));
+    } else {
+        bool checking = false;
+        for (int i : installed) checking |= g.games[size_t(i)]->fetcher.Busy();
+        ImGui::BeginDisabled(checking);
+        if (ImGui::Button(Tr(S::CheckPortsNow)))
+            for (int i : installed) {
+                Game& gm = *g.games[size_t(i)];
+                gm.port_checked = true;
+                gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
+            }
+        ImGui::EndDisabled();
+        ImGui::Spacing();
+        for (int i : installed) {
+            Game& gm = *g.games[size_t(i)];
+            PortFetcher::Status ps = gm.fetcher.Get();
+            std::string mine = InstalledPortVersion(gm.entry.dir), latest;
+            // a branch's commit, shortened as GitHub shows it
+            auto shown = [&](const std::string& v) { return gm.entry.branch.empty() || v.size() <= 7 ? v : v.substr(0, 7); };
+            ImGui::PushID(i);
+            ImGui::TextUnformatted(Tx(gm.prof.title));
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", mine.empty() ? "-" : shown(mine).c_str());
+            ImGui::SameLine();
+            if (ps.stage == PortFetcher::Stage::Checking) {
+                ImGui::TextDisabled("%s", Tr(S::Checking));
+            } else if (ps.stage == PortFetcher::Stage::Downloading || ps.stage == PortFetcher::Stage::Unpacking) {
+                ImGui::TextColored(Accent(1.3f), "● %s", ps.stage == PortFetcher::Stage::Unpacking ? Tr(S::UnpackingPort) : Tr(S::DownloadingPort));
+            } else if (ps.stage == PortFetcher::Stage::Failed) {
+                ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s: %s", Tr(S::PortFailed), ps.error.c_str());
+            } else if (ps.stage == PortFetcher::Stage::Done) {
+                ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::PortUpdated));
+            } else if (PortHasUpdate(gm, latest)) {
+                char b[128];
+                std::snprintf(b, sizeof(b), Tr(S::PortNewer), shown(latest).c_str());
+                ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", b);
+                ImGui::SameLine();
+                ImGui::BeginDisabled(g.proc != nullptr);
+                if (ImGui::SmallButton(Tr(S::UpdatePort))) gm.fetcher.Install(gm.entry.Source(), gm.entry.dir);
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::SmallButton(Tr(S::UpdOpen))) OpenGame(i);
+            } else if (ps.stage == PortFetcher::Stage::Ready) {
+                ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::PortUpToDate));
+            }
+            ImGui::PopID();
+        }
+    }
+
     // what changed, version by version: the launcher's, then each installed port's that has releases
     SubHeading(Tr(S::WhatsNewTitle));
     Dim(Tr(S::NotesIntro));

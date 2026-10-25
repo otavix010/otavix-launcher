@@ -22,6 +22,7 @@ enum class S {
     Perf, PerfThisPc, PerfMine, PerfNone, PerfCommunity, PerfCommunityIntro, PerfServerOff, PerfCommunityEmpty, PerfDate, PerfAvg, PerfLow, PerfMin, PerfOptions, PerfSessions, PerfCpu, PerfGpu, PerfRam, PerfShare, PerfShareHelp, PerfAskTitle, PerfAskText, PerfShowWhat, PerfSend, PerfDontSend, PerfLastReport, PerfNoReport, PerfDeleteLocal, PerfDeleteServer, PerfDeleted, PerfMachines, UpdPopTitle, UpdPopLauncher, UpdLater, UpdIgnore, UpdPortsTitle, UpdPortsText, UpdOpen, UpdIgnorePorts, PerfOsd, PerfOsdHelp, WhatsNewTitle, NotesNone, NotesInstalled, NotesIntro, SearchGames, SearchYours, SearchNoPort, SearchNothing, SearchMore, RequestPort, RequestedName, AlreadyName, RequestedMark, HintSearch,
     AnswerTitle, AnswerYourReport, AnswerOk, AnswersHere, AnswerBtn, AnswerLabel, AnswerSend, Answered,
     IssueCopied, IssueNoBrowser, IssueNoBrowserReport, UnpackHelp, UnpackFailed,
+    PortUpdates, CheckPortsNow, PortUpToDate, NoPortsInstalled,
     Count
 };
 

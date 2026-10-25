@@ -371,6 +371,10 @@ constexpr Row kRows[] = {
      "The launcher is unpacking the game into the port's folder; making it starts by itself right after. Keep the launcher open.",
      "El launcher está extrayendo el juego en la carpeta del port; la generación empieza sola enseguida. Deja el launcher abierto."},
     {"Não deu para extrair o jogo: %s", "The game could not be unpacked: %s", "No se pudo extraer el juego: %s"},
+    {"Atualizações dos ports", "Port updates", "Actualizaciones de los ports"},
+    {"Procurar atualizações dos ports", "Check for port updates", "Buscar actualizaciones de los ports"},
+    {"atualizado", "up to date", "actualizado"},
+    {"Nenhum port instalado ainda.", "No port installed yet.", "Ningún port instalado todavía."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
