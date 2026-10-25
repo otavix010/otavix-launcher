@@ -188,7 +188,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     std::error_code ec;
     fs::path search = source;
     fs::path work;  // the archive's unpacking folder, ours to clear
-    bool archive = fs::is_regular_file(source, ec) && IsArchive(source);
+    bool archive = fs::is_regular_file(source, ec) && (IsArchive(source) || (spec.unpack_images && IsDiscImage(source)));
     if (archive) {
         // its size unpacked, from the listing: "-rw-r--r--  0 0 0 <size> <month> <day> <year|time> <name>"
         std::string tar = Tar();
@@ -292,7 +292,8 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     }
     // an archive's game moves out of the unpacking folder into the port's; the rest of it goes
     if (!work.empty()) {
-        fs::path final = dest / pick.filename();
+        // the archive's top is the game itself: its unpacking folder is kept under a name of its own
+        fs::path final = dest / (fs::equivalent(pick, work, ec) ? fs::path("conteudo") : pick.filename());
         if (fs::exists(final, ec)) fs::remove_all(final, ec);
         fs::rename(pick, final, ec);
         if (ec) return fail("não foi possível mover o jogo: " + ec.message());

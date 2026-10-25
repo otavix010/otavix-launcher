@@ -87,6 +87,10 @@ struct Game {
     bool prereq_asked = false;
     bool build_noted = false;  // the finished build's version is kept
     bool build_form = false;   // the folders asked again, to make it again
+    // a build input being unpacked first (an archive or a disc image picked): its key, whether the build is a redo,
+    // a disc image found inside the archive (unpacked in turn, then deleted), and why the last unpacking failed
+    std::string unpack_key, unpack_image, unpack_error;
+    bool unpack_redo = false;
     std::vector<Mod> mods;
     bool mods_stale = true;
     std::atomic<bool> mods_busy = false;
@@ -2147,6 +2151,107 @@ void StartBuild(Game& gm, bool redo) {
     gm.build.Start(args, gm.entry.dir / FromU8(in.marks), steps);
 }
 
+// what an unpacking input points at, to unpack: the archive or disc image picked, or the one alone in the folder
+// picked; empty when the folder already holds the mark (or a folder inside it does: that one becomes the input)
+fs::path UnpackSource(Game& gm, const BuildInput& b) {
+    std::error_code ec;
+    fs::path v = FromU8(gm.store.GetOwn(b.key));
+    if (b.unpack.empty() || v.empty()) return {};
+    if (fs::is_regular_file(v, ec)) return IsArchive(v) || IsDiscImage(v) ? v : fs::path();
+    if (!fs::is_directory(v, ec) || fs::is_regular_file(v / FromU8(b.unpack), ec)) return {};
+    // the folder above the game's: the game's folder, two levels down at most
+    for (auto it = fs::recursive_directory_iterator(v, ec); it != fs::recursive_directory_iterator(); it.increment(ec)) {
+        if (it.depth() > 1) {
+            it.disable_recursion_pending();
+            continue;
+        }
+        if (it->is_directory(ec) && fs::is_regular_file(it->path() / FromU8(b.unpack), ec)) {
+            gm.store.SetOwn(b.key, U8(it->path()));
+            gm.store.Save();
+            return {};
+        }
+    }
+    // else the download sitting in it
+    fs::path only;
+    for (auto& e : fs::directory_iterator(v, ec))
+        if (e.is_regular_file(ec) && (IsArchive(e.path()) || IsDiscImage(e.path()))) {
+            if (!only.empty()) return {};  // which one? the player picks the file
+            only = e.path();
+        }
+    return only;
+}
+
+void StartUnpack(Game& gm, const BuildInput& b, const fs::path& source) {
+    InstallSpec spec;
+    spec.check = b.unpack;
+    spec.unpack_images = true;
+    gm.unpack_key = b.key;
+    gm.unpack_error.clear();
+    gm.installer.Start(source, gm.entry.dir / FromU8(b.key), spec);
+}
+
+// the generator, after the inputs given as archives or disc images are unpacked (false: nothing to unpack)
+bool UnpackInputs(Game& gm, bool redo) {
+    for (const BuildInput& b : gm.prof.install.inputs) {
+        fs::path source = UnpackSource(gm, b);
+        if (source.empty()) continue;
+        gm.unpack_redo = redo;
+        StartUnpack(gm, b, source);
+        return true;
+    }
+    return false;
+}
+
+void BuildOrUnpack(Game& gm, bool redo) {
+    if (!UnpackInputs(gm, redo)) StartBuild(gm, redo);
+}
+
+// an input being unpacked: its progress; done, the folder found is the input and the generator goes on
+bool UnpackCard(Game& gm) {
+    if (gm.unpack_key.empty()) return false;
+    Installer::Status st = gm.installer.Get();
+    if (gm.installer.Busy()) {
+        const char* what = st.stage == Installer::Stage::Extracting ? Tr(S::Unpacking)
+                           : st.stage == Installer::Stage::Checking ? Tr(S::CheckingVersion)
+                                                                    : Tr(S::ReadingArchive);
+        ImGui::TextColored(Accent(1.3f), "● %s", what);
+        char pct[16];
+        std::snprintf(pct, sizeof(pct), "%.0f%%", st.progress * 100);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
+        ImGui::ProgressBar(st.stage == Installer::Stage::Extracting ? st.progress : -float(ImGui::GetTime()), ImVec2(-1, 0),
+                           st.stage == Installer::Stage::Extracting ? pct : "");
+        ImGui::PopStyleColor();
+        Dim(Tr(S::UnpackHelp));
+        if (ImGui::Button(Tr(S::Cancel))) gm.installer.Cancel();
+        return true;
+    }
+    std::error_code ec;
+    const BuildInput* input = nullptr;
+    for (const BuildInput& b : gm.prof.install.inputs)
+        if (b.key == gm.unpack_key) input = &b;
+    if (st.stage == Installer::Stage::Failed || !input) {
+        gm.unpack_error = st.error;
+        gm.unpack_key.clear();
+        if (!gm.unpack_image.empty()) fs::remove(FromU8(gm.unpack_image), ec);
+        gm.unpack_image.clear();
+        return false;
+    }
+    if (st.stage != Installer::Stage::Done) return false;
+    // a disc image inside the archive: its files in turn, the image itself not kept
+    if (fs::is_regular_file(st.game, ec) && IsDiscImage(st.game)) {
+        gm.unpack_image = U8(st.game);
+        StartUnpack(gm, *input, st.game);
+        return true;
+    }
+    if (!gm.unpack_image.empty()) fs::remove(FromU8(gm.unpack_image), ec);
+    gm.unpack_image.clear();
+    gm.store.SetOwn(input->key, U8(st.game));
+    gm.store.Save();
+    gm.unpack_key.clear();
+    BuildOrUnpack(gm, gm.unpack_redo);
+    return true;
+}
+
 void BuildCard(Game& gm) {
     const InstallSpec& in = gm.prof.install;
     GameBuild::Status bs = gm.build.Get();
@@ -2161,6 +2266,7 @@ void BuildCard(Game& gm) {
             g_build_pick.ready = false;
         }
     }
+    if (UnpackCard(gm)) return;
     if (bs.stage == GameBuild::Stage::Running) {
         int total = int(in.steps.size()), cur = std::min(bs.step, total - 1);
         char head[256];
@@ -2202,7 +2308,7 @@ void BuildCard(Game& gm) {
             ImGui::SameLine();
             ImGui::BeginDisabled(g.proc != nullptr);
             if (ImGui::SmallButton(Tr(S::BuildRedo))) {
-                if (inputs_set) StartBuild(gm, true);
+                if (inputs_set) BuildOrUnpack(gm, true);
                 else gm.build_form = true;  // the folders first
             }
             ImGui::EndDisabled();
@@ -2344,11 +2450,16 @@ void BuildCard(Game& gm) {
     bool press = test_build && tools_ok && inputs_ok && g.proc == nullptr;
     if (press) test_build = false;
     if (ImGui::Button(Tr(S::BuildStart), ImVec2(320 * g.scale, 0)) || press) {
-        StartBuild(gm, made);
+        BuildOrUnpack(gm, made);
         gm.build_form = false;
     }
     ImGui::EndDisabled();
     ImGui::PopStyleColor();
+    if (!gm.unpack_error.empty()) {
+        char b[600];
+        std::snprintf(b, sizeof(b), Tr(S::UnpackFailed), gm.unpack_error.c_str());
+        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", b);
+    }
     if (bs.stage == GameBuild::Stage::Failed) {
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", Tr(S::BuildFailedTitle));

@@ -367,6 +367,10 @@ constexpr Row kRows[] = {
     {"Não deu para abrir o navegador. O relatório foi copiado: abra github.com/%s/issues/new e cole com Ctrl+V.",
      "The browser did not open. The report was copied: open github.com/%s/issues/new and paste it with Ctrl+V.",
      "No se pudo abrir el navegador. El reporte se copió: abre github.com/%s/issues/new y pégalo con Ctrl+V."},
+    {"O launcher está extraindo o jogo para a pasta do port; a geração começa sozinha em seguida. Deixe o launcher aberto.",
+     "The launcher is unpacking the game into the port's folder; making it starts by itself right after. Keep the launcher open.",
+     "El launcher está extrayendo el juego en la carpeta del port; la generación empieza sola enseguida. Deja el launcher abierto."},
+    {"Não deu para extrair o jogo: %s", "The game could not be unpacked: %s", "No se pudo extraer el juego: %s"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

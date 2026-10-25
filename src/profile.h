@@ -99,6 +99,9 @@ struct BuildInput {
     std::string download_url, download_sha1, download_file;
     Text download_label;
     uint64_t download_size = 0;
+    // a file that marks the input's folder (PS3_GAME/PARAM.SFO): an archive or a disc image picked instead, or found in
+    // the folder picked, is unpacked into the port's folder, and the folder holding the mark becomes the input
+    std::string unpack;
 };
 // a step of the generator: <id>.ok in the marks folder once done, <id>.log while it runs
 struct BuildStep {
@@ -119,6 +122,7 @@ struct InstallSpec {
     std::string sha1;              // the release the port was made from
     Text version;                  // that release, as the player would look for it
     std::string folder = "jogo";   // where an archive's game is kept, in the port's folder
+    bool unpack_images = false;    // a disc image is unpacked too (a generator's input wants the files, not the image)
     std::vector<std::string> files;  // a game that is one file: its extensions (jar); copied into folder, its SHA-1 checked
     Text help;                       // what the player picks, for such a game
     std::string kind;                // "build": the game is made on the player's PC by the port's generator

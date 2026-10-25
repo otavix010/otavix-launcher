@@ -41,9 +41,11 @@ help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado
 
 [[install.inputs]]
 key = "disco"
-pick = "folder"
-label = { pt = "O disco (a pasta que contém PS3_GAME)", en = "The disc (the folder holding PS3_GAME)", es = "El disco (la carpeta que contiene PS3_GAME)" }
-help = { pt = "O port aponta para ela, não copia os 34 GB: deixe a pasta onde está.", en = "The port points at it, it does not copy the 34 GB: leave the folder where it is.", es = "El port apunta a ella, no copia los 34 GB: deja la carpeta donde está." }
+pick = "both"
+filters = ["7z", "zip", "rar", "iso"]
+unpack = "PS3_GAME/PARAM.SFO"
+label = { pt = "O disco (a pasta que contém PS3_GAME, ou o arquivo baixado)", en = "The disc (the folder holding PS3_GAME, or the downloaded file)", es = "El disco (la carpeta que contiene PS3_GAME, o el archivo descargado)" }
+help = { pt = "Uma pasta: o port aponta para ela, não copia os 34 GB, então deixe-a onde está. Um arquivo .7z, .zip, .rar ou .iso (ou a pasta onde ele está): o launcher extrai na pasta do port antes de gerar; precisa de uns 35 GB livres no disco do port, e depois o arquivo baixado pode ser apagado. A .iso tem que ser a decriptada.", en = "A folder: the port points at it, it does not copy the 34 GB, so leave it where it is. A .7z, .zip, .rar or .iso file (or the folder holding it): the launcher unpacks it into the port's folder before making the game; it needs about 35 GB free on the port's drive, and the download can be deleted afterwards. The .iso must be the decrypted one.", es = "Una carpeta: el port apunta a ella, no copia los 34 GB, así que déjala donde está. Un archivo .7z, .zip, .rar o .iso (o la carpeta donde está): el launcher lo extrae en la carpeta del port antes de generar; necesita unos 35 GB libres en el disco del port, y luego la descarga se puede borrar. La .iso tiene que ser la descifrada." }
 
 [[install.inputs]]
 key = "update"
