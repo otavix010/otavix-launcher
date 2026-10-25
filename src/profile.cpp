@@ -114,6 +114,17 @@ bool Profile::Load(const fs::path& file, std::string& error) {
                 if (const toml::array* f = (*it)["filters"].as_array())
                     for (auto& x : *f)
                         if (auto s = x.value<std::string>()) b.filters.push_back(*s);
+                if (const toml::array* l = (*it)["links"].as_array())
+                    for (auto& x : *l)
+                        if (const toml::table* t = x.as_table())
+                            b.links.push_back({ReadText((*t)["label"]), (*t)["url"].value_or(std::string())});
+                if (const toml::table* d = (*it)["download"].as_table()) {
+                    b.download_url = (*d)["url"].value_or(std::string());
+                    b.download_sha1 = (*d)["sha1"].value_or(std::string());
+                    b.download_file = (*d)["file"].value_or(std::string());
+                    b.download_size = uint64_t((*d)["size"].value_or(int64_t(0)));
+                    b.download_label = ReadText((*d)["label"]);
+                }
                 install.inputs.push_back(b);
             }
     if (const toml::array* a = in["steps"].as_array())

@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -1901,6 +1902,70 @@ void SDLCALL BuildPicked(void*, const char* const* list, int) {
     g_build_pick.ready = true;
 }
 
+// the next small button on the same line when it fits there, otherwise on the next
+void SameLineIfFits(const char* label) {
+    float width = ImGui::CalcTextSize(label).x + ImGui::GetStyle().FramePadding.x * 2;
+    float right = ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + width;
+    if (right <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x) ImGui::SameLine();
+}
+
+// an input's file fetched from an official server (BuildInput::download), one at a time per game and input
+struct InputFetch {
+    std::mutex m;
+    std::atomic<bool> busy{false}, cancel{false};
+    uint64_t done = 0;
+    std::string error;
+    std::string ready;  // the file, once checked: taken into the input's value on the UI thread
+};
+std::map<std::string, std::unique_ptr<InputFetch>> g_input_fetch;  // "game/key"
+
+InputFetch& FetchOf(const Game& gm, const BuildInput& in) {
+    auto& p = g_input_fetch[gm.entry.id + "/" + in.key];
+    if (!p) p = std::make_unique<InputFetch>();
+    return *p;
+}
+
+// into the port's dl folder; a file already there with the right SHA-1 is taken as it is
+void StartInputFetch(Game& gm, const BuildInput& in) {
+    InputFetch& f = FetchOf(gm, in);
+    if (f.busy.exchange(true)) return;
+    f.cancel = false;
+    {
+        std::lock_guard lock(f.m);
+        f.done = 0;
+        f.error.clear();
+        f.ready.clear();
+    }
+    fs::path file = gm.entry.dir / "dl" / FromU8(in.download_file);
+    std::string url = in.download_url, sha1 = in.download_sha1;
+    std::thread([&f, file, url, sha1] {
+        std::error_code ec;
+        fs::create_directories(file.parent_path(), ec);
+        std::string err;
+        bool ok = fs::is_regular_file(file, ec) && FileSha1(file) == sha1;
+        if (!ok) {
+            fs::path part = file;
+            part += ".parcial";
+            std::string sha256;
+            ok = DownloadFile(url, part, f.cancel, f.done, f.m, sha256, err);
+            if (ok && FileSha1(part) != sha1) {
+                ok = false;
+                err = "o arquivo baixado não confere (SHA-1)";
+            }
+            if (ok) {
+                fs::rename(part, file, ec);
+                if (ec) ok = false, err = ec.message();
+            } else {
+                fs::remove(part, ec);
+            }
+        }
+        std::lock_guard lock(f.m);
+        if (ok) f.ready = U8(file);
+        else f.error = err;
+        f.busy = false;
+    }).detach();
+}
+
 void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
     {
         std::lock_guard lock(g_build_pick.m);
@@ -2100,6 +2165,41 @@ void BuildCard(Game& gm) {
             if (b.file) ImGui::SameLine();
         }
         if (b.file && ImGui::SmallButton(Tr(S::PickFileBtn))) PickBuildInput(gm, b, true);
+        // the official pages, and the file fetched for the player from its official server
+        for (auto& [label, url] : b.links) {
+            SameLineIfFits(Tx(label));
+            if (ImGui::SmallButton(Tx(label))) SDL_OpenURL(url.c_str());
+        }
+        if (!b.download_url.empty()) {
+            InputFetch& f = FetchOf(gm, b);
+            std::string error;
+            uint64_t done = 0;
+            {
+                std::lock_guard lock(f.m);
+                if (!f.ready.empty()) {
+                    gm.store.SetOwn(b.key, f.ready);
+                    f.ready.clear();
+                }
+                error = f.error;
+                done = f.done;
+            }
+            if (f.busy) {
+                char pct[64];
+                std::snprintf(pct, sizeof(pct), "%.0f / %.0f MB", double(done) / 1048576.0, double(b.download_size) / 1048576.0);
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
+                ImGui::ProgressBar(b.download_size ? float(double(done) / double(b.download_size)) : -float(ImGui::GetTime()),
+                                   ImVec2(320 * g.scale, 0), pct);
+                ImGui::PopStyleColor();
+                ImGui::SameLine();
+                if (ImGui::SmallButton(Tr(S::Cancel))) f.cancel = true;
+            } else {
+                SameLineIfFits(Tx(b.download_label));
+                ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.6f));
+                if (ImGui::SmallButton(Tx(b.download_label))) StartInputFetch(gm, b);
+                ImGui::PopStyleColor();
+                if (!error.empty()) ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", error.c_str());
+            }
+        }
         ImGui::Spacing();
         ImGui::PopID();
     }
@@ -4337,6 +4437,10 @@ int main(int argc, char** argv) {
     // tests: LAUNCHER_ENTRY=n (the hub's sidebar), LAUNCHER_PAGE=n (the open game's), LAUNCHER_AUTOPLAY=1
     if (const char* e = SDL_getenv("LAUNCHER_ENTRY")) g.entry = std::clamp(std::atoi(e), 0, int(HubEntries().size()) - 1);
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
+    // tests: LAUNCHER_INPUT_FETCH=key, the open game's install input's download button pressed
+    if (const char* k = SDL_getenv("LAUNCHER_INPUT_FETCH"); k && g.cur >= 0)
+        for (const BuildInput& b : G().prof.install.inputs)
+            if (b.key == k) StartInputFetch(G(), b);
     // tests: LAUNCHER_SETTINGS_TAB=n, the launcher's settings open on that tab
     if (const char* t = SDL_getenv("LAUNCHER_SETTINGS_TAB")) {
         g.settings_tab = std::atoi(t);

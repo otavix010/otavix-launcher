@@ -44,6 +44,9 @@ std::string Json(const std::string& s);
 bool DownloadFile(const std::string& url, const std::filesystem::path& file, std::atomic<bool>& cancel, uint64_t& done,
                   std::mutex& m, std::string& sha256, std::string& error);
 
+// a file's SHA-1 (hex); empty when it cannot be read
+std::string FileSha1(const std::filesystem::path& file);
+
 // an answer's lines, each split at its tabs
 std::vector<std::vector<std::string>> Lines(const std::string& body);
 

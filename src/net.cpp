@@ -179,6 +179,27 @@ std::wstring WideOf(const std::string& s) {
     return w;
 }
 
+std::string FileSha1(const fs::path& file) {
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return {};
+    BCRYPT_ALG_HANDLE alg = nullptr;
+    BCRYPT_HASH_HANDLE hash = nullptr;
+    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA1_ALGORITHM, nullptr, 0) != 0) return {};
+    BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0);
+    std::vector<char> buf(1 << 20);
+    while (in) {
+        in.read(buf.data(), std::streamsize(buf.size()));
+        if (in.gcount() > 0) BCryptHashData(hash, reinterpret_cast<PUCHAR>(buf.data()), ULONG(in.gcount()), 0);
+    }
+    uint8_t digest[20];
+    BCryptFinishHash(hash, digest, sizeof(digest), 0);
+    BCryptDestroyHash(hash);
+    BCryptCloseAlgorithmProvider(alg, 0);
+    char hex[41];
+    for (int i = 0; i < 20; i++) std::snprintf(hex + i * 2, 3, "%02x", digest[i]);
+    return hex;
+}
+
 // a download into a file, its SHA-256 on the way; redirects (GitHub's assets go to their storage) followed
 bool DownloadFile(const std::string& url, const fs::path& file, std::atomic<bool>& cancel, uint64_t& done, std::mutex& m,
               std::string& sha256, std::string& error) {
@@ -244,6 +265,7 @@ bool DownloadFile(const std::string&, const fs::path&, std::atomic<bool>&, uint6
     error = "not on this system yet";
     return false;
 }
+std::string FileSha1(const fs::path&) { return {}; }
 #endif
 
 }  // namespace launcher

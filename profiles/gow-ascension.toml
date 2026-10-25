@@ -50,14 +50,19 @@ key = "update"
 pick = "both"
 filters = ["pkg"]
 label = { pt = "O update 1.04", en = "The 1.04 update", es = "El update 1.04" }
-help = { pt = "A pasta BCUS98232 do update instalado no RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232) ou o arquivo .pkg dele.", en = "The BCUS98232 folder of the update installed in RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232), or its .pkg file.", es = "La carpeta BCUS98232 del update instalado en RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232) o su archivo .pkg." }
+help = { pt = "O update 1.04 é grátis no servidor da Sony: o botão baixa o arquivo oficial e confere. Tem que ser a 1.04; o RPCS3 instala a mais recente (1.09), que o port não aceita. Também serve a pasta BCUS98232 de um update 1.04 já instalado no RPCS3, ou o .pkg dele.", en = "The 1.04 update is free on Sony's server: the button downloads the official file and checks it. It must be 1.04; RPCS3 installs the newest (1.09), which the port does not take. The BCUS98232 folder of a 1.04 update already installed in RPCS3, or its .pkg, also works.", es = "El update 1.04 es gratis en el servidor de Sony: el botón descarga el archivo oficial y lo comprueba. Tiene que ser la 1.04; RPCS3 instala la más reciente (1.09), que el port no acepta. También sirve la carpeta BCUS98232 de un update 1.04 ya instalado en RPCS3, o su .pkg." }
+download = { url = "http://b0.ww.np.dl.playstation.net/tppkg/np/BCUS98232/BCUS98232_T76/5525fbb7b6b5456d/UP9000-BCUS98232_00-GOWABDPATCH00001-A0104-V0100-PE.pkg", sha1 = "cf97c10f313ea25c8b0f9b29891c288375c7d3f5", size = 235060816, file = "UP9000-BCUS98232_00-GOWABDPATCH00001-A0104-V0100-PE.pkg", label = { pt = "Baixar o update 1.04 da Sony", en = "Download the 1.04 update from Sony", es = "Descargar el update 1.04 de Sony" } }
 
 [[install.inputs]]
 key = "firmware"
 pick = "both"
 filters = ["sprx"]
 label = { pt = "O firmware do PS3", en = "The PS3 firmware", es = "El firmware de PS3" }
-help = { pt = "A pasta do RPCS3 com o firmware oficial instalado (File > Install Firmware), ou o arquivo libsre.sprx.", en = "The RPCS3 folder with the official firmware installed (File > Install Firmware), or the libsre.sprx file.", es = "La carpeta de RPCS3 con el firmware oficial instalado (File > Install Firmware), o el archivo libsre.sprx." }
+help = { pt = "O firmware oficial do PS3 é grátis no site da PlayStation (\"Baixar atualização do PS3\"). Instale-o no RPCS3 em File > Install Firmware e escolha aqui a pasta do RPCS3, ou o arquivo libsre.sprx.", en = "The official PS3 firmware is free on PlayStation's site (\"Download PS3 update\"). Install it in RPCS3 with File > Install Firmware and pick the RPCS3 folder here, or the libsre.sprx file.", es = "El firmware oficial de PS3 es gratis en el sitio de PlayStation (\"Descargar actualización de PS3\"). Instálalo en RPCS3 en File > Install Firmware y elige aquí la carpeta de RPCS3, o el archivo libsre.sprx." }
+links = [
+  { label = { pt = "Firmware (site da PlayStation)", en = "Firmware (PlayStation's site)", es = "Firmware (sitio de PlayStation)" }, url = "https://www.playstation.com/pt-br/support/hardware/ps3/system-software/" },
+  { label = { pt = "Baixar o RPCS3", en = "Get RPCS3", es = "Descargar RPCS3" }, url = "https://rpcs3.net/download" },
+]
 
 [[install.steps]]
 id = "1_ferramentas"

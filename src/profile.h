@@ -90,6 +90,12 @@ struct BuildInput {
     Text label, help;
     bool folder = true, file = false;  // what may be picked
     std::vector<std::string> filters;  // a file's extensions
+    std::vector<std::pair<Text, std::string>> links;  // official pages, opened in the browser: label, address
+    // a file an official server hands out free (a game's update on the console maker's server): downloaded into the
+    // port's dl folder, its SHA-1 checked, and then the input's value
+    std::string download_url, download_sha1, download_file;
+    Text download_label;
+    uint64_t download_size = 0;
 };
 // a step of the generator: <id>.ok in the marks folder once done, <id>.log while it runs
 struct BuildStep {
