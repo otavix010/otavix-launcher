@@ -204,6 +204,19 @@ choices = [
 
 [[options]]
 page = "video"
+key = "GOWA_PRESENT_SYNC"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "V-sync", en = "V-sync", es = "V-sync" }
+help = { pt = "Ligado, cada quadro espera a atualização da tela: sem rasgos, mas quando o jogo fica abaixo da taxa da tela (por exemplo, 20-30 fps numa tela de 75 Hz) os quadros duram tempos desiguais e o movimento dá travadinhas. Desligado, o quadro aparece assim que fica pronto: mais fluido nesses casos, mas a imagem pode rasgar.", en = "On, every frame waits for the screen's refresh: no tearing, but when the game runs below the screen's rate (say 20-30 fps on a 75 Hz screen) frames last uneven times and motion stutters. Off, the frame shows as soon as it is ready: smoother in those cases, but the picture can tear.", es = "Activado, cada fotograma espera la actualización de la pantalla: sin cortes, pero cuando el juego va por debajo de la tasa de la pantalla (por ejemplo, 20-30 fps en una pantalla de 75 Hz) los fotogramas duran tiempos desiguales y el movimiento da tirones. Desactivado, el fotograma aparece en cuanto está listo: más fluido en esos casos, pero la imagen puede cortarse." }
+choices = [
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+  { value = "0", label = { pt = "Desligado (menos travadinhas abaixo da taxa da tela)", en = "Off (less stutter below the screen's rate)", es = "Desactivado (menos tirones por debajo de la tasa de la pantalla)" } },
+]
+
+[[options]]
+page = "video"
 key = "GOWA_FRAMEGEN"
 target = "env"
 type = "choice"

@@ -39,6 +39,7 @@
 #include "music.h"
 #include "ports.h"
 #include "net.h"
+#include "photo.h"
 #include "profile.h"
 #include "psxmods.h"
 #include "saves.h"
@@ -225,12 +226,25 @@ struct App {
     std::string search_vote_name, search_vote_id;
     std::set<std::string> search_voted;     // "console/key" requested from the search in this run
     bool focus_search = false;
+    int search_filter = 0;                  // the hub's games shown: 0 all, 1 playable here, 2 in development
     // the report being written
     Call report_call;
     int rep_cat = 0;
     char rep_desc[4000] = "", rep_contact[160] = "";
     bool rep_attach = true;
     std::string rep_msg;
+    std::vector<Photo> rep_photos;              // up to 4, made JPEG when added
+    std::vector<std::string> rep_photo_picked;  // files from the dialog, taken on the frame (under dlg_m)
+    std::string rep_photo_msg;
+    // the pictures go after the report, a request each, to the id it got
+    Call photo_call;
+    std::string photo_report;
+    std::vector<Photo> photo_queue;
+    size_t photo_next = 0, photo_failed = 0;
+    // the player's own port requests, to take one back
+    Call mine_call, withdraw_call;
+    std::vector<std::vector<std::string>> mine;  // console, key, name, when, comment, cover
+    bool mine_stale = true;
     std::vector<std::pair<std::string, std::string>> sysinfo;
     // performance: the file the running game writes, the first session's consent, the server's answers
     fs::path perf_file;
@@ -254,6 +268,9 @@ struct App {
     std::string admin_token;  // the server's key, kept sealed by Windows in hub_state.toml
     char adm_reply[1024] = "";  // the owner's answer being written to a report, and that report's id
     std::string adm_reply_id;
+    // a report's attachment being fetched to open, and a request about to be removed for good
+    Call admin_file_call;
+    std::string admin_file_name, adm_remove_console, adm_remove_key, adm_remove_name;
     // the owner's answers to the reports sent from this computer: id, game, title, kind, the report's start, the
     // answer, when; those not seen yet are shown in a pop-up
     Call answers_call;
@@ -3763,8 +3780,13 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     j += ",\"descricao\":" + Json(g.rep_desc);
     j += ",\"contato\":" + Json(g.rep_contact);
     j += ",\"ultima_saida\":" + Json(last);
+    // the computer, and the port's own version and the executable that runs (a game made here has a build per
+    // processor kind)
+    std::vector<std::pair<std::string, std::string>> sys = g.sysinfo;
+    if (std::string port = InstalledPortVersion(gm.entry.dir); !port.empty()) sys.push_back({"port", port});
+    if (fs::path exe = FindGame(gm); !exe.empty()) sys.push_back({"exe", U8(exe.lexically_relative(gm.entry.dir))});
     j += ",\"sistema\":{";
-    for (size_t i = 0; i < g.sysinfo.size(); i++) j += (i ? "," : "") + Json(g.sysinfo[i].first) + ":" + Json(g.sysinfo[i].second);
+    for (size_t i = 0; i < sys.size(); i++) j += (i ? "," : "") + Json(sys[i].first) + ":" + Json(sys[i].second);
     j += "}";
     if (!log_text.empty()) j += ",\"log_nome\":" + Json(U8(log.filename())) + ",\"log\":" + Json(log_text);
     if (!config.empty()) j += ",\"config\":" + Json(config);
@@ -3954,6 +3976,100 @@ void SettingsPerf() {
     if (!g.perf_msg.empty()) Dim(g.perf_msg.c_str());
 }
 
+constexpr size_t kMaxPhotos = 4;
+
+// the pictures picked in the dialog (on SDL's thread): made JPEG on the frame
+void PhotosPicked(void*, const char* const* files, int) {
+    if (!files) return;
+    std::lock_guard lock(g.dlg_m);
+    for (int i = 0; files[i]; i++) g.rep_photo_picked.push_back(files[i]);
+}
+
+// the report's pictures, one request after the other once the report has its id (the page need not stay open)
+void PhotoTick() {
+    if (g.photo_report.empty()) return;
+    HttpResult r;
+    Call::State st = g.photo_call.Get(&r);
+    if (st == Call::State::Busy) return;
+    if (st == Call::State::Done) {
+        if (!r.Ok()) g.photo_failed++, g.rep_photo_msg = r.error.empty() ? r.body : r.error;
+        g.photo_call.Reset();
+        g.photo_next++;
+    }
+    if (g.photo_next < g.photo_queue.size()) {
+        const Photo& p = g.photo_queue[g.photo_next];
+        g.photo_call.Start("POST", Server() + "/v1/report/foto?report=" + g.photo_report + "&nome=" + PercentEncode(p.name),
+                           ServerHeaders(), p.bytes);
+        return;
+    }
+    char b[200];
+    int n = int(g.photo_queue.size());
+    if (g.photo_failed) std::snprintf(b, sizeof(b), Tr(S::ReportPhotosFailed), n - int(g.photo_failed), n);
+    else std::snprintf(b, sizeof(b), Tr(S::ReportPhotosSent), n);
+    g.rep_msg = std::string(Tr(S::ReportSent)) + " " + b;
+    g.photo_report.clear();
+    g.photo_queue.clear();
+}
+
+// the report form's pictures: from a file or the clipboard (Win+Shift+S), listed with a button to drop each
+void ReportPhotos() {
+    std::vector<std::string> picked;
+    {
+        std::lock_guard lock(g.dlg_m);
+        picked.swap(g.rep_photo_picked);
+    }
+    auto add = [](Photo&& p) {
+        if (g.rep_photos.size() >= kMaxPhotos) {
+            g.rep_photo_msg = Tr(S::ReportPhotoLimit);
+            return;
+        }
+        g.rep_photos.push_back(std::move(p));
+        g.rep_photo_msg.clear();
+    };
+    for (const std::string& f : picked) {
+        Photo p;
+        std::string err;
+        if (PhotoFromFile(FromU8(f), p, err)) add(std::move(p));
+        else g.rep_photo_msg = U8(FromU8(f).filename()) + ": " + err;
+    }
+    ImGui::Spacing();
+    ImGui::TextUnformatted(Tr(S::ReportPhotos));
+    Dim(Tr(S::ReportPhotosHelp));
+    ImGui::BeginDisabled(g.rep_photos.size() >= kMaxPhotos || !g.photo_report.empty());
+    if (ImGui::Button(Tr(S::ReportAddPhotos))) {
+        static std::string name;
+        static SDL_DialogFileFilter filter;
+        name = Tr(S::ReportImages);
+        filter = {name.c_str(), "png;jpg;jpeg;bmp;webp"};
+        SDL_ShowOpenFileDialog(PhotosPicked, nullptr, g.win, &filter, 1, SDL_GetUserFolder(SDL_FOLDER_SCREENSHOTS), true);
+    }
+    ImGui::SameLine();
+    // tests: LAUNCHER_REPORT_PASTE=1 presses Paste screenshot once
+    static bool test_paste = SDL_getenv("LAUNCHER_REPORT_PASTE") != nullptr;
+    bool paste = test_paste;
+    test_paste = false;
+    if (ImGui::Button(Tr(S::ReportPastePhoto)) || paste) {
+        Photo p;
+        std::string err;
+        if (PhotoFromClipboard(p, err)) add(std::move(p));
+        else g.rep_photo_msg = err.empty() ? Tr(S::ReportNoClipboard) : err;
+    }
+    ImGui::EndDisabled();
+    for (size_t i = 0; i < g.rep_photos.size(); i++) {
+        const Photo& p = g.rep_photos[i];
+        ImGui::PushID(int(i) + 1000);
+        ImGui::BulletText("%s · %dx%d · %s", p.name.c_str(), p.width, p.height, Bytes(p.bytes.size()).c_str());
+        ImGui::SameLine();
+        bool drop = ImGui::SmallButton(Tr(S::ModRemove));
+        ImGui::PopID();
+        if (drop) {
+            g.rep_photos.erase(g.rep_photos.begin() + std::ptrdiff_t(i));
+            break;
+        }
+    }
+    if (!g.rep_photo_msg.empty()) ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", g.rep_photo_msg.c_str());
+}
+
 void ReportPage() {
     Game& gm = G();
     if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
@@ -3975,6 +4091,7 @@ void ReportPage() {
     ImGui::InputText("##contact", g.rep_contact, sizeof(g.rep_contact));
     ImGui::Spacing();
     ImGui::Checkbox(Tr(S::ReportAttach), &g.rep_attach);
+    ReportPhotos();
 
     // everything that goes along, before it goes
     fs::path log = NewestFile(gm.entry.dir / FromU8(gm.prof.logs));
@@ -3987,6 +4104,7 @@ void ReportPage() {
             if (!log.empty()) ImGui::BulletText("%s (%s)", U8(log.filename()).c_str(), Bytes(fs::file_size(log, ec)).c_str());
             ImGui::BulletText("%s", gm.prof.settings.c_str());
         }
+        for (const Photo& p : g.rep_photos) ImGui::BulletText("%s (%s)", p.name.c_str(), Bytes(p.bytes.size()).c_str());
     }
     ImGui::Spacing();
 
@@ -3996,15 +4114,29 @@ void ReportPage() {
         if (r.Ok()) {
             g.rep_msg = Tr(S::ReportSent);
             g.rep_desc[0] = 0;
+            // the pictures go next, to the id the server answered with ("ok\t<id>")
+            std::vector<std::vector<std::string>> rows = Lines(r.body);
+            std::string id = rows.empty() ? std::string() : Str(rows[0], 1);
+            if (!g.rep_photos.empty() && !id.empty() && id.find_first_not_of("0123456789") == std::string::npos) {
+                g.photo_report = id;
+                g.photo_queue = std::move(g.rep_photos);
+                g.rep_photos.clear();
+                g.photo_next = g.photo_failed = 0;
+                g.rep_msg = Tr(S::ReportSendingPhotos);
+            }
         } else {
             g.rep_msg = std::string(Tr(S::SendFailed)) + ": " + r.error + "\n" + Tr(S::ReportSaved);
         }
         g.report_call.Reset();
     }
-    bool busy = st == Call::State::Busy;
+    bool busy = st == Call::State::Busy || !g.photo_report.empty();
+    // tests: LAUNCHER_REPORT_SEND=1 presses Send once the test's picture is in
+    static bool test_send = SDL_getenv("LAUNCHER_REPORT_SEND") != nullptr;
+    bool press = test_send && !busy && (!g.rep_photos.empty() || !SDL_getenv("LAUNCHER_REPORT_PHOTO"));
+    if (press) test_send = false;
     ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
     ImGui::BeginDisabled(busy);
-    if (ImGui::Button(busy ? Tr(S::Sending) : Tr(S::ReportSend), ImVec2(260 * g.scale, 0))) {
+    if (ImGui::Button(busy ? Tr(S::Sending) : Tr(S::ReportSend), ImVec2(260 * g.scale, 0)) || press) {
         if (std::string(g.rep_desc).find_first_not_of(" \n\t") == std::string::npos) {
             g.rep_msg = Tr(S::ReportEmpty);
         } else {
@@ -4014,7 +4146,10 @@ void ReportPage() {
             fs::path dir = g.hub_dir / "reports";
             std::error_code ec;
             fs::create_directories(dir, ec);
-            std::ofstream(dir / FromU8(Stamp() + "_" + gm.entry.id + ".json"), std::ios::binary) << json;
+            std::string stamp = Stamp();
+            std::ofstream(dir / FromU8(stamp + "_" + gm.entry.id + ".json"), std::ios::binary) << json;
+            for (const Photo& p : g.rep_photos)
+                std::ofstream(dir / FromU8(stamp + "_" + gm.entry.id + "_" + p.name), std::ios::binary) << p.bytes;
             if (Server().empty()) g.rep_msg = Tr(S::ServerOff);
             else g.report_call.Start("POST", Server() + "/v1/report", ServerHeaders(), json);
         }
@@ -4110,12 +4245,27 @@ void RequestsPage() {
             g.req_pick = nullptr;
             g.req_free = false;
             g.rank_stale = true;
+            g.mine_stale = true;
         } else {
             g.req_msg = std::string(Tr(S::SendFailed)) + ": " + r.error;
         }
         g.vote_call.Reset();
     }
     if (g.rank_stale && g.rank_call.Get() == Call::State::Idle) FetchRanking();
+    // the player's own requests, and one taken back
+    if (g.mine_call.Get(&r) == Call::State::Done) {
+        if (r.Ok()) g.mine = Lines(r.body);
+        g.mine_call.Reset();
+    }
+    if (g.withdraw_call.Get(&r) == Call::State::Done) {
+        g.req_msg = r.Ok() ? Tr(S::RequestWithdrawn) : std::string(Tr(S::SendFailed)) + ": " + (r.error.empty() ? r.body : r.error);
+        g.rank_stale = g.mine_stale = true;
+        g.withdraw_call.Reset();
+    }
+    if (g.mine_stale && g.mine_call.Get() == Call::State::Idle) {
+        g.mine_call.Start("GET", Server() + "/v1/pedidos/meus", ServerHeaders(), "");
+        g.mine_stale = false;
+    }
 
     // the form: the console, then a game of its catalog (or, for a console without one, any name)
     const auto& consoles = Consoles();
@@ -4196,6 +4346,26 @@ void RequestsPage() {
     if (!g.req_msg.empty()) {
         ImGui::SameLine();
         ImGui::TextUnformatted(g.req_msg.c_str());
+    }
+
+    // what this launcher asked for, each with a button to take it back
+    if (!g.mine.empty()) {
+        SubHeading(Tr(S::MyRequests));
+        for (size_t i = 0; i < g.mine.size(); i++) {
+            const auto& row = g.mine[i];  // console, key, name, when, comment, cover
+            ImGui::PushID(int(i) + 2000);
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%s", Str(row, 2).c_str());
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s · %s", ConsoleLabel(Str(row, 0)).c_str(), DateText(std::atoll(Str(row, 3).c_str())).c_str());
+            ImGui::SameLine();
+            ImGui::BeginDisabled(g.withdraw_call.Get() == Call::State::Busy);
+            if (ImGui::SmallButton(Tr(S::WithdrawRequest)))
+                g.withdraw_call.Start("DELETE", Server() + "/v1/pedidos", ServerHeaders(),
+                                      "{\"console\":" + Json(Str(row, 0)) + ",\"chave\":" + Json(Str(row, 1)) + "}");
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        }
     }
 
     // the rankings
@@ -4493,7 +4663,7 @@ void PollSearchVote() {
         char b[320];
         std::snprintf(b, sizeof(b), r.body == "ja" ? Tr(S::AlreadyName) : Tr(S::RequestedName), g.search_vote_name.c_str());
         Toast(b);
-        g.rank_stale = true;
+        g.rank_stale = g.mine_stale = true;
     } else {
         Toast(std::string(Tr(S::SendFailed)) + ": " + r.error);
         g.search_voted.erase(g.search_vote_id);  // can be sent again
@@ -4504,27 +4674,46 @@ void PollSearchVote() {
 // the hits: the hub's games as their cards, then the catalog's games without a port
 void SearchPage() {
     RunSearch();
-    if (g.search_games.empty() && g.search_catalog.empty()) {
+    // what is shown: everything, only the ports that play here, or only those still in development (both leave out
+    // the catalog's games, which have no port)
+    const S kFilters[] = {S::FilterAll, S::FilterPlayable, S::FilterWip};
+    for (int f = 0; f < 3; f++) {
+        if (f) ImGui::SameLine();
+        bool on = g.search_filter == f;
+        ImGui::PushStyleColor(ImGuiCol_Button, on ? Accent(0.75f) : ImVec4(0.16f, 0.16f, 0.19f, 1));
+        if (ImGui::Button(Tr(kFilters[f]))) g.search_filter = f;
+        ImGui::PopStyleColor();
+    }
+    ImGui::Spacing();
+    std::vector<int> shown;
+    for (int i : g.search_games) {
+        const Game& gm = *g.games[size_t(i)];
+        std::string st = gm.StateOn(g.here, g.here);
+        if (g.search_filter == 0 || (g.search_filter == 1 && st == "ok") || (g.search_filter == 2 && st == "wip"))
+            shown.push_back(i);
+    }
+    bool catalog = g.search_filter == 0 && !g.search_catalog.empty();
+    if (shown.empty() && !catalog) {
         Dim(Tr(S::SearchNothing));
         return;
     }
     float avail = ImGui::GetContentRegionAvail().x;
-    if (!g.search_games.empty()) {
+    if (!shown.empty()) {
         Heading(Tr(S::SearchYours));
         // smaller cards than the library's: the catalog's hits come under them
         float gap = 20 * g.scale;
         int cols = std::max(1, int((avail + gap) / (300 * g.scale + gap)));
         float w = (avail - gap * float(cols - 1)) / float(cols), h = w * 9.0f / 16.0f;
-        for (size_t k = 0; k < g.search_games.size(); k++) {
+        for (size_t k = 0; k < shown.size(); k++) {
             if (k % size_t(cols)) ImGui::SameLine(0, gap);
-            int i = g.search_games[k];
+            int i = shown[k];
             if (GameCard(*g.games[size_t(i)], ImVec2(w, h), g.focus_page && k == 0)) OpenGame(i);
             if (k % size_t(cols) == size_t(cols - 1)) ImGui::Dummy(ImVec2(0, gap * 0.25f));
         }
         ImGui::Dummy(ImVec2(0, 8 * g.scale));
     }
-    if (!g.search_catalog.empty()) {
-        if (g.search_games.empty()) Heading(Tr(S::SearchNoPort));
+    if (catalog) {
+        if (shown.empty()) Heading(Tr(S::SearchNoPort));
         else SubHeading(Tr(S::SearchNoPort));
         ImGui::Spacing();
         float gap = 16 * g.scale;
@@ -4534,7 +4723,7 @@ void SearchPage() {
         for (size_t k = 0; k < g.search_catalog.size(); k++) {
             if (k % size_t(cols)) ImGui::SameLine(0, gap);
             const auto& [console, cg] = g.search_catalog[k];
-            CatalogTile(console, *cg, size, g.focus_page && g.search_games.empty() && k == 0);
+            CatalogTile(console, *cg, size, g.focus_page && shown.empty() && k == 0);
         }
         if (g.search_capped) {
             char b[160];
@@ -4572,6 +4761,20 @@ void AdminPage() {
         g.admin_stale = true;
         g.admin_call.Reset();
     }
+    // an attachment fetched: into the temporary folder and opened by its program
+    if (g.admin_file_call.Get(&r) == Call::State::Done) {
+        if (r.Ok()) {
+            std::error_code ec;
+            fs::path dir = fs::temp_directory_path(ec) / "otavix-anexos";
+            fs::create_directories(dir, ec);
+            fs::path file = dir / FromU8(g.admin_file_name);
+            std::ofstream(file, std::ios::binary) << r.body;
+            OpenPath(file);
+        } else {
+            g.admin_msg = r.error.empty() ? r.body : r.error;
+        }
+        g.admin_file_call.Reset();
+    }
     if (g.admin_stale && g.admin_rank_call.Get() == Call::State::Idle) {
         g.admin_rank_call.Start("GET", Server() + "/v1/admin/ranking?periodo=" + kPeriods[g.admin_period], ServerHeaders(true), "");
         g.admin_reports_call.Start("GET", Server() + "/v1/admin/reports", ServerHeaders(true), "");
@@ -4589,13 +4792,19 @@ void AdminPage() {
     ImGui::PopFont();
     if (PeriodTabs("aperiods", g.admin_period)) g.admin_stale = true;
     if (g.admin_ranking.empty()) Dim(g.admin_rank_call.Get() == Call::State::Busy ? Tr(S::Loading) : Tr(S::NoRequests));
-    bool open_rename = false, open_merge = false;
-    if (!g.admin_ranking.empty() && ImGui::BeginTable("arank", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+    bool open_rename = false, open_merge = false, open_remove = false;
+    if (!g.admin_ranking.empty() && ImGui::BeginTable("arank", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+        // the buttons' column as wide as its buttons, in whatever language; the others share the rest (the console goes
+        // under the name)
+        const ImGuiStyle& style = ImGui::GetStyle();
+        float actions = 0;
+        for (S b : {S::Hide, S::Rename, S::Merge, S::RemoveRequest})
+            actions += ImGui::CalcTextSize(Tr(b)).x + style.FramePadding.x * 2 + style.ItemSpacing.x;
+        actions = std::max(actions, actions - ImGui::CalcTextSize(Tr(S::Hide)).x + ImGui::CalcTextSize(Tr(S::Show)).x);
         ImGui::TableSetupColumn("name", ImGuiTableColumnFlags_WidthStretch, 3);
-        ImGui::TableSetupColumn("console", ImGuiTableColumnFlags_WidthStretch, 1.4f);
-        ImGui::TableSetupColumn("votes", ImGuiTableColumnFlags_WidthStretch, 1);
-        ImGui::TableSetupColumn("comments", ImGuiTableColumnFlags_WidthStretch, 1.2f);
-        ImGui::TableSetupColumn("actions", ImGuiTableColumnFlags_WidthStretch, 3.4f);
+        ImGui::TableSetupColumn("votes", ImGuiTableColumnFlags_WidthStretch, 0.5f);
+        ImGui::TableSetupColumn("comments", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        ImGui::TableSetupColumn("actions", ImGuiTableColumnFlags_WidthFixed, actions);
         for (size_t i = 0; i < g.admin_ranking.size(); i++) {
             const auto& row = g.admin_ranking[i];
             bool hidden = Field(row, 4) != 0;
@@ -4605,8 +4814,6 @@ void AdminPage() {
             ImGui::AlignTextToFramePadding();
             if (hidden) ImGui::TextDisabled("%s (%s)", Str(row, 2).c_str(), Tr(S::Hidden));
             else ImGui::TextUnformatted(Str(row, 2).c_str());
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
             ImGui::TextDisabled("%s", ConsoleLabel(Str(row, 0)).c_str());
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
@@ -4629,12 +4836,18 @@ void AdminPage() {
                 g.adm_console = Str(row, 0), g.adm_key = Str(row, 1);
                 open_merge = true;
             }
+            ImGui::SameLine();
+            if (ImGui::SmallButton(Tr(S::RemoveRequest))) {
+                g.adm_remove_console = Str(row, 0), g.adm_remove_key = Str(row, 1), g.adm_remove_name = Str(row, 2);
+                open_remove = true;
+            }
             ImGui::PopID();
         }
         ImGui::EndTable();
     }
     if (open_rename) ImGui::OpenPopup("rename");
     if (open_merge) ImGui::OpenPopup("merge");
+    if (open_remove) ImGui::OpenPopup("remove");
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16 * g.scale, 14 * g.scale));
     if (ImGui::BeginPopup("rename")) {
         ImGui::SetNextItemWidth(420 * g.scale);
@@ -4661,6 +4874,22 @@ void AdminPage() {
         if (ImGui::Selectable(Tr(S::Cancel))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+    // removing is for good (hiding keeps the votes): asked once more
+    if (ImGui::BeginPopup("remove")) {
+        char q[256];
+        std::snprintf(q, sizeof(q), Tr(S::RemoveRequestConfirm), g.adm_remove_name.c_str());
+        ImGui::TextUnformatted(q);
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.15f, 0.15f, 1));
+        if (ImGui::Button(Tr(S::RemoveRequest))) {
+            AdminPost("remover", "{\"console\":" + Json(g.adm_remove_console) + ",\"chave\":" + Json(g.adm_remove_key) + "}");
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::Cancel))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
     ImGui::PopStyleVar();
 
     ImGui::Dummy(ImVec2(0, 10 * g.scale));
@@ -4671,7 +4900,8 @@ void AdminPage() {
     if (g.admin_reports.empty()) Dim(Tr(S::NoRequests));
     bool open_reply = false;
     for (size_t i = 0; i < g.admin_reports.size(); i++) {
-        const auto& row = g.admin_reports[i];  // when, title, platform, kind, contact, description, mailed, id, answer
+        // when, title, platform, kind, contact, description, mailed, id, answer, attachments, computer
+        const auto& row = g.admin_reports[i];
         SDL_DateTime d{};
         SDL_TimeToDateTime(SDL_Time(std::atoll(Str(row, 0).c_str())) * SDL_NS_PER_SECOND, &d, true);
         ImGui::PushID(int(i));
@@ -4684,6 +4914,27 @@ void AdminPage() {
             ImGui::TextDisabled("(%s)", Tr(S::Mailed));
         }
         Dim(Str(row, 5).c_str());
+        if (!Str(row, 10).empty()) ImGui::TextDisabled("%s", Str(row, 10).c_str());
+        // the attachments, "id|name|bytes;...": each opens in its own program
+        const std::string& files = Str(row, 9);
+        for (size_t at = 0, n = 0; at < files.size(); n++) {
+            size_t end = files.find(';', at);
+            if (end == std::string::npos) end = files.size();
+            std::string one = files.substr(at, end - at);
+            at = end + 1;
+            size_t a = one.find('|'), b = one.rfind('|');
+            if (a == std::string::npos || b == a) continue;
+            std::string fid = one.substr(0, a), name = one.substr(a + 1, b - a - 1);
+            if (fid.empty() || fid.find_first_not_of("0123456789") != std::string::npos) continue;
+            if (n) ImGui::SameLine();
+            std::string label = name + " (" + Bytes(std::strtoull(one.c_str() + b + 1, nullptr, 10)) + ")##f" + fid;
+            ImGui::BeginDisabled(g.admin_file_call.Get() == Call::State::Busy);
+            if (ImGui::SmallButton(label.c_str())) {
+                g.admin_file_name = fid + "_" + name;
+                g.admin_file_call.Start("GET", Server() + "/v1/admin/anexo?id=" + fid, ServerHeaders(true), "");
+            }
+            ImGui::EndDisabled();
+        }
         if (!Str(row, 8).empty()) {
             ImGui::PushStyleColor(ImGuiCol_Text, Accent(1.3f));
             ImGui::TextWrapped("%s: %s", Tr(S::Answered), Str(row, 8).c_str());
@@ -5474,7 +5725,21 @@ int main(int argc, char** argv) {
         SDL_strlcpy(g.search, q, sizeof(g.search));
         g.focus_page = true;
     }
+    // tests: LAUNCHER_SEARCH_FILTER=n, the search's games filter (0 all, 1 playable, 2 in development)
+    if (const char* f = SDL_getenv("LAUNCHER_SEARCH_FILTER")) g.search_filter = std::clamp(std::atoi(f), 0, 2);
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
+    // tests: LAUNCHER_REPORT=text opens the open game's report page with that description, LAUNCHER_REPORT_PHOTO=file
+    // adds a picture as the dialog would (LAUNCHER_REPORT_SEND=1 then presses Send, in ReportPage)
+    if (const char* t = SDL_getenv("LAUNCHER_REPORT"); t && g.cur >= 0) {
+        auto entries = Entries();
+        for (size_t k = 0; k < entries.size(); k++)
+            if (entries[k].kind == Kind::Report) G().page = int(k);
+        SDL_strlcpy(g.rep_desc, t, sizeof(g.rep_desc));
+    }
+    if (const char* f = SDL_getenv("LAUNCHER_REPORT_PHOTO")) {
+        std::lock_guard lock(g.dlg_m);
+        g.rep_photo_picked.push_back(f);
+    }
     // tests: LAUNCHER_SET="key=value;..." sets the open game's options (by their kind) and saves them
     if (const char* list = SDL_getenv("LAUNCHER_SET"); list && g.cur >= 0) {
         std::string all = list;
@@ -5564,6 +5829,7 @@ int main(int argc, char** argv) {
         PollGame();
         PeriodicChecks();
         BulkTick();
+        PhotoTick();
         WatchCloseCombo();
         WatchIcon();
         TakeDialog();

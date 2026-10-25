@@ -40,6 +40,18 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip, quando);
 
+-- What goes along with a report: the game's log and settings (inside the report) and the player's pictures (each in a
+-- request of its own, right after). Kept here: the mail is optional (migracao-anexos.sql for a database made before).
+CREATE TABLE IF NOT EXISTS anexos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  report INTEGER NOT NULL,
+  nome TEXT NOT NULL,
+  tipo TEXT NOT NULL,          -- image/jpeg, image/png, text/plain
+  tamanho INTEGER NOT NULL,
+  dados BLOB NOT NULL          -- under D1's 2 MB a value
+);
+CREATE INDEX IF NOT EXISTS anexos_report ON anexos (report);
+
 -- Sessions' performance, sent only by launchers whose player agreed: the computer's parts by model, the game and its
 -- options, the frame rate. No address is kept with them: the hourly limit counts in a table of its own.
 CREATE TABLE IF NOT EXISTS desempenho (

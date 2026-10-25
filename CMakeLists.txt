@@ -30,7 +30,7 @@ target_link_libraries(Launcher PRIVATE SDL3::SDL3-static tomlplusplus::tomlplusp
 set_target_properties(Launcher PROPERTIES OUTPUT_NAME "Otavix Launcher")
 if(WIN32)
     target_compile_definitions(Launcher PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
-    target_link_libraries(Launcher PRIVATE winhttp dxgi crypt32 bcrypt)
+    target_link_libraries(Launcher PRIVATE winhttp dxgi crypt32 bcrypt windowscodecs ole32)
     target_sources(Launcher PRIVATE src/launcher.rc)
 endif()
 

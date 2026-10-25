@@ -23,7 +23,10 @@ async function route(req, env) {
   const p = url.pathname;
   if (req.method === 'GET' && p === '/v1/ping') return text(200, 'ok');
   if (req.method === 'POST' && p === '/v1/report') return report(req, env);
+  if (req.method === 'POST' && p === '/v1/report/foto') return foto(req, env, url);
   if (req.method === 'POST' && p === '/v1/pedidos') return pedir(req, env);
+  if (req.method === 'GET' && p === '/v1/pedidos/meus') return meusPedidos(req, env);
+  if (req.method === 'DELETE' && p === '/v1/pedidos') return retirar(req, env);
   if (req.method === 'GET' && p === '/v1/ranking') return ranking(env, url, false);
   if (req.method === 'POST' && p === '/v1/desempenho') return desempenho(req, env);
   if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
@@ -34,10 +37,12 @@ async function route(req, env) {
     if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
     if (req.method === 'GET' && p === '/v1/admin/comentarios') return comentarios(env, url);
     if (req.method === 'GET' && p === '/v1/admin/reports') return reports(env);
+    if (req.method === 'GET' && p === '/v1/admin/anexo') return anexo(env, url);
     if (req.method === 'POST' && p === '/v1/admin/ocultar') return ocultar(req, env);
     if (req.method === 'POST' && p === '/v1/admin/renomear') return renomear(req, env);
     if (req.method === 'POST' && p === '/v1/admin/juntar') return juntar(req, env);
     if (req.method === 'POST' && p === '/v1/admin/responder') return responder(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/remover') return remover(req, env);
   }
   return text(404, 'não encontrado');
 }
@@ -108,6 +113,17 @@ async function report(req, env) {
     .bind(t, ip, install(req), f(r.jogo).slice(0, 80), f(r.titulo).slice(0, 120), f(r.plataforma).slice(0, 40),
       f(r.launcher).slice(0, 40), f(r.categoria).slice(0, 40), contato, desc, JSON.stringify(info).slice(0, 4000))
     .run();
+  const id = res.meta.last_row_id;
+  // the game's log and settings, kept with it (until 1.0.23 they only went by mail, and without mail set up were lost)
+  const textos = [];
+  if (r.log) textos.push([nomeArquivo(r.log_nome, 'log.txt'), String(r.log).slice(0, 1_000_000)]);
+  if (r.config) textos.push(['settings.toml', String(r.config).slice(0, 200_000)]);
+  if (textos.length)
+    await env.DB.batch(textos.map(([nome, s]) => {
+      const bytes = new TextEncoder().encode(s);
+      return env.DB.prepare('INSERT INTO anexos (report, nome, tipo, tamanho, dados) VALUES (?, ?, ?, ?, ?)')
+        .bind(id, nome, 'text/plain; charset=utf-8', bytes.length, bytes);
+    }));
   let mailed = 0;
   if (env.RESEND_API_KEY && env.REPORT_TO) {
     const lines = [
@@ -140,19 +156,77 @@ async function report(req, env) {
       body: JSON.stringify(mail),
     });
     mailed = sent.ok ? 1 : 0;
-    await env.DB.prepare('UPDATE reports SET enviado = ? WHERE id = ?').bind(mailed, res.meta.last_row_id).run();
+    await env.DB.prepare('UPDATE reports SET enviado = ? WHERE id = ?').bind(mailed, id).run();
   }
-  return text(200, mailed ? 'ok' : 'ok guardado');
+  // the report's id after a tab: the launcher sends its pictures to it (older launchers read only the status)
+  return text(200, (mailed ? 'ok' : 'ok guardado') + '\t' + id);
+}
+
+// a file name from the player: no path, nothing the admin's list or a file system would choke on
+function nomeArquivo(v, padrao) {
+  const n = f(v).replace(/^.*[\\/]/, '').replace(/[|;:*?"<>]/g, '_').trim().slice(0, 80);
+  return n || padrao;
+}
+
+// a picture for a report just sent from the same launcher: the bytes as they are (JPEG or PNG), up to 4 a report,
+// within 30 minutes of it
+async function foto(req, env, url) {
+  const inst = install(req);
+  const id = Number(url.searchParams.get('report'));
+  if (!inst || !Number.isInteger(id) || id <= 0) return text(400, 'qual report?');
+  const rep = await env.DB.prepare('SELECT install, quando FROM reports WHERE id = ?').bind(id).first();
+  if (!rep || rep.install !== inst || now() - rep.quando > 1800) return text(403, 'report de outro launcher ou antigo');
+  const len = Number(req.headers.get('Content-Length') || 0);
+  if (len > 1_900_000) return text(413, 'foto grande demais');
+  const bytes = new Uint8Array(await req.arrayBuffer());
+  if (bytes.length > 1_900_000) return text(413, 'foto grande demais');
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  if (!jpeg && !png) return text(415, 'só JPEG ou PNG');
+  const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM anexos WHERE report = ? AND tipo LIKE 'image/%'").bind(id).first();
+  if (n.n >= 4) return text(429, 'até 4 fotos por report');
+  const nome = nomeArquivo(url.searchParams.get('nome'), `foto${n.n + 1}.${jpeg ? 'jpg' : 'png'}`);
+  await env.DB.prepare('INSERT INTO anexos (report, nome, tipo, tamanho, dados) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, nome, jpeg ? 'image/jpeg' : 'image/png', bytes.length, bytes).run();
+  return text(200, 'ok');
+}
+
+// one attachment, for the owner's launcher
+async function anexo(env, url) {
+  const id = Number(url.searchParams.get('id'));
+  if (!Number.isInteger(id) || id <= 0) return text(400, 'qual anexo?');
+  const a = await env.DB.prepare('SELECT nome, tipo, dados FROM anexos WHERE id = ?').bind(id).first();
+  if (!a) return text(404, 'não encontrado');
+  // D1 hands a BLOB back as an ArrayBuffer or, in older runtimes, an array of numbers
+  const dados = a.dados instanceof ArrayBuffer ? a.dados : new Uint8Array(a.dados);
+  return new Response(dados, {
+    status: 200,
+    headers: { 'Content-Type': a.tipo, 'Content-Disposition': `attachment; filename="${a.nome.replace(/"/g, '')}"` },
+  });
 }
 
 async function reports(env) {
   const rows = await env.DB.prepare(
-    'SELECT id, quando, titulo, plataforma, categoria, contato, descricao, enviado, resposta FROM reports ORDER BY quando DESC LIMIT 100'
+    'SELECT id, quando, titulo, plataforma, categoria, contato, descricao, enviado, resposta, sistema, ' +
+      "(SELECT group_concat(a.id || '|' || a.nome || '|' || a.tamanho, ';') FROM anexos a WHERE a.report = r.id) AS anexos " +
+      'FROM reports r ORDER BY quando DESC LIMIT 100'
   ).all();
-  // the id and the answer last: older launchers read the fields before them by position
+  // the id, the answer, the attachments ("id|name|bytes;...") and the computer last: older launchers read the fields
+  // before them by position
   return text(200, rows.results.map((r) =>
-    [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado, r.id, r.resposta]
+    [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado, r.id, r.resposta,
+      r.anexos || '', resumoSistema(r.sistema)]
       .map(f).join('\t')).join('\n'));
+}
+
+// the report's computer in one line: processor, video card, screen, launcher's port version
+function resumoSistema(s) {
+  try {
+    const o = JSON.parse(s || '{}');
+    return ['cpu', 'gpu', 'display', 'port'].map((k) => o[k]).filter(Boolean).join(' · ');
+  } catch {
+    return '';
+  }
 }
 
 // the owner's answer to a report (empty takes it back)
@@ -276,6 +350,48 @@ async function pedir(req, env) {
     'INSERT OR IGNORE INTO votos (install, console, chave, comentario, ip, quando) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, console, k, String(r.comentario || '').slice(0, 300), ip, t).run();
   return text(200, res.meta.changes ? 'ok' : 'ja');
+}
+
+// this launcher's own requests: console, key, name, when, comment, cover
+async function meusPedidos(req, env) {
+  const id = install(req);
+  if (!id) return text(400, 'launcher sem identificação');
+  const rows = await env.DB.prepare(
+    'SELECT v.console, v.chave, j.nome, v.quando, v.comentario, j.capa FROM votos v ' +
+      'JOIN jogos j ON j.console = v.console AND j.chave = v.chave WHERE v.install = ? ORDER BY v.quando DESC LIMIT 200'
+  ).bind(id).all();
+  return text(200, rows.results.map((r) => [r.console, r.chave, r.nome, r.quando, r.comentario, r.capa].map(f).join('\t')).join('\n'));
+}
+
+// a player takes back their own request; a game nobody asks for any more leaves the list with it
+async function retirar(req, env) {
+  const id = install(req);
+  if (!id) return text(400, 'launcher sem identificação');
+  const r = await body(req, 4000);
+  const console = String(r.console || '');
+  const k = await resolve(env, console, String(r.chave || ''));
+  const res = await env.DB.prepare('DELETE FROM votos WHERE install = ? AND console = ? AND chave = ?').bind(id, console, k).run();
+  await apagarSemVotos(env, console, k);
+  return text(200, res.meta.changes ? 'ok' : 'nada');
+}
+
+// a game with no votes left goes, with the names merged into it
+async function apagarSemVotos(env, console, k) {
+  const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM votos WHERE console = ? AND chave = ?').bind(console, k).first();
+  if (n.n === 0)
+    await env.DB.prepare('DELETE FROM jogos WHERE console = ? AND (chave = ? OR alias_of = ?)').bind(console, k, k).run();
+}
+
+// the owner removes a request for good: its votes, the game and the names merged into it
+async function remover(req, env) {
+  const r = await body(req, 4000);
+  const console = String(r.console || ''), k = String(r.chave || '');
+  if (!console || !k) return text(400, 'pedido inválido');
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM votos WHERE console = ? AND chave = ?').bind(console, k),
+    env.DB.prepare('DELETE FROM jogos WHERE console = ? AND (chave = ? OR alias_of = ?)').bind(console, k, k),
+  ]);
+  return text(200, 'ok');
 }
 
 // console, key, name, votes, cover (for the owner: console, key, name, votes, hidden, comments, cover)

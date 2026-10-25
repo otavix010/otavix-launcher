@@ -26,6 +26,9 @@ enum class S {
     ModsPsxIntro, ModsPsxGame, ModsPsxFramework, ModsPsxNone,
     UpdateAll, UpdateAllHelp, UpdateAllPorts, UpdateAllGames, UpdateAllWaiting, UpdateAllDone, UpdateAllStopped,
     UpdateAllFailed, UpdateAllCurrent, UpdateAllNeedsInputs, UpdateAllDoneErrors,
+    ReportPhotos, ReportPhotosHelp, ReportAddPhotos, ReportPastePhoto, ReportImages, ReportNoClipboard, ReportPhotoLimit,
+    ReportSendingPhotos, ReportPhotosSent, ReportPhotosFailed, RemoveRequest, RemoveRequestConfirm, MyRequests,
+    WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
     Count
 };
 

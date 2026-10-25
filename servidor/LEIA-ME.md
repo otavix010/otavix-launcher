@@ -2,7 +2,7 @@
 
 Recebe os **reports de problema**, os **pedidos de port** (com os rankings da semana, do mês e de todos os tempos) e o **desempenho** das partidas de quem aceitou compartilhar. Roda de graça na Cloudflare (Workers + banco D1).
 
-**No ar desde 25/10/2026:** `https://otavix-launcher.otavix-launcher-servidor.workers.dev`, banco `otavix-launcher` na conta do Otavix. Os reports ficam só guardados no banco e são lidos na aba **Administração** do launcher, com a chave de administrador; por escolha do dono, não há e-mail (o Resend, abaixo, é opcional e não está configurado).
+**No ar desde 25/10/2026:** `https://otavix-launcher.otavix-launcher-servidor.workers.dev`, banco `otavix-launcher` na conta do Otavix. Os reports ficam só guardados no banco e são lidos na aba **Administração** do launcher, com a chave de administrador; por escolha do dono, não há e-mail (o Resend, abaixo, é opcional e não está configurado). Os anexos (log e settings do jogo, que vêm dentro do report, e até 4 fotos por report, que o launcher manda logo depois, uma por requisição) ficam na tabela `anexos` e abrem pelos botões de cada report na Administração.
 
 Para montar de novo, ou em outra conta:
 
@@ -16,7 +16,8 @@ Para montar de novo, ou em outra conta:
 3. Crie as tabelas e as senhas:
    ```
    npx wrangler d1 execute otavix-launcher --remote --file=schema.sql
-   (banco criado antes de 25/10/2026: rode uma vez também o migracao-respostas.sql, que acrescenta a resposta do dono aos reports)
+   (banco criado antes de 25/10/2026: rode uma vez também o migracao-respostas.sql, que acrescenta a resposta do dono aos reports,
+    e o migracao-anexos.sql, que cria a tabela dos anexos; o migracao-anexos.sql antes do deploy do worker que grava neles)
    npx wrangler secret put ADMIN_TOKEN      (uma senha longa, só sua)
    npx wrangler secret put RESEND_API_KEY   (opcional: a chave do Resend)
    npx wrangler secret put REPORT_TO        (opcional: o e-mail da conta do Resend)
