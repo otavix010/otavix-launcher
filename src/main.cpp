@@ -34,6 +34,7 @@
 #include "install.h"
 #include "i18n.h"
 #include "mods.h"
+#include "notas.h"
 #include "music.h"
 #include "ports.h"
 #include "net.h"
@@ -181,6 +182,7 @@ struct App {
     // the primary monitor's modes, pixels
     std::vector<std::pair<int, int>> modes;
     Updater updater;
+    ReleaseNotes notes;  // the launcher's and the ports' release notes, looked up when first shown
     Uint64 art_t0 = 0;
     bool quit = false;
 #ifdef _WIN32
@@ -1618,6 +1620,8 @@ void PeriodicChecks() {
     g.ports_shown = false;
 }
 
+void MarkdownText(const std::string& md);
+
 // pop-ups over any page: the first measured session's question about sharing, a newer launcher, newer ports
 void Notices() {
     if (g.perf_call.Get() == Call::State::Done) g.perf_call.Reset();  // a session sent: nothing to show
@@ -1683,6 +1687,17 @@ void Notices() {
         char b[160];
         std::snprintf(b, sizeof(b), Tr(S::UpdPopLauncher), u.latest.c_str());
         ImGui::TextWrapped("%s", b);
+        // the new version's notes, when they are there
+        g.notes.Fetch(g.hub.update_repo);
+        std::vector<Release> list;
+        g.notes.Get(g.hub.update_repo, &list);
+        for (const Release& r : list) {
+            if (r.tag != u.latest || r.body.empty()) continue;
+            ImGui::Spacing();
+            ImGui::BeginChild("notas", ImVec2(-1, 260 * g.scale), ImGuiChildFlags_Borders);
+            MarkdownText(r.body);
+            ImGui::EndChild();
+        }
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
         ImGui::BeginDisabled(u.installer.empty() || u.state != UpdateCheck::State::Newer);
@@ -2763,6 +2778,103 @@ void UpdateActions(const UpdateCheck& u) {
     }
 }
 
+void SubHeading(const char* text);
+
+// a line of a release's notes without Markdown's marks: [text](address) as text, no ** __ or `
+std::string MdInline(const std::string& s) {
+    std::string out;
+    for (size_t i = 0; i < s.size(); i++) {
+        if (s[i] == '[') {
+            size_t close = s.find("](", i);
+            size_t end = close == std::string::npos ? close : s.find(')', close);
+            if (end != std::string::npos) {
+                out += s.substr(i + 1, close - i - 1);
+                i = end;
+                continue;
+            }
+        }
+        if ((s[i] == '*' || s[i] == '_') && i + 1 < s.size() && s[i + 1] == s[i]) {
+            i++;
+            continue;
+        }
+        if (s[i] == '`') continue;
+        out += s[i];
+    }
+    return out;
+}
+
+// a release's notes: GitHub's Markdown as headings, bullets and paragraphs
+void MarkdownText(const std::string& md) {
+    size_t a = 0;
+    while (a <= md.size()) {
+        size_t b = md.find('\n', a);
+        if (b == std::string::npos) b = md.size();
+        std::string line = md.substr(a, b - a);
+        a = b + 1;
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        size_t lead = line.find_first_not_of(' ');
+        if (lead == std::string::npos) {
+            ImGui::Spacing();
+            continue;
+        }
+        std::string text = line.substr(lead);
+        if (text[0] == '#') {
+            size_t level = text.find_first_not_of('#');
+            if (level == std::string::npos) continue;
+            ImGui::PushFont(g.bold, level <= 1 ? 22.0f : level == 2 ? 20.0f : 19.0f);
+            ImGui::TextWrapped("%s", MdInline(text.substr(text.find_first_not_of(' ', level))).c_str());
+            ImGui::PopFont();
+        } else if (text.size() > 1 && (text[0] == '-' || text[0] == '*') && text[1] == ' ') {
+            if (lead >= 2) ImGui::Indent(float(lead / 2) * 16 * g.scale);
+            ImGui::Bullet();
+            ImGui::SameLine();
+            ImGui::TextWrapped("%s", MdInline(text.substr(2)).c_str());
+            if (lead >= 2) ImGui::Unindent(float(lead / 2) * 16 * g.scale);
+        } else {
+            ImGui::TextWrapped("%s", MdInline(text).c_str());
+        }
+    }
+}
+
+// "2026-10-25" as 25/10/2026
+std::string DateFromIso(const std::string& d) {
+    return d.size() == 10 ? d.substr(8, 2) + "/" + d.substr(5, 2) + "/" + d.substr(0, 4) : d;
+}
+
+// a repository's releases, newest first, each a section with its notes; the installed one marked
+void NotesBlock(const std::string& repo, const std::string& installed, bool open_newest) {
+    if (repo.empty()) return;
+    g.notes.Fetch(repo);
+    std::vector<Release> list;
+    ReleaseNotes::State st = g.notes.Get(repo, &list);
+    if (st == ReleaseNotes::State::Loading || st == ReleaseNotes::State::None) {
+        Dim(Tr(S::Loading));
+        return;
+    }
+    if (list.empty()) {
+        Dim(Tr(S::NotesNone));
+        return;
+    }
+    auto bare = [](std::string v) { return !v.empty() && (v[0] == 'v' || v[0] == 'V') ? v.substr(1) : v; };
+    for (size_t i = 0; i < list.size() && i < 10; i++) {
+        const Release& r = list[i];
+        bool mine = !installed.empty() && bare(r.tag) == bare(installed);
+        std::string label = r.tag;
+        if (!r.name.empty() && r.name != r.tag) label += " · " + r.name;
+        label += "   " + DateFromIso(r.date);
+        if (mine) label += "   ● " + std::string(Tr(S::NotesInstalled));
+        ImGui::PushID((repo + "/" + r.tag).c_str());
+        if (ImGui::CollapsingHeader(label.c_str(), i == 0 && open_newest ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
+            ImGui::Indent(12 * g.scale);
+            if (r.body.empty()) Dim(Tr(S::NotesNone));
+            else MarkdownText(r.body);
+            ImGui::Unindent(12 * g.scale);
+            ImGui::Spacing();
+        }
+        ImGui::PopID();
+    }
+}
+
 void SettingsUpdates() {
     ImGui::Text("%s: %s", Tr(S::Installed), g.hub.version.c_str());
     ImGui::Spacing();
@@ -2798,6 +2910,22 @@ void SettingsUpdates() {
         case UpdateCheck::State::Failed:
             ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s: %s", Tr(S::UpdateFailed), u.error.c_str());
             break;
+    }
+
+    // what changed, version by version: the launcher's, then each installed port's that has releases
+    SubHeading(Tr(S::WhatsNewTitle));
+    Dim(Tr(S::NotesIntro));
+    ImGui::Spacing();
+    NotesBlock(g.hub.update_repo, g.hub.version, true);
+    for (auto& gp : g.games) {
+        Game& gm = *gp;
+        if (gm.entry.repo.empty() || !gm.entry.branch.empty() || !gm.ok || !Playable(gm, g.here) || !PortPresent(gm))
+            continue;
+        ImGui::Dummy(ImVec2(0, 6 * g.scale));
+        ImGui::PushFont(g.bold, 19);
+        ImGui::TextUnformatted(Tx(gm.prof.title));
+        ImGui::PopFont();
+        NotesBlock(gm.entry.repo, InstalledPortVersion(gm.entry.dir), false);
     }
 }
 
@@ -4209,6 +4337,11 @@ int main(int argc, char** argv) {
     // tests: LAUNCHER_ENTRY=n (the hub's sidebar), LAUNCHER_PAGE=n (the open game's), LAUNCHER_AUTOPLAY=1
     if (const char* e = SDL_getenv("LAUNCHER_ENTRY")) g.entry = std::clamp(std::atoi(e), 0, int(HubEntries().size()) - 1);
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
+    // tests: LAUNCHER_SETTINGS_TAB=n, the launcher's settings open on that tab
+    if (const char* t = SDL_getenv("LAUNCHER_SETTINGS_TAB")) {
+        g.settings_tab = std::atoi(t);
+        g.focus_tab = true;
+    }
     if (SDL_getenv("LAUNCHER_AUTOPLAY") && g.cur >= 0) Launch(g.cur);
     // tests: LAUNCHER_FETCH=1 downloads the open game's port
     if (SDL_getenv("LAUNCHER_FETCH") && g.cur >= 0) G().fetcher.Install(G().entry.repo, G().entry.dir);

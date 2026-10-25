@@ -334,6 +334,10 @@ constexpr Row kRows[] = {
     {"Ignorar estas versões", "Skip these versions", "Ignorar estas versiones"},
     {"Medidor de desempenho na tela", "On-screen performance meter", "Medidor de rendimiento en pantalla"},
     {"Mostra no canto do jogo o fps, o tempo de cada quadro, o uso do processador e da placa de vídeo e a memória de vídeo, como o MSI Afterburner ou o da Steam. Durante o jogo, F10 mostra ou esconde. Desligado, não pesa nada.", "Shows the frame rate, each frame's time, the processor's and graphics card's use and the video memory in a corner of the game, like MSI Afterburner or Steam's. In the game, F10 shows or hides it. Off, it costs nothing.", "Muestra en una esquina del juego los fps, el tiempo de cada fotograma, el uso del procesador y de la tarjeta gráfica y la memoria de vídeo, como MSI Afterburner o el de Steam. Durante el juego, F10 lo muestra u oculta. Desactivado, no pesa nada."},
+    {"Novidades", "What's new", "Novedades"},
+    {"Sem notas para esta versão.", "No notes for this version.", "Sin notas para esta versión."},
+    {"instalada", "installed", "instalada"},
+    {"O que mudou em cada versão do launcher e dos ports instalados.", "What changed in each version of the launcher and of the installed ports.", "Qué cambió en cada versión del launcher y de los ports instalados."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

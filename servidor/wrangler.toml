@@ -5,5 +5,5 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "otavix-launcher"
-# filled in by "wrangler d1 create otavix-launcher" (see LEIA-ME.md); any value works for local tests
-database_id = "00000000-0000-0000-0000-000000000000"
+# created 25/10/2026 by "wrangler d1 create otavix-launcher --location enam" (see LEIA-ME.md)
+database_id = "a07a785a-6175-4b33-b616-f9cb02f0c4d3"

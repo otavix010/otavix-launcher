@@ -9,7 +9,7 @@ update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
 [servidor]
-url = ""                    # reports and port requests (see servidor/LEIA-ME.md); empty until it is up
+url = "https://otavix-launcher.otavix-launcher-servidor.workers.dev"  # reports, port requests and performance (servidor/LEIA-ME.md)
 
 [[libraries]]
 id = "xbox"

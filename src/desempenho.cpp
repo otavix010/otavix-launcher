@@ -146,13 +146,64 @@ bool JsonNumber(const std::string& json, const std::string& key, double& out) {
     return true;
 }
 
+namespace {
+
+void AppendUtf8(std::string& s, uint32_t c) {
+    if (c < 0x80) {
+        s += char(c);
+    } else if (c < 0x800) {
+        s += char(0xC0 | (c >> 6));
+        s += char(0x80 | (c & 0x3F));
+    } else if (c < 0x10000) {
+        s += char(0xE0 | (c >> 12));
+        s += char(0x80 | ((c >> 6) & 0x3F));
+        s += char(0x80 | (c & 0x3F));
+    } else {
+        s += char(0xF0 | (c >> 18));
+        s += char(0x80 | ((c >> 12) & 0x3F));
+        s += char(0x80 | ((c >> 6) & 0x3F));
+        s += char(0x80 | (c & 0x3F));
+    }
+}
+
+uint32_t Hex4(const std::string& s, size_t at) {
+    if (at + 4 > s.size()) return 0xFFFD;
+    return uint32_t(std::strtoul(s.substr(at, 4).c_str(), nullptr, 16));
+}
+
+}  // namespace
+
 std::string JsonString(const std::string& json, const std::string& key) {
     size_t at = ValueAt(json, key);
     if (at == std::string::npos || json[at] != '"') return {};
     std::string s;
     for (size_t i = at + 1; i < json.size() && json[i] != '"'; i++) {
-        if (json[i] == '\\' && i + 1 < json.size()) i++;
-        s += json[i];
+        if (json[i] != '\\' || i + 1 >= json.size()) {
+            s += json[i];
+            continue;
+        }
+        char e = json[++i];
+        switch (e) {
+            case 'n': s += '\n'; break;
+            case 't': s += '\t'; break;
+            case 'r': break;
+            case 'b': case 'f': break;
+            case 'u': {
+                uint32_t c = Hex4(json, i + 1);
+                i += 4;
+                // a surrogate pair: the second half follows as \uDCxx
+                if (c >= 0xD800 && c < 0xDC00 && i + 6 < json.size() && json[i + 1] == '\\' && json[i + 2] == 'u') {
+                    uint32_t low = Hex4(json, i + 3);
+                    if (low >= 0xDC00 && low < 0xE000) {
+                        c = 0x10000 + ((c - 0xD800) << 10) + (low - 0xDC00);
+                        i += 6;
+                    }
+                }
+                AppendUtf8(s, c);
+                break;
+            }
+            default: s += e;  // \" \\ \/
+        }
     }
     return s;
 }
