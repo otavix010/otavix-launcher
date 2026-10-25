@@ -412,6 +412,8 @@ constexpr Row kRows[] = {
     {"Todos", "All", "Todos"},
     {"Jogáveis", "Playable", "Jugables"},
     {"Em desenvolvimento", "In development", "En desarrollo"},
+    {"Instalados", "Installed", "Instalados"},
+    {"Filtro", "Filter", "Filtro"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

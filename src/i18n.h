@@ -29,6 +29,7 @@ enum class S {
     ReportPhotos, ReportPhotosHelp, ReportAddPhotos, ReportPastePhoto, ReportImages, ReportNoClipboard, ReportPhotoLimit,
     ReportSendingPhotos, ReportPhotosSent, ReportPhotosFailed, RemoveRequest, RemoveRequestConfirm, MyRequests,
     WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
+    FilterInstalled, HintFilter,
     Count
 };
 

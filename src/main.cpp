@@ -226,7 +226,7 @@ struct App {
     std::string search_vote_name, search_vote_id;
     std::set<std::string> search_voted;     // "console/key" requested from the search in this run
     bool focus_search = false;
-    int search_filter = 0;                  // the hub's games shown: 0 all, 1 playable here, 2 in development
+    int search_filter = 0;                  // the hub's games shown: 0 all, 1 playable here, 2 in development, 3 installed
     // the report being written
     Call report_call;
     int rep_cat = 0;
@@ -3010,6 +3010,68 @@ void RequestsPage();
 
 void UpdateActions(const UpdateCheck& u);
 
+// installed here: the port on this PC with its game ready (made, for a game built on the PC, or found); looked up every
+// few seconds, the search for a game's folder being too slow for every frame
+bool InstalledHere(int i) {
+    static std::vector<char> cache;
+    static Uint64 at = 0;
+    Uint64 now = SDL_GetTicks();
+    if (cache.size() != g.games.size() || now - at > 3000) {
+        cache.assign(g.games.size(), 0);
+        for (size_t k = 0; k < g.games.size(); k++) {
+            Game& gm = *g.games[k];
+            cache[k] = gm.ok && PortPresent(gm) && !FindGame(gm).empty();
+        }
+        at = now;
+    }
+    return i >= 0 && size_t(i) < cache.size() && cache[size_t(i)];
+}
+
+// the games shown, in a library page and in the search alike, kept between sessions: everything, only the ones
+// installed here, only the ports that play here, or only those still in development (the search's catalog, games
+// without a port, shows only under everything); X on the controller goes round them
+constexpr int kFilterOrder[] = {0, 3, 1, 2};  // as the buttons show them; the values are search_filter's
+constexpr S kFilterNames[] = {S::FilterAll, S::FilterPlayable, S::FilterWip, S::FilterInstalled};
+
+bool PassesFilter(int i) {
+    if (g.search_filter == 0) return true;
+    if (g.search_filter == 3) return InstalledHere(i);
+    std::string st = g.games[size_t(i)]->StateOn(g.here, g.here);
+    return g.search_filter == 1 ? st == "ok" : st == "wip";
+}
+
+void SetFilter(int f) {
+    g.search_filter = f;
+    g.state.Set("library_filter", int64_t(f));
+}
+
+void NextFilter() {
+    size_t at = 0;
+    while (at < std::size(kFilterOrder) && kFilterOrder[at] != g.search_filter) at++;
+    SetFilter(kFilterOrder[(at + 1) % std::size(kFilterOrder)]);
+}
+
+// the buttons, then how many games the filter leaves, so a filtered library never looks emptied
+void FilterButtons(size_t shown) {
+    for (size_t k = 0; k < std::size(kFilterOrder); k++) {
+        int f = kFilterOrder[k];
+        if (k) ImGui::SameLine();
+        bool on = g.search_filter == f;
+        ImGui::PushStyleColor(ImGuiCol_Button, on ? Accent(0.75f) : ImVec4(0.16f, 0.16f, 0.19f, 1));
+        if (ImGui::Button(Tr(kFilterNames[f]))) SetFilter(f);
+        ImGui::PopStyleColor();
+    }
+    ImGui::SameLine(0, 16 * g.scale);
+    char b[64];
+    if (shown == 1)
+        std::snprintf(b, sizeof(b), "%s", Tr(S::OneGame));
+    else
+        std::snprintf(b, sizeof(b), Tr(S::GamesCount), int(shown));
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextDisabled("%s", b);
+    ImGui::Spacing();
+}
+
 void LibraryPage(int library) {
     const char* name = library < 0 ? Tr(S::AllGames) : Tx(g.hub.libraries[size_t(library)].name);
     Heading(name);
@@ -3031,10 +3093,19 @@ void LibraryPage(int library) {
         ImGui::Spacing();
     }
     std::vector<int> list;
+    bool any = false;
     for (size_t i = 0; i < g.games.size(); i++)
-        if (Listed(*g.games[i], library)) list.push_back(int(i));
-    if (list.empty()) {
+        if (Listed(*g.games[i], library)) {
+            any = true;
+            if (PassesFilter(int(i))) list.push_back(int(i));
+        }
+    if (!any) {
         Dim(Tr(S::NoGames));
+        return;
+    }
+    FilterButtons(list.size());
+    if (list.empty()) {
+        Dim(Tr(S::SearchNothing));
         return;
     }
     // as many columns as fit cards of about 420 wide, 16:9
@@ -4674,24 +4745,10 @@ void PollSearchVote() {
 // the hits: the hub's games as their cards, then the catalog's games without a port
 void SearchPage() {
     RunSearch();
-    // what is shown: everything, only the ports that play here, or only those still in development (both leave out
-    // the catalog's games, which have no port)
-    const S kFilters[] = {S::FilterAll, S::FilterPlayable, S::FilterWip};
-    for (int f = 0; f < 3; f++) {
-        if (f) ImGui::SameLine();
-        bool on = g.search_filter == f;
-        ImGui::PushStyleColor(ImGuiCol_Button, on ? Accent(0.75f) : ImVec4(0.16f, 0.16f, 0.19f, 1));
-        if (ImGui::Button(Tr(kFilters[f]))) g.search_filter = f;
-        ImGui::PopStyleColor();
-    }
-    ImGui::Spacing();
     std::vector<int> shown;
-    for (int i : g.search_games) {
-        const Game& gm = *g.games[size_t(i)];
-        std::string st = gm.StateOn(g.here, g.here);
-        if (g.search_filter == 0 || (g.search_filter == 1 && st == "ok") || (g.search_filter == 2 && st == "wip"))
-            shown.push_back(i);
-    }
+    for (int i : g.search_games)
+        if (PassesFilter(i)) shown.push_back(i);
+    FilterButtons(shown.size());
     bool catalog = g.search_filter == 0 && !g.search_catalog.empty();
     if (shown.empty() && !catalog) {
         Dim(Tr(S::SearchNothing));
@@ -5312,6 +5369,13 @@ void SettingsMods() {
 bool Idle() { return !g.cap_slot && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup) && !ImGui::IsAnyItemActive(); }
 
 // shoulders, or Page Up / Down, turn the pages; triggers, or Q / E, the tabs; B or Escape goes back
+// the filter's buttons are on screen: a library page, or the search's results
+bool FilterShown() {
+    if (!SearchTyped().empty()) return true;
+    HubEntry e = HubEntries()[size_t(std::clamp(g.entry, 0, int(HubEntries().size()) - 1))];
+    return !e.settings && !e.requests && !e.tutorial;
+}
+
 void Keys() {
     if (!Idle()) return;
     int dir = 0;
@@ -5351,6 +5415,8 @@ void Keys() {
         if (ImGui::IsKeyPressed(ImGuiKey_GamepadFaceUp, false) ||
             (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false)))
             g.focus_search = true;
+        // the library's filter, round its choices
+        if (ImGui::IsKeyPressed(ImGuiKey_GamepadFaceLeft, false) && FilterShown()) NextFilter();
         if (tab && HubEntries()[size_t(g.entry)].settings) {
             g.settings_tab = (g.settings_tab + tab + SettingsTabs()) % SettingsTabs();
             g.focus_tab = true;
@@ -5575,6 +5641,7 @@ void Frame() {
     Hint("LB", IM_COL32(90, 90, 100, 255), "");
     Hint("RB", IM_COL32(90, 90, 100, 255), game ? Tr(S::HintPages) : Tr(S::Library));
     if (!game) Hint("Y", IM_COL32(205, 160, 40, 255), Tr(S::HintSearch));
+    if (!game && FilterShown()) Hint("X", IM_COL32(60, 110, 200, 255), Tr(S::HintFilter));
     bool settings = !game && HubEntries()[size_t(std::clamp(g.entry, 0, int(HubEntries().size()) - 1))].settings;
     if ((game && cur.kind == Kind::Advanced) || settings) {
         Hint("LT", IM_COL32(90, 90, 100, 255), "");
@@ -5726,8 +5793,10 @@ int main(int argc, char** argv) {
         SDL_strlcpy(g.search, q, sizeof(g.search));
         g.focus_page = true;
     }
-    // tests: LAUNCHER_SEARCH_FILTER=n, the search's games filter (0 all, 1 playable, 2 in development)
-    if (const char* f = SDL_getenv("LAUNCHER_SEARCH_FILTER")) g.search_filter = std::clamp(std::atoi(f), 0, 2);
+    // the library's filter as it was left; tests: LAUNCHER_SEARCH_FILTER=n (0 all, 1 playable, 2 in development,
+    // 3 installed)
+    g.search_filter = int(std::clamp<int64_t>(g.state.Int("library_filter", 0), 0, 3));
+    if (const char* f = SDL_getenv("LAUNCHER_SEARCH_FILTER")) g.search_filter = std::clamp(std::atoi(f), 0, 3);
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
     // tests: LAUNCHER_REPORT=text opens the open game's report page with that description, LAUNCHER_REPORT_PHOTO=file
     // adds a picture as the dialog would (LAUNCHER_REPORT_SEND=1 then presses Send, in ReportPage)
