@@ -3701,7 +3701,34 @@ bool HasAllWords(const std::string& key, const std::string& q) {
     return true;
 }
 
-// the hub's games and the consoles' catalog games for what was typed, worked out again only when it changes
+// the short names players type, word by word, as the catalogs write them ("gta 4": "grand theft auto 4")
+std::string Expanded(const std::string& q) {
+    static const std::map<std::string, std::string> kAliases = {
+        {"ac", "assassin s creed"},   {"bf", "battlefield"},          {"cod", "call of duty"},
+        {"dmc", "devil may cry"},     {"ff", "final fantasy"},        {"ffx", "final fantasy x"},
+        {"gow", "god of war"},        {"gt", "gran turismo"},         {"gta", "grand theft auto"},
+        {"kh", "kingdom hearts"},     {"kof", "king of fighters"},    {"mgs", "metal gear solid"},
+        {"mk", "mortal kombat"},      {"nfs", "need for speed"},      {"pes", "pro evolution soccer"},
+        {"pvz", "plants vs zombies"}, {"rdr", "red dead redemption"}, {"re", "resident evil"},
+        {"sf", "street fighter"},     {"sotc", "shadow of the colossus"}, {"tlou", "the last of us"},
+        {"tmnt", "teenage mutant ninja turtles"}, {"botw", "breath of the wild"}, {"oot", "ocarina of time"}};
+    std::string out, w;
+    auto flush = [&] {
+        if (w.empty()) return;
+        auto it = kAliases.find(w);
+        out += (out.empty() ? "" : " ") + (it == kAliases.end() ? w : it->second);
+        w.clear();
+    };
+    for (char c : q) {
+        if (c == ' ') flush();
+        else w += c;
+    }
+    flush();
+    return out;
+}
+
+// the hub's games and the consoles' catalog games for what was typed, worked out again only when it changes; a short
+// name is looked for as the full one first, then as typed
 void RunSearch() {
     std::string q = SearchTyped();
     if (q == g.search_done) return;
@@ -3710,6 +3737,8 @@ void RunSearch() {
     g.search_catalog.clear();
     g.search_capped = 0;
     if (q.empty()) return;
+    std::vector<std::string> queries{Expanded(q)};
+    if (queries[0] != q) queries.push_back(q);
     // a catalog game is the hub's own when the name is the same, or ends with it ("Colin McRae - Dirt 2"), on any
     // console: the port plays on the PC whatever console it came from
     std::vector<std::string> own;
@@ -3717,7 +3746,11 @@ void RunSearch() {
         const Game& gm = *g.games[i];
         std::string key = SearchKey(Tx(gm.prof.title));
         own.push_back(key);
-        if (HasAllWords(key + " " + SearchKey(gm.entry.id), q)) g.search_games.push_back(int(i));
+        for (const std::string& query : queries)
+            if (HasAllWords(key + " " + SearchKey(gm.entry.id), query)) {
+                g.search_games.push_back(int(i));
+                break;
+            }
     }
     auto owned = [&](const std::string& key) {
         for (const std::string& k : own)
@@ -3729,11 +3762,17 @@ void RunSearch() {
     // the best first: the name itself, then names starting with it, then those containing it; the shorter first
     std::vector<std::pair<int, std::pair<std::string, const CatalogGame*>>> hits;
     std::set<std::string> seen;
-    for (const ConsoleName& c : Consoles()) {
-        for (const CatalogGame* cg : g.catalogs.Search(c.id, q, 60)) {
-            if (owned(cg->key) || !seen.insert(std::string(c.id) + "/" + cg->key).second) continue;
-            int score = cg->key == q ? 0 : cg->key.rfind(q, 0) == 0 ? 1 : cg->key.find(q) != std::string::npos ? 2 : 3;
-            hits.push_back({score * 1000 + int(std::min<size_t>(cg->key.size(), 999)), {c.id, cg}});
+    for (size_t qi = 0; qi < queries.size(); qi++) {
+        const std::string& query = queries[qi];
+        for (const ConsoleName& c : Consoles()) {
+            for (const CatalogGame* cg : g.catalogs.Search(c.id, query, 60)) {
+                if (owned(cg->key) || !seen.insert(std::string(c.id) + "/" + cg->key).second) continue;
+                int score = cg->key == query                ? 0
+                            : cg->key.rfind(query, 0) == 0  ? 1
+                            : cg->key.find(query) != std::string::npos ? 2
+                                                                        : 3;
+                hits.push_back({int(qi) * 10000 + score * 1000 + int(std::min<size_t>(cg->key.size(), 999)), {c.id, cg}});
+            }
         }
     }
     std::stable_sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
