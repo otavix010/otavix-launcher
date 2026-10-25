@@ -209,6 +209,16 @@ struct App {
     Covers covers;
     const CatalogGame* req_pick = nullptr;  // the game chosen from the catalog
     bool req_free = false;                  // a name the catalog does not have, as typed
+    // the hub's search bar: what was typed, and the hits for it
+    char search[96] = "";
+    std::string search_done;                // the search the hits below are for
+    std::vector<int> search_games;          // the hub's games that match
+    std::vector<std::pair<std::string, const CatalogGame*>> search_catalog;  // console, game: no port yet
+    size_t search_capped = 0;               // more catalog hits than shown: how many are shown
+    Call search_vote;
+    std::string search_vote_name, search_vote_id;
+    std::set<std::string> search_voted;     // "console/key" requested from the search in this run
+    bool focus_search = false;
     // the report being written
     Call report_call;
     int rep_cat = 0;
@@ -3463,8 +3473,9 @@ void FetchRanking() {
     g.rank_stale = false;
 }
 
-void Vote(const std::string& console, const std::string& name, const std::string& cover, const std::string& comment) {
-    g.vote_call.Start("POST", Server() + "/v1/pedidos", ServerHeaders(),
+void Vote(const std::string& console, const std::string& name, const std::string& cover, const std::string& comment,
+          Call* call = nullptr) {
+    (call ? *call : g.vote_call).Start("POST", Server() + "/v1/pedidos", ServerHeaders(),
                       "{\"console\":" + Json(console) + ",\"nome\":" + Json(name) + ",\"capa\":" + Json(cover) +
                           ",\"comentario\":" + Json(comment) + "}");
 }
@@ -3669,6 +3680,245 @@ void RequestsPage() {
             ImGui::PopID();
         }
         ImGui::EndTable();
+    }
+}
+
+// ---------------------------------------------------------------------------------------------- the hub's search
+
+// what the search bar holds, ready for matching; empty under two letters
+std::string SearchTyped() {
+    std::string k = SearchKey(g.search);
+    return k.size() < 2 ? std::string() : k;
+}
+
+bool HasAllWords(const std::string& key, const std::string& q) {
+    for (size_t a = 0; a < q.size();) {
+        size_t e = q.find(' ', a);
+        if (key.find(q.substr(a, e == std::string::npos ? std::string::npos : e - a)) == std::string::npos) return false;
+        if (e == std::string::npos) break;
+        a = e + 1;
+    }
+    return true;
+}
+
+// the hub's games and the consoles' catalog games for what was typed, worked out again only when it changes
+void RunSearch() {
+    std::string q = SearchTyped();
+    if (q == g.search_done) return;
+    g.search_done = q;
+    g.search_games.clear();
+    g.search_catalog.clear();
+    g.search_capped = 0;
+    if (q.empty()) return;
+    // a catalog game is the hub's own when the name is the same, or ends with it ("Colin McRae - Dirt 2"), on any
+    // console: the port plays on the PC whatever console it came from
+    std::vector<std::string> own;
+    for (size_t i = 0; i < g.games.size(); i++) {
+        const Game& gm = *g.games[i];
+        std::string key = SearchKey(Tx(gm.prof.title));
+        own.push_back(key);
+        if (HasAllWords(key + " " + SearchKey(gm.entry.id), q)) g.search_games.push_back(int(i));
+    }
+    auto owned = [&](const std::string& key) {
+        for (const std::string& k : own)
+            if (!k.empty() &&
+                (key == k || (key.size() > k.size() && key.compare(key.size() - k.size() - 1, std::string::npos, " " + k) == 0)))
+                return true;
+        return false;
+    };
+    // the best first: the name itself, then names starting with it, then those containing it; the shorter first
+    std::vector<std::pair<int, std::pair<std::string, const CatalogGame*>>> hits;
+    std::set<std::string> seen;
+    for (const ConsoleName& c : Consoles()) {
+        for (const CatalogGame* cg : g.catalogs.Search(c.id, q, 60)) {
+            if (owned(cg->key) || !seen.insert(std::string(c.id) + "/" + cg->key).second) continue;
+            int score = cg->key == q ? 0 : cg->key.rfind(q, 0) == 0 ? 1 : cg->key.find(q) != std::string::npos ? 2 : 3;
+            hits.push_back({score * 1000 + int(std::min<size_t>(cg->key.size(), 999)), {c.id, cg}});
+        }
+    }
+    std::stable_sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    const size_t kShown = 48;
+    if (hits.size() > kShown) {
+        hits.resize(kShown);
+        g.search_capped = kShown;
+    }
+    for (auto& h : hits) g.search_catalog.push_back(h.second);
+}
+
+// the bar, centred at the top of the window and clear of the sidebar (narrower for that, down to a point; past it,
+// centred over the page); Enter takes the controller to the hits
+void SearchBar(float left, float right, float y, float h) {
+    float centre = ImGui::GetIO().DisplaySize.x * 0.5f;
+    float half = std::min({280 * g.scale, centre - left, right - centre});
+    float w = half * 2, x = centre - half;
+    if (half < 170 * g.scale) {
+        w = std::min(560 * g.scale, right - left);
+        x = left + (right - left - w) * 0.5f;
+    }
+    ImGui::SetCursorPos(ImVec2(x, y));
+    ImGui::PushFont(g.body, 19);
+    float icon = 30 * g.scale;
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, h * 0.5f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(18 * g.scale + icon, std::max(0.0f, (h - ImGui::GetFontSize()) * 0.5f)));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.06f, 0.06f, 0.08f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.12f, 0.92f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.1f, 0.1f, 0.12f, 0.95f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 1, 1, 0.14f));
+    if (g.focus_search) {
+        ImGui::SetKeyboardFocusHere();
+        g.focus_search = false;
+    }
+    ImGui::SetNextItemWidth(w);
+    if (ImGui::InputTextWithHint("##search", Tr(S::SearchGames), g.search, sizeof(g.search),
+                                 ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_EnterReturnsTrue))
+        g.focus_page = true;
+    // a magnifying glass in the padding
+    ImVec2 r0 = ImGui::GetItemRectMin(), r1 = ImGui::GetItemRectMax();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 c(r0.x + 18 * g.scale + 7 * g.scale, (r0.y + r1.y) * 0.5f - 2 * g.scale);
+    ImU32 col = ImGui::IsItemActive() ? IM_COL32(230, 230, 236, 255) : IM_COL32(150, 150, 160, 255);
+    dl->AddCircle(c, 7 * g.scale, col, 0, 2 * g.scale);
+    dl->AddLine(ImVec2(c.x + 5 * g.scale, c.y + 5 * g.scale), ImVec2(c.x + 10 * g.scale, c.y + 10 * g.scale), col, 2.5f * g.scale);
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(3);
+    ImGui::PopFont();
+}
+
+// words on a rounded pill centred on a point
+void Pill(ImDrawList* dl, ImVec2 centre, const char* text, ImU32 bg) {
+    ImVec2 ts = ImGui::CalcTextSize(text);
+    float px = 12 * g.scale, py = 5 * g.scale;
+    ImVec2 p0(centre.x - ts.x * 0.5f - px, centre.y - ts.y * 0.5f - py);
+    ImVec2 p1(centre.x + ts.x * 0.5f + px, centre.y + ts.y * 0.5f + py);
+    dl->AddRectFilled(p0, p1, bg, (p1.y - p0.y) * 0.5f);
+    dl->AddText(ImVec2(p0.x + px, p0.y + py), IM_COL32(255, 255, 255, 255), text);
+}
+
+// a catalog game without a port: its box art greyed, the name under it; lit, it offers a port request, which a click
+// sends at once (the same vote as the requests page, without a comment)
+void CatalogTile(const std::string& console, const CatalogGame& cg, ImVec2 size, bool focus) {
+    std::string id = console + "/" + cg.key;
+    ImGui::PushID(id.c_str());
+    ImVec2 at = ImGui::GetCursorScreenPos();
+    if (focus) ImGui::SetKeyboardFocusHere();
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+    bool pressed = ImGui::Button("##tile", size);
+    ImGui::PopStyleColor(3);
+    bool hot = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+    bool voted = g.search_voted.count(id) > 0;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    float r = 10 * g.scale, art_h = size.x / 0.72f;
+    ImVec2 a1(at.x + size.x, at.y + art_h);
+    dl->AddRectFilled(at, a1, IM_COL32(32, 32, 38, 235), r);
+    float aspect = 0.72f;
+    // greyed and a little dark; in colour, still a little dark under the request, when lit
+    if (SDL_Texture* t = g.covers.Get(console, cg.cover, &aspect, !hot)) {
+        float iw = size.x, ih = size.x / aspect;
+        if (ih > art_h) ih = art_h, iw = art_h * aspect;
+        ImVec2 o(at.x + (size.x - iw) * 0.5f, at.y + (art_h - ih) * 0.5f), o1(o.x + iw, o.y + ih);
+        dl->AddImageRounded(Tex(t), o, o1, ImVec2(0, 0), ImVec2(1, 1), hot ? IM_COL32(190, 190, 190, 255) : IM_COL32(150, 150, 150, 255), r);
+    } else {
+        // no box art (or not yet here): the name in the box
+        ImGui::PushFont(g.bold, 17);
+        dl->PushClipRect(at, a1, true);
+        dl->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(at.x + 12 * g.scale, at.y + 34 * g.scale),
+                    IM_COL32(150, 150, 158, 255), cg.name.c_str(), nullptr, size.x - 24 * g.scale);
+        dl->PopClipRect();
+        ImGui::PopFont();
+    }
+    ImGui::PushFont(g.body, 15);
+    // the console on the art's corner
+    std::string label = ConsoleLabel(console);
+    ImVec2 ls = ImGui::CalcTextSize(label.c_str());
+    ImVec2 l0(at.x + 8 * g.scale, at.y + 8 * g.scale);
+    dl->AddRectFilled(l0, ImVec2(l0.x + ls.x + 14 * g.scale, l0.y + ls.y + 6 * g.scale), IM_COL32(0, 0, 0, 175), 6 * g.scale);
+    dl->AddText(ImVec2(l0.x + 7 * g.scale, l0.y + 3 * g.scale), IM_COL32(215, 215, 222, 255), label.c_str());
+    // the name under the art, two lines at most
+    dl->PushClipRect(ImVec2(at.x, a1.y), ImVec2(at.x + size.x, at.y + size.y), true);
+    dl->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(at.x + 2 * g.scale, a1.y + 6 * g.scale),
+                IM_COL32(185, 185, 192, 255), cg.name.c_str(), nullptr, size.x - 4 * g.scale);
+    dl->PopClipRect();
+    ImVec2 mid(at.x + size.x * 0.5f, at.y + art_h * 0.5f);
+    if (voted) Pill(dl, ImVec2(mid.x, a1.y - 22 * g.scale), Tr(S::RequestedMark), ImGui::GetColorU32(Accent(0.8f)));
+    else if (hot) Pill(dl, mid, Tr(S::RequestPort), ImGui::GetColorU32(Accent(0.95f)));
+    ImGui::PopFont();
+    if (hot) {
+        dl->AddRect(at, a1, ImGui::GetColorU32(Accent(1.3f)), r, 0, 2 * g.scale);
+        if (!voted) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+    if (pressed && !voted) {
+        if (Server().empty()) {
+            Toast(Tr(S::RequestsOff));
+        } else if (g.search_vote.Get() != Call::State::Busy) {
+            Vote(console, cg.name, cg.cover, "", &g.search_vote);
+            g.search_vote_name = cg.name;
+            g.search_vote_id = id;
+            g.search_voted.insert(id);
+        }
+    }
+    ImGui::PopID();
+}
+
+// the answer to a request sent from the search, as a message at the foot
+void PollSearchVote() {
+    HttpResult r;
+    if (g.search_vote.Get(&r) != Call::State::Done) return;
+    if (r.Ok()) {
+        char b[320];
+        std::snprintf(b, sizeof(b), r.body == "ja" ? Tr(S::AlreadyName) : Tr(S::RequestedName), g.search_vote_name.c_str());
+        Toast(b);
+        g.rank_stale = true;
+    } else {
+        Toast(std::string(Tr(S::SendFailed)) + ": " + r.error);
+        g.search_voted.erase(g.search_vote_id);  // can be sent again
+    }
+    g.search_vote.Reset();
+}
+
+// the hits: the hub's games as their cards, then the catalog's games without a port
+void SearchPage() {
+    RunSearch();
+    if (g.search_games.empty() && g.search_catalog.empty()) {
+        Dim(Tr(S::SearchNothing));
+        return;
+    }
+    float avail = ImGui::GetContentRegionAvail().x;
+    if (!g.search_games.empty()) {
+        Heading(Tr(S::SearchYours));
+        // smaller cards than the library's: the catalog's hits come under them
+        float gap = 20 * g.scale;
+        int cols = std::max(1, int((avail + gap) / (300 * g.scale + gap)));
+        float w = (avail - gap * float(cols - 1)) / float(cols), h = w * 9.0f / 16.0f;
+        for (size_t k = 0; k < g.search_games.size(); k++) {
+            if (k % size_t(cols)) ImGui::SameLine(0, gap);
+            int i = g.search_games[k];
+            if (GameCard(*g.games[size_t(i)], ImVec2(w, h), g.focus_page && k == 0)) OpenGame(i);
+            if (k % size_t(cols) == size_t(cols - 1)) ImGui::Dummy(ImVec2(0, gap * 0.25f));
+        }
+        ImGui::Dummy(ImVec2(0, 8 * g.scale));
+    }
+    if (!g.search_catalog.empty()) {
+        if (g.search_games.empty()) Heading(Tr(S::SearchNoPort));
+        else SubHeading(Tr(S::SearchNoPort));
+        ImGui::Spacing();
+        float gap = 16 * g.scale;
+        int cols = std::max(1, int((avail + gap) / (150 * g.scale + gap)));
+        float w = (avail - gap * float(cols - 1)) / float(cols);
+        ImVec2 size(w, w / 0.72f + 50 * g.scale);
+        for (size_t k = 0; k < g.search_catalog.size(); k++) {
+            if (k % size_t(cols)) ImGui::SameLine(0, gap);
+            const auto& [console, cg] = g.search_catalog[k];
+            CatalogTile(console, *cg, size, g.focus_page && g.search_games.empty() && k == 0);
+        }
+        if (g.search_capped) {
+            char b[160];
+            std::snprintf(b, sizeof(b), Tr(S::SearchMore), int(g.search_capped));
+            ImGui::Spacing();
+            Dim(b);
+        }
     }
 }
 
@@ -4084,6 +4334,9 @@ void Keys() {
             g.entry = (g.entry + dir + n) % n;
             g.focus_page = true;
         }
+        if (ImGui::IsKeyPressed(ImGuiKey_GamepadFaceUp, false) ||
+            (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false)))
+            g.focus_search = true;
         if (tab && HubEntries()[size_t(g.entry)].settings) {
             g.settings_tab = (g.settings_tab + tab + SettingsTabs()) % SettingsTabs();
             g.focus_tab = true;
@@ -4228,15 +4481,29 @@ void Frame() {
     float pad = 26 * g.scale;
     Sidebar(side, size.y - foot - pad * 2, pad);
 
+    // the search bar on the hub; going to another of the hub's pages clears it
+    static int search_entry = -1;
+    if (g.entry != search_entry) {
+        if (search_entry >= 0) g.search[0] = 0;
+        search_entry = g.entry;
+    }
+    PollSearchVote();
+    float bar = 0;
+    if (g.screen == Screen::Hub && g.hub_ok) {
+        float bar_h = 44 * g.scale;
+        SearchBar(pad * 2 + side, size.x - pad, pad, bar_h);
+        bar = bar_h + 8 * g.scale;
+    }
+
     // content
-    ImGui::SetCursorPos(ImVec2(pad * 2 + side, pad));
+    ImGui::SetCursorPos(ImVec2(pad * 2 + side, pad + bar));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 18 * g.scale));
     float help_h = 76 * g.scale;
     bool game = g.screen == Screen::Game;
     Entry cur = game ? Current() : Entry{Kind::Home};
     bool has_help_box = game && (cur.kind == Kind::Page || cur.kind == Kind::Advanced);
-    ImGui::BeginChild("content", ImVec2(size.x - side - pad * 3, size.y - foot - pad * 2 - (has_help_box ? help_h : 0)),
+    ImGui::BeginChild("content", ImVec2(size.x - side - pad * 3, size.y - foot - pad * 2 - bar - (has_help_box ? help_h : 0)),
                       ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PushFont(g.body, 19);
     if (!g.hub_ok) {
@@ -4244,7 +4511,8 @@ void Frame() {
         ImGui::TextWrapped("%s", g.hub_error.c_str());
     } else if (!game) {
         HubEntry e = HubEntries()[size_t(std::clamp(g.entry, 0, int(HubEntries().size()) - 1))];
-        if (e.settings) SettingsPage();
+        if (!SearchTyped().empty()) SearchPage();
+        else if (e.settings) SettingsPage();
         else if (e.requests) RequestsPage();
         else if (e.tutorial) TutorialPage();
         else LibraryPage(e.library);
@@ -4292,6 +4560,7 @@ void Frame() {
     if (game) Hint("B", IM_COL32(200, 60, 50, 255), Tr(S::HintBack));
     Hint("LB", IM_COL32(90, 90, 100, 255), "");
     Hint("RB", IM_COL32(90, 90, 100, 255), game ? Tr(S::HintPages) : Tr(S::Library));
+    if (!game) Hint("Y", IM_COL32(205, 160, 40, 255), Tr(S::HintSearch));
     bool settings = !game && HubEntries()[size_t(std::clamp(g.entry, 0, int(HubEntries().size()) - 1))].settings;
     if ((game && cur.kind == Kind::Advanced) || settings) {
         Hint("LT", IM_COL32(90, 90, 100, 255), "");
@@ -4436,6 +4705,11 @@ int main(int argc, char** argv) {
     if (int i = FindGameIndex(open); i >= 0) OpenGame(i);
     // tests: LAUNCHER_ENTRY=n (the hub's sidebar), LAUNCHER_PAGE=n (the open game's), LAUNCHER_AUTOPLAY=1
     if (const char* e = SDL_getenv("LAUNCHER_ENTRY")) g.entry = std::clamp(std::atoi(e), 0, int(HubEntries().size()) - 1);
+    // tests: LAUNCHER_SEARCH=text, the hub opens with that in the search bar and the first hit lit
+    if (const char* q = SDL_getenv("LAUNCHER_SEARCH")) {
+        SDL_strlcpy(g.search, q, sizeof(g.search));
+        g.focus_page = true;
+    }
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
     // tests: LAUNCHER_INPUT_FETCH=key, the open game's install input's download button pressed
     if (const char* k = SDL_getenv("LAUNCHER_INPUT_FETCH"); k && g.cur >= 0)

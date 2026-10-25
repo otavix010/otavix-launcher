@@ -155,12 +155,12 @@ void Covers::Open(SDL_Renderer* ren, const fs::path& cache) {
     fs::create_directories(cache_, ec);
 }
 
-SDL_Texture* Covers::Get(const std::string& console, const std::string& cover, float* aspect) {
+SDL_Texture* Covers::Get(const std::string& console, const std::string& cover, float* aspect, bool gray) {
     if (cover.empty()) return nullptr;
     std::string id = console + "/" + cover;
     if (auto it = tex_.find(id); it != tex_.end()) {
-        if (aspect) *aspect = it->second.second;
-        return it->second.first;
+        if (aspect) *aspect = it->second.aspect;
+        return gray ? it->second.gray : it->second.color;
     }
     std::lock_guard lock(m_);
     if (!asked_.insert(id).second) return nullptr;
@@ -216,6 +216,19 @@ void Covers::Worker() {
         d.h = h;
         d.rgba.assign(px, px + size_t(w) * size_t(h) * 4);
         stbi_image_free(px);
+        // the grey one: luminance, alpha kept; every other pixel past 320 wide
+        int step = w > 320 ? 2 : 1;
+        d.gw = w / step;
+        d.gh = h / step;
+        d.gray.resize(size_t(d.gw) * size_t(d.gh) * 4);
+        for (int y = 0; y < d.gh; y++)
+            for (int x = 0; x < d.gw; x++) {
+                const uint8_t* s = &d.rgba[(size_t(y * step) * size_t(w) + size_t(x * step)) * 4];
+                uint8_t l = uint8_t((s[0] * 77 + s[1] * 150 + s[2] * 29) >> 8);
+                uint8_t* o = &d.gray[(size_t(y) * size_t(d.gw) + size_t(x)) * 4];
+                o[0] = o[1] = o[2] = l;
+                o[3] = s[3];
+            }
         std::lock_guard lock(m_);
         done_.push_back(std::move(d));
     }
@@ -227,12 +240,18 @@ void Covers::Take() {
         std::lock_guard lock(m_);
         done.swap(done_);
     }
-    for (Decoded& d : done) {
-        SDL_Texture* t = SDL_CreateTexture(ren_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, d.w, d.h);
-        if (!t) continue;
-        SDL_UpdateTexture(t, nullptr, d.rgba.data(), d.w * 4);
+    auto make = [this](int w, int h, const std::vector<uint8_t>& rgba) -> SDL_Texture* {
+        if (!w || !h) return nullptr;
+        SDL_Texture* t = SDL_CreateTexture(ren_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, w, h);
+        if (!t) return nullptr;
+        SDL_UpdateTexture(t, nullptr, rgba.data(), w * 4);
         SDL_SetTextureScaleMode(t, SDL_SCALEMODE_LINEAR);
-        tex_[d.id] = {t, float(d.w) / float(d.h)};
+        return t;
+    };
+    for (Decoded& d : done) {
+        SDL_Texture* t = make(d.w, d.h, d.rgba);
+        if (!t) continue;
+        tex_[d.id] = {t, make(d.gw, d.gh, d.gray), float(d.w) / float(d.h)};
     }
 }
 
@@ -241,7 +260,10 @@ void Covers::Close() {
         std::lock_guard lock(m_);
         closing_ = true;
     }
-    for (auto& [id, t] : tex_) SDL_DestroyTexture(t.first);
+    for (auto& [id, t] : tex_) {
+        SDL_DestroyTexture(t.color);
+        if (t.gray) SDL_DestroyTexture(t.gray);
+    }
     tex_.clear();
 }
 

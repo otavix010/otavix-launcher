@@ -36,11 +36,12 @@ private:
     std::map<std::string, std::vector<CatalogGame>> lists_;
 };
 
-// box art by console and cover reference: a texture once fetched and decoded, else nullptr (and the fetch starts)
+// box art by console and cover reference: a texture once fetched and decoded, else nullptr (and the fetch starts);
+// gray, the same box art in shades of grey
 class Covers {
 public:
     void Open(SDL_Renderer* ren, const fs::path& cache);
-    SDL_Texture* Get(const std::string& console, const std::string& cover, float* aspect = nullptr);
+    SDL_Texture* Get(const std::string& console, const std::string& cover, float* aspect = nullptr, bool gray = false);
     void Take();  // decoded pictures into textures; on the main thread, once a frame
     void Close();
 
@@ -49,6 +50,13 @@ private:
         std::string id;
         int w = 0, h = 0;
         std::vector<uint8_t> rgba;
+        int gw = 0, gh = 0;
+        std::vector<uint8_t> gray;  // at half the size past 320 wide: it is only shown small
+    };
+    struct Textures {
+        SDL_Texture* color = nullptr;
+        SDL_Texture* gray = nullptr;
+        float aspect = 0.72f;
     };
     void Worker();
     SDL_Renderer* ren_ = nullptr;
@@ -57,7 +65,7 @@ private:
     std::vector<std::pair<std::string, std::string>> queue_;  // id, url
     std::vector<Decoded> done_;
     std::set<std::string> asked_;
-    std::map<std::string, std::pair<SDL_Texture*, float>> tex_;
+    std::map<std::string, Textures> tex_;
     int workers_ = 0;
     bool closing_ = false;
 };

@@ -338,6 +338,16 @@ constexpr Row kRows[] = {
     {"Sem notas para esta versão.", "No notes for this version.", "Sin notas para esta versión."},
     {"instalada", "installed", "instalada"},
     {"O que mudou em cada versão do launcher e dos ports instalados.", "What changed in each version of the launcher and of the installed ports.", "Qué cambió en cada versión del launcher y de los ports instalados."},
+    {"Procurar jogos", "Search games", "Buscar juegos"},
+    {"Seus jogos", "Your games", "Tus juegos"},
+    {"Ainda sem port: passe o mouse e peça o seu", "No port yet: hover and request yours", "Aún sin port: pasa el ratón y pide el tuyo"},
+    {"Nada encontrado.", "Nothing found.", "No se encontró nada."},
+    {"Mostrando os %d primeiros: digite mais para refinar.", "Showing the first %d: type more to narrow it.", "Mostrando los primeros %d: escribe más para afinar."},
+    {"Solicitar port", "Request a port", "Solicitar port"},
+    {"Pedido registrado: %s. Valeu!", "Request counted: %s. Thanks!", "Pedido registrado: %s. ¡Gracias!"},
+    {"Você já tinha pedido %s.", "You had already requested %s.", "Ya habías pedido %s."},
+    {"Pedido", "Requested", "Pedido"},
+    {"Procurar", "Search", "Buscar"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
