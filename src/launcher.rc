@@ -1,0 +1,2 @@
+// The executable's icon: the window, the taskbar, the desktop shortcuts and the installer's entry show it.
+1 ICON "../assets/icone.ico"

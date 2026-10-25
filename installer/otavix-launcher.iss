@@ -21,6 +21,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\Otavix Launcher.exe
+SetupIconFile=..\assets\icone.ico
 LicenseFile=..\LICENSE
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

@@ -31,8 +31,10 @@ set_target_properties(Launcher PROPERTIES OUTPUT_NAME "Otavix Launcher")
 if(WIN32)
     target_compile_definitions(Launcher PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
     target_link_libraries(Launcher PRIVATE winhttp dxgi crypt32 bcrypt)
+    target_sources(Launcher PRIVATE src/launcher.rc)
 endif()
 
 # fonts beside the executable; the profile is the game's (copied as launcher.toml by the game's packaging)
 add_custom_command(TARGET Launcher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts $<TARGET_FILE_DIR:Launcher>/launcher/fonts)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts $<TARGET_FILE_DIR:Launcher>/launcher/fonts
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/assets/icone.png $<TARGET_FILE_DIR:Launcher>/launcher/icone.png)

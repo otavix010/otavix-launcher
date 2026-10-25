@@ -32,6 +32,9 @@ ArtSpec ReadArtSpec(const fs::path& profile_file);
 // game: the folder holding the game's files, or its disc image
 std::vector<ArtImage> LoadArt(const ArtSpec& spec, const fs::path& game);
 
+// a PNG or JPG file
+bool ReadImageFile(const fs::path& file, ArtImage& out);
+
 // a file of the game: from the folder, or from the disc image's XDVDFS; limit: only its first bytes
 bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out, size_t limit = SIZE_MAX);
 

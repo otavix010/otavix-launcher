@@ -334,6 +334,20 @@ bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint
     return iso.Open(game) && iso.ReadFile(rel, out, limit);
 }
 
+bool ReadImageFile(const fs::path& file, ArtImage& out) {
+    std::vector<uint8_t> bytes;
+    if (!ReadAll(file, bytes) || bytes.empty()) return false;
+    int w, h, n;
+    uint8_t* px = stbi_load_from_memory(bytes.data(), int(bytes.size()), &w, &h, &n, 4);
+    if (!px) return false;
+    out.name = U8(file.filename());
+    out.w = w;
+    out.h = h;
+    out.rgba.assign(px, px + size_t(w) * h * 4);
+    stbi_image_free(px);
+    return true;
+}
+
 ArtSpec ReadArtSpec(const fs::path& profile_file) {
     ArtSpec s;
     toml::table t;

@@ -970,6 +970,22 @@ void TakeArt() {
 
 ImTextureRef Tex(SDL_Texture* t) { return ImTextureRef(ImTextureID(intptr_t(t))); }
 
+// the launcher's symbol (launcher/icone.png), loaded once; null without the file
+SDL_Texture* BrandIcon() {
+    static SDL_Texture* icon = nullptr;
+    static bool tried = false;
+    if (tried) return icon;
+    tried = true;
+    ArtImage img;
+    if (!ReadImageFile(g.hub_dir / "launcher" / "icone.png", img)) return nullptr;
+    icon = SDL_CreateTexture(g.ren, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, img.w, img.h);
+    if (!icon) return nullptr;
+    SDL_UpdateTexture(icon, nullptr, img.rgba.data(), img.w * 4);
+    SDL_SetTextureScaleMode(icon, SDL_SCALEMODE_LINEAR);
+    SDL_SetTextureBlendMode(icon, SDL_BLENDMODE_BLEND);
+    return icon;
+}
+
 // the uv window of a picture that covers a box of this aspect, centred
 void CoverUv(ImVec2 ts, ImVec2 box, ImVec2& uv0, ImVec2& uv1) {
     float a = ts.x / ts.y, b = box.x / box.y;
@@ -3071,13 +3087,20 @@ void Sidebar(float side, float height, float pad) {
             ImGui::PopID();
         }
     } else {
-        // the brand
+        // the brand: the symbol, then the name
+        if (SDL_Texture* icon = BrandIcon()) {
+            float side = 58 * g.scale;
+            ImGui::Image(Tex(icon), ImVec2(side, side));
+            ImGui::SameLine(0, 12 * g.scale);
+        }
+        ImGui::BeginGroup();
         ImGui::PushFont(g.title, 34);
         ImGui::TextColored(Accent(1.25f), "Otavix");
         ImGui::PopFont();
         ImGui::PushFont(g.bold, 18);
         ImGui::TextDisabled("LAUNCHER");
         ImGui::PopFont();
+        ImGui::EndGroup();
         ImGui::Dummy(ImVec2(0, 14 * g.scale));
         std::vector<HubEntry> entries = HubEntries();
         for (int i = 0; i < int(entries.size()); i++) {
@@ -3278,6 +3301,9 @@ int FindGameIndex(const std::string& id) {
 
 int main(int argc, char** argv) {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");  // Back + Start reaches us while a game runs
+    // the window's and the taskbar's icon: the executable's (launcher.rc)
+    SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON, "1");
+    SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL, "1");
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_AUDIO)) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Otavix Launcher", SDL_GetError(), nullptr);
         return 1;

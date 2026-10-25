@@ -1,5 +1,7 @@
 # Otavix Launcher
 
+<img src="assets/icone.png" width="128" alt="Símbolo do Otavix Launcher">
+
 Um lugar só para jogar os **ports nativos para PC** de jogos de console feitos pelo Otavix: escolha o jogo, o launcher
 baixa o port, instala o seu jogo a partir do arquivo que você baixou, confere a versão e deixa tudo pronto. Funciona com
 mouse, teclado e controle.
