@@ -24,6 +24,7 @@
 #include <imgui_impl_sdlrenderer3.h>
 
 #include "art.h"
+#include "theme.h"
 #include "catalog.h"
 #include "closegame.h"
 #include "hub.h"
@@ -57,6 +58,8 @@ struct Game {
     std::string error;
     Store store;
     ArtSpec art_spec;
+    ThemeSpec theme_spec;
+    bool theme_tried = false;  // the theme from the game was tried, this session or since its install
     Art art;
     std::mutex art_m;
     std::vector<ArtImage> art_loaded;
@@ -176,6 +179,7 @@ struct App {
 #endif
     Platform view = here;  // the version shown on the open game's page
     Music music;
+    std::atomic<bool> theme_made{false};  // a theme from a game is ready: the page plays it
     bool closing = false;  // the player closed the game from the controller: its exit is no error
     std::string install_id;  // random, made on the first start: one vote per game and computer
     // the server: port requests and their rankings
@@ -496,11 +500,27 @@ std::string Expand(Game& gm, const std::string& s) {
 }
 
 // the open game's theme, when the setting allows and no game is running
+// the theme the port's profile makes from the player's game, once, in the background: PlayTheme runs again when done
+void MakeGameTheme(Game& gm, const fs::path& dir) {
+    if (gm.theme_spec.Empty() || gm.theme_tried) return;
+    fs::path game = FindGame(gm);
+    if (game.empty()) return;
+    gm.theme_tried = true;
+    std::thread([spec = gm.theme_spec, game, wav = dir / "tema.wav"] {
+        if (MakeTheme(spec, game, wav)) g.theme_made = true;
+    }).detach();
+}
+
 void PlayTheme() {
     if (g.cur < 0 || g.screen != Screen::Game || g.proc || !g.state.Bool("music", true)) return;
-    fs::path f = FindTheme(g.hub_dir / "arte" / FromU8(G().entry.id));
-    if (f.empty()) g.music.Stop();
-    else g.music.Play(f);
+    fs::path dir = g.hub_dir / "arte" / FromU8(G().entry.id);
+    fs::path f = FindTheme(dir);
+    if (f.empty()) {
+        g.music.Stop();
+        MakeGameTheme(G(), dir);
+    } else {
+        g.music.Play(f);
+    }
 }
 
 void Launch(int index) {
@@ -1314,6 +1334,8 @@ void ApplyInstalls() {
             gm.store.Save();
         }
         StartArt(gm);
+        gm.theme_tried = false;
+        PlayTheme();
     }
 }
 
@@ -2000,7 +2022,7 @@ void SettingsGeneral() {
         if (!music) g.music.Stop();
     }
     ImGui::Spacing();
-    int vol = int(g.state.Int("music_volume", 60));
+    int vol = int(g.state.Int("music_volume", 20));
     RowLabel(Tr(S::MusicVolume));
     ImGui::BeginDisabled(!music);
     if (ImGui::SliderInt("##mvol", &vol, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_NoInput)) {
@@ -3209,6 +3231,7 @@ void LoadGames() {
             gm->store.Save();
         }
         gm->art_spec = ReadArtSpec(e.profile);
+        gm->theme_spec = ReadThemeSpec(e.profile);
         StartArt(*gm);
         g.games.push_back(std::move(gm));
     }
@@ -3262,7 +3285,7 @@ int main(int argc, char** argv) {
     g.music.Open();
     g.catalogs.SetFolder(g.hub_dir / "catalogo");
     g.covers.Open(g.ren, g.hub_dir / "cache" / "capas");
-    g.music.SetVolume(float(g.state.Int("music_volume", 60)) / 100.0f);
+    g.music.SetVolume(float(g.state.Int("music_volume", 20)) / 100.0f);
     g.install_id = g.state.Str("install_id", "");
     if (g.install_id.size() != 32) {
         std::random_device rd;
@@ -3330,6 +3353,7 @@ int main(int argc, char** argv) {
         WatchCloseCombo();
         TakeDialog();
         TakeArt();
+        if (g.theme_made.exchange(false)) PlayTheme();
         ApplyInstalls();
         // tests: LAUNCHER_UPDATE=1 presses "Update now" as soon as a newer launcher is found
         if (static bool asked = SDL_getenv("LAUNCHER_UPDATE") != nullptr; asked) {

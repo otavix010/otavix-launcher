@@ -57,6 +57,15 @@ file = "data/aptanims/fe.viv"
 include = ["f_bg_press_w", "f_bg_main_w", "f_bg_RTS_w", "f_bg_juggling_w", "f_bg_creation_w", "f_bg_bootdefault_w", "f_bg_myrules_w", "f_bg_default_w"]
 seconds = 9
 
+# the page's theme, made by the launcher from the player's game: the menu song, the map's first 68 pieces
+[theme]
+kind = "ea-mpf"
+file = "data/audio/pathsong.mpf"
+mus = "data/audio/prime.mus"
+streams = 68
+fade_in = 0.5
+fade_out = 4
+
 # ------------------------------------------------------------------------------------------------ video
 
 [[options]]

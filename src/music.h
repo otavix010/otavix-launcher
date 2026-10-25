@@ -30,7 +30,7 @@ private:
     std::vector<float> pcm_, pending_;  // stereo, 48 kHz
     bool has_pending_ = false;
     size_t pos_ = 0;
-    float gain_ = 0, target_ = 0, volume_ = 0.6f;
+    float gain_ = 0, target_ = 0, volume_ = 0.2f;
     fs::path file_;
     uint64_t token_ = 0;
 };

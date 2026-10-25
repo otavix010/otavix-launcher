@@ -2,6 +2,7 @@
 // image): nothing of the game ships with the launcher.
 #pragma once
 #include <cstdint>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,7 @@ ArtSpec ReadArtSpec(const fs::path& profile_file);
 // game: the folder holding the game's files, or its disc image
 std::vector<ArtImage> LoadArt(const ArtSpec& spec, const fs::path& game);
 
-// a file of the game: from the folder, or from the disc image's XDVDFS
-bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out);
+// a file of the game: from the folder, or from the disc image's XDVDFS; limit: only its first bytes
+bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out, size_t limit = SIZE_MAX);
 
 }  // namespace launcher

@@ -18,11 +18,17 @@ uint32_t Be32(const uint8_t* p) { return uint32_t(p[0]) << 24 | uint32_t(p[1]) <
 uint32_t Le32(const uint8_t* p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 uint16_t Le16(const uint8_t* p) { return uint16_t(p[0] | p[1] << 8); }
 
-bool ReadAll(const fs::path& p, std::vector<uint8_t>& out) {
+bool ReadAll(const fs::path& p, std::vector<uint8_t>& out, size_t limit = SIZE_MAX) {
     std::ifstream f(p, std::ios::binary);
     if (!f) return false;
-    out.assign(std::istreambuf_iterator<char>(f), {});
-    return true;
+    if (limit == SIZE_MAX) {
+        out.assign(std::istreambuf_iterator<char>(f), {});
+        return true;
+    }
+    out.resize(limit);
+    f.read(reinterpret_cast<char*>(out.data()), std::streamsize(limit));
+    out.resize(size_t(f.gcount()));
+    return !out.empty();
 }
 
 std::string Lower(std::string s) {
@@ -89,7 +95,7 @@ struct Xiso {
         return false;
     }
 
-    bool ReadFile(const std::string& rel, std::vector<uint8_t>& out) {
+    bool ReadFile(const std::string& rel, std::vector<uint8_t>& out, size_t limit) {
         std::vector<uint8_t> vd;
         if (!Read(32 * kSector, 0x20, vd)) return false;
         uint32_t sector = Le32(&vd[20]), size = Le32(&vd[24]);
@@ -101,7 +107,7 @@ struct Xiso {
             std::string part = path.substr(at, slash == std::string::npos ? std::string::npos : slash - at);
             bool dir = false;
             if (!Find(sector, size, part, sector, size, dir)) return false;
-            if (slash == std::string::npos) return !dir && Read(uint64_t(sector) * kSector, size, out);
+            if (slash == std::string::npos) return !dir && Read(uint64_t(sector) * kSector, std::min<size_t>(size, limit), out);
             if (!dir) return false;
             at = slash + 1;
         }
@@ -321,11 +327,11 @@ void Trim(ArtImage& img) {
 
 }  // namespace
 
-bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out) {
+bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out, size_t limit) {
     std::error_code ec;
-    if (fs::is_directory(game, ec)) return ReadAll(game / FromU8(rel), out);
+    if (fs::is_directory(game, ec)) return ReadAll(game / FromU8(rel), out, limit);
     Xiso iso;
-    return iso.Open(game) && iso.ReadFile(rel, out);
+    return iso.Open(game) && iso.ReadFile(rel, out, limit);
 }
 
 ArtSpec ReadArtSpec(const fs::path& profile_file) {
