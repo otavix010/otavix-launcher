@@ -75,7 +75,25 @@ bool PortFetcher::Busy() {
     return s == Stage::Checking || s == Stage::Downloading || s == Stage::Unpacking;
 }
 
-bool PortFetcher::Latest(const std::string& repo, std::string& url, std::string& digest) {
+bool PortFetcher::Latest(const std::string& source, std::string& url, std::string& digest) {
+    size_t at_branch = source.find('@');
+    if (at_branch != std::string::npos) {
+        std::string repo = source.substr(0, at_branch), branch = source.substr(at_branch + 1);
+        HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/commits/" + branch,
+                                   {{"Accept", "application/vnd.github+json"}}, "");
+        std::lock_guard lock(m_);
+        std::string sha = r.Ok() ? Field(r.body, "sha") : std::string();
+        if (sha.size() < 12) {
+            st_.error = r.Ok() ? "resposta inesperada do GitHub" : r.error;
+            return false;
+        }
+        st_.latest = sha.substr(0, 12);
+        st_.size = 0;
+        url = "https://codeload.github.com/" + repo + "/zip/" + sha;
+        digest.clear();
+        return true;
+    }
+    const std::string& repo = source;
     HttpResult r = HttpRequest("GET", "https://api.github.com/repos/" + repo + "/releases/latest",
                                {{"Accept", "application/vnd.github+json"}}, "");
     std::lock_guard lock(m_);

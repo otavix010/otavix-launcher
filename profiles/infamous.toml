@@ -16,3 +16,8 @@ include = ["PS3_GAME/ICON0.PNG", "PS3_GAME/PIC1.PNG"]
 card_only = 1
 seconds = 12
 trim = false
+
+# public pictures (a store's box and background), until the player's copy gives its own
+web = [
+  "https://art.gametdb.com/ps3/coverHQ/US/BCUS98119.jpg",
+]

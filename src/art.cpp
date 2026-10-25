@@ -3,7 +3,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <atomic>
 #include <fstream>
+#include <mutex>
+
+#include "net.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -348,6 +352,33 @@ bool ReadImageFile(const fs::path& file, ArtImage& out) {
     return true;
 }
 
+std::vector<ArtImage> LoadWebArt(const ArtSpec& spec, const fs::path& cache) {
+    std::vector<ArtImage> out;
+    std::error_code ec;
+    fs::create_directories(cache, ec);
+    for (size_t i = 0; i < spec.web.size(); i++) {
+        const std::string& url = spec.web[i];
+        std::string ext = Lower(url.substr(url.size() > 4 ? url.size() - 4 : 0));
+        fs::path file = cache / ("web" + std::to_string(i) + (ext == ".png" ? ".png" : ".jpg"));
+        if (!fs::is_regular_file(file, ec)) {
+            std::atomic<bool> cancel = false;
+            uint64_t done = 0;
+            std::mutex m;
+            std::string sha, error;
+            fs::path part = file;
+            part += ".part";
+            if (!DownloadFile(url, part, cancel, done, m, sha, error)) {
+                fs::remove(part, ec);
+                continue;
+            }
+            fs::rename(part, file, ec);
+        }
+        ArtImage img;
+        if (ReadImageFile(file, img)) out.push_back(std::move(img));
+    }
+    return out;
+}
+
 ArtSpec ReadArtSpec(const fs::path& profile_file) {
     ArtSpec s;
     toml::table t;
@@ -363,6 +394,9 @@ ArtSpec ReadArtSpec(const fs::path& profile_file) {
     s.seconds = float((*a)["seconds"].value_or(10.0));
     s.trim = (*a)["trim"].value_or(true);
     s.card_only = int((*a)["card_only"].value_or(int64_t(0)));
+    if (const toml::array* w = (*a)["web"].as_array())
+        for (auto& e : *w)
+            if (auto v = e.value<std::string>()) s.web.push_back(*v);
     if (auto f = (*a)["folder"].value<std::string>()) {
         fs::path p = FromU8(*f);
         s.folder = (p.is_absolute() ? p : profile_file.parent_path() / p).lexically_normal().make_preferred();

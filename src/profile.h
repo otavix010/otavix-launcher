@@ -84,6 +84,26 @@ struct Preset {
     std::vector<std::pair<std::string, Value>> values;  // option key, value
 };
 
+// [install] kind = "build": a folder or file the player points the generator at
+struct BuildInput {
+    std::string key;                  // its {key} in the command, kept in the port's launcher state
+    Text label, help;
+    bool folder = true, file = false;  // what may be picked
+    std::vector<std::string> filters;  // a file's extensions
+};
+// a step of the generator: <id>.ok in the marks folder once done, <id>.log while it runs
+struct BuildStep {
+    std::string id;
+    Text label;
+};
+// a tool the generator needs: there when its check exits 0 (and prints something, with output), else installed by
+// a command the player watches in a console
+struct Prereq {
+    Text name, help;
+    std::string check, install;
+    bool output = false;
+};
+
 // [install]: how a port's game is checked when the player installs it
 struct InstallSpec {
     std::string check;             // a file of the game (in its disc image or folder) whose SHA-1 names the release
@@ -92,6 +112,14 @@ struct InstallSpec {
     std::string folder = "jogo";   // where an archive's game is kept, in the port's folder
     std::vector<std::string> files;  // a game that is one file: its extensions (jar); copied into folder, its SHA-1 checked
     Text help;                       // what the player picks, for such a game
+    std::string kind;                // "build": the game is made on the player's PC by the port's generator
+    std::string done;                // build: the file there once the game is made
+    std::string marks;               // build: the folder of the steps' marks and logs
+    std::vector<std::string> command, redo;  // build: the generator ({dir}, {key}); redo: added to make it all again
+    std::vector<BuildInput> inputs;
+    std::vector<BuildStep> steps;
+    std::vector<Prereq> prereqs;
+    Text time;                       // build: how long it takes
 };
 
 struct Profile {
@@ -102,6 +130,11 @@ struct Profile {
     Text mods_help;             // [mods] help: how this port's mods are laid out
     InstallSpec install;
     std::string exe;                  // beside the launcher
+    std::vector<std::string> exes;    // exe = [...]: the first that exists (one build per CPU)
+    bool exe_workdir = false;         // workdir = "exe": run in the executable's folder, not the port's
+    std::vector<std::pair<std::string, std::string>> env;  // [game] env: variables for the game, {dir} replaced
+    std::string log_file;             // the game's output is written there
+    std::string port_file;            // the file that tells the port's own files are there (default: exe)
     std::string settings = "settings.toml";
     std::string logs = "logs";
     std::vector<std::string> saves;   // folders beside the exe holding the saves

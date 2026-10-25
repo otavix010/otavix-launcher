@@ -82,6 +82,54 @@ bool Profile::Load(const fs::path& file, std::string& error) {
             if (auto v = e.value<std::string>()) install.files.push_back(*v);
     install.help = ReadText(std::as_const(t)["install"]["help"]);
     exe = g["exe"].value_or(std::string());
+    if (const toml::array* a = g["exe"].as_array())
+        for (auto& e : *a)
+            if (auto s = e.value<std::string>()) exes.push_back(*s);
+    if (!exes.empty()) exe = exes[0];
+    exe_workdir = g["workdir"].value_or(std::string()) == "exe";
+    if (const toml::table* e = g["env"].as_table())
+        for (auto& [k, v] : *e)
+            if (auto s = v.value<std::string>()) env.push_back({std::string(k.str()), *s});
+    log_file = g["log_file"].value_or(std::string());
+    port_file = g["port_file"].value_or(std::string());
+    const toml::node_view<const toml::node> in = std::as_const(t)["install"];
+    install.kind = in["kind"].value_or(std::string());
+    install.done = in["done"].value_or(std::string());
+    install.marks = in["marks"].value_or(std::string());
+    install.time = ReadText(in["time"]);
+    for (const char* list : {"command", "redo"})
+        if (const toml::array* a = in[list].as_array())
+            for (auto& e : *a)
+                if (auto s = e.value<std::string>()) (std::string(list) == "command" ? install.command : install.redo).push_back(*s);
+    if (const toml::array* a = in["inputs"].as_array())
+        for (auto& e : *a)
+            if (const toml::table* it = e.as_table()) {
+                BuildInput b;
+                b.key = (*it)["key"].value_or(std::string());
+                b.label = ReadText((*it)["label"]);
+                b.help = ReadText((*it)["help"]);
+                std::string pick = (*it)["pick"].value_or(std::string("folder"));
+                b.folder = pick != "file";
+                b.file = pick != "folder";
+                if (const toml::array* f = (*it)["filters"].as_array())
+                    for (auto& x : *f)
+                        if (auto s = x.value<std::string>()) b.filters.push_back(*s);
+                install.inputs.push_back(b);
+            }
+    if (const toml::array* a = in["steps"].as_array())
+        for (auto& e : *a)
+            if (const toml::table* it = e.as_table()) install.steps.push_back({(*it)["id"].value_or(std::string()), ReadText((*it)["label"])});
+    if (const toml::array* a = in["prereqs"].as_array())
+        for (auto& e : *a)
+            if (const toml::table* it = e.as_table()) {
+                Prereq p;
+                p.name = ReadText((*it)["name"]);
+                p.help = ReadText((*it)["help"]);
+                p.check = (*it)["check"].value_or(std::string());
+                p.install = (*it)["install"].value_or(std::string());
+                p.output = (*it)["output"].value_or(false);
+                install.prereqs.push_back(p);
+            }
     settings = g["settings"].value_or(settings);
     logs = g["logs"].value_or(logs);
     game_file = g["game_file"].value_or(std::string());

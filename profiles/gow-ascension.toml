@@ -1,14 +1,87 @@
-# God of War: Ascension (PS3) port: listed in the hub while it is made.
+# God of War: Ascension (PS3) port: made on the player's PC. The launcher downloads the port's code (its main branch),
+# the player points at their disc, the 1.04 update and the PS3 firmware, and the port's generator translates and
+# compiles the game there (gerar.ps1). The game runs from the build the generator chose for the CPU.
 [game]
 title = "God of War: Ascension"
 subtitle = { pt = "Port nativo do PS3 · recompilação estática", en = "Native PS3 port · static recompilation", es = "Port nativo de PS3 · recompilación estática" }
-status = "wip"
-status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
-exe = "gowa.exe"
+exe = ["port/build_native/gowa.exe", "port/build_nativerz/gowa.exe"]
+workdir = "exe"
+port_file = "gerar.ps1"
+game_file = "jogo/GOWA.elf"
+args = ["{dir}/jogo/GOWA.elf"]
+env = { PS3_VFS_ROOT = "{dir}/vfs", PS3_LIBSRE_IMAGE = "{dir}/fw/lle/libsre_image.bin", PS3_SAVE_ROOT = "{dir}/saves" }
+log_file = "out/jogo.log"
+logs = "out"
+saves = ["saves"]
 accent = [196, 150, 60]
-legal = { pt = "O port lê a sua própria cópia do jogo. God of War é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. God of War is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. God of War es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
+legal = { pt = "O port lê a sua própria cópia do jogo: nada do jogo vem com ele, o código é gerado no seu PC. God of War é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "The port reads your own copy of the game: none of the game ships with it, the code is made on your PC. God of War is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "El port lee tu propia copia del juego: nada del juego viene con él, el código se genera en tu PC. God of War es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
 
-# the official art, from the player's own copy (PS3_GAME): the icon for the card, the background for the page
+# made on this PC by the port's generator, steps marked in out\gerar
+[install]
+kind = "build"
+done = "out/gerar/7_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Disco", "{disco}", "-Update", "{update}", "-Firmware", "{firmware}"]
+redo = ["-Refazer"]
+version = { pt = "God of War: Ascension dos EUA (BCUS98232), o disco e o update 1.04", en = "God of War: Ascension, US (BCUS98232): the disc and the 1.04 update", es = "God of War: Ascension de EE. UU. (BCUS98232): el disco y el update 1.04" }
+time = { pt = "Leva de 4 a 20 minutos, conforme o processador, e só uma vez. Precisa de uns 10 GB livres.", en = "It takes 4 to 20 minutes depending on the processor, and only once. About 10 GB free are needed.", es = "Tarda de 4 a 20 minutos según el procesador, y solo una vez. Hacen falta unos 10 GB libres." }
+
+[[install.prereqs]]
+name = "Python 3"
+check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\""
+install = "winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements"
+help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
+
+[[install.prereqs]]
+name = "Visual Studio Build Tools (C++, Clang e CMake)"
+check = "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath"
+output = true
+install = "winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\""
+help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado sem o Clang: abra o Visual Studio Installer, clique em Modificar e marque \"C++ Clang tools for Windows\" e \"C++ CMake tools\".", en = "It compiles the game (about 6 GB). If Build Tools is installed without Clang: open the Visual Studio Installer, click Modify and tick \"C++ Clang tools for Windows\" and \"C++ CMake tools\".", es = "Compila el juego (unos 6 GB). Si Build Tools ya está instalado sin Clang: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ Clang tools for Windows\" y \"C++ CMake tools\"." }
+
+[[install.inputs]]
+key = "disco"
+pick = "folder"
+label = { pt = "O disco (a pasta que contém PS3_GAME)", en = "The disc (the folder holding PS3_GAME)", es = "El disco (la carpeta que contiene PS3_GAME)" }
+help = { pt = "O port aponta para ela, não copia os 34 GB: deixe a pasta onde está.", en = "The port points at it, it does not copy the 34 GB: leave the folder where it is.", es = "El port apunta a ella, no copia los 34 GB: deja la carpeta donde está." }
+
+[[install.inputs]]
+key = "update"
+pick = "both"
+filters = ["pkg"]
+label = { pt = "O update 1.04", en = "The 1.04 update", es = "El update 1.04" }
+help = { pt = "A pasta BCUS98232 do update instalado no RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232) ou o arquivo .pkg dele.", en = "The BCUS98232 folder of the update installed in RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232), or its .pkg file.", es = "La carpeta BCUS98232 del update instalado en RPCS3 (RPCS3\\dev_hdd0\\game\\BCUS98232) o su archivo .pkg." }
+
+[[install.inputs]]
+key = "firmware"
+pick = "both"
+filters = ["sprx"]
+label = { pt = "O firmware do PS3", en = "The PS3 firmware", es = "El firmware de PS3" }
+help = { pt = "A pasta do RPCS3 com o firmware oficial instalado (File > Install Firmware), ou o arquivo libsre.sprx.", en = "The RPCS3 folder with the official firmware installed (File > Install Firmware), or the libsre.sprx file.", es = "La carpeta de RPCS3 con el firmware oficial instalado (File > Install Firmware), o el archivo libsre.sprx." }
+
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_jogo"
+label = { pt = "arquivos do jogo", en = "the game's files", es = "archivos del juego" }
+[[install.steps]]
+id = "3_firmware"
+label = { pt = "firmware", en = "firmware", es = "firmware" }
+[[install.steps]]
+id = "4_ppu"
+label = { pt = "código da PPU", en = "the PPU's code", es = "código de la PPU" }
+[[install.steps]]
+id = "5_spu"
+label = { pt = "código das SPUs", en = "the SPUs' code", es = "código de las SPU" }
+[[install.steps]]
+id = "6_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "7_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
+
+# the official art, from the player's own disc once the game is made: the icon for the card, the background
 [art]
 kind = "image"
 folder = "../arte/gow-ascension"
@@ -16,3 +89,57 @@ include = ["PS3_GAME/ICON0.PNG", "PS3_GAME/PIC1.PNG"]
 card_only = 1
 seconds = 12
 trim = false
+# public pictures (a store's box and background), until the player's copy gives its own
+web = [
+  "https://art.gametdb.com/ps3/coverHQ/US/BCUS98232.jpg",
+]
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[options]]
+page = "video"
+key = "GOWA_RES_SCALE"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Resolução", en = "Resolution", es = "Resolución" }
+help = { pt = "A resolução em que o jogo desenha. 720p é a do PS3; mais alto deixa a imagem mais nítida e pede mais da placa de vídeo.", en = "The resolution the game draws at. 720p is the PS3's; higher is sharper and asks more of the graphics card.", es = "La resolución a la que el juego dibuja. 720p es la de PS3; más alta es más nítida y exige más a la tarjeta gráfica." }
+choices = [
+  { value = "1", label = "720p (PS3)" },
+  { value = "2", label = "1440p" },
+  { value = "3", label = "4K" },
+]
+
+[[options]]
+page = "video"
+key = "PS3_WINDOW_MONITOR"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Monitor", en = "Monitor", es = "Monitor" }
+choices = [
+  { value = "0", label = { pt = "Principal", en = "Main", es = "Principal" } },
+  { value = "2", label = { pt = "Secundário", en = "Second", es = "Secundario" } },
+]
+
+[[presets]]
+label = { pt = "Leve", en = "Light", es = "Ligero" }
+help = { pt = "720p, como no PS3. Para PCs mais modestos.", en = "720p, as on the PS3. For more modest PCs.", es = "720p, como en PS3. Para PCs más modestos." }
+values = { GOWA_RES_SCALE = "1" }
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "1440p: bem mais nítido, para placas de vídeo médias.", en = "1440p: much sharper, for mid-range graphics cards.", es = "1440p: mucho más nítido, para tarjetas gráficas medias." }
+values = { GOWA_RES_SCALE = "2" }
+
+[[presets]]
+label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
+help = { pt = "4K, para placas de vídeo fortes.", en = "4K, for strong graphics cards.", es = "4K, para tarjetas gráficas potentes." }
+values = { GOWA_RES_SCALE = "3" }
+
+[[credits]]
+name = "ps3recomp"
+what = { pt = "recompilador estático do PS3", en = "PS3 static recompiler", es = "recompilador estático de PS3" }

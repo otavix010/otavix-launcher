@@ -4,7 +4,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.7"
+version = "1.0.8"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -47,10 +47,12 @@ platforms = { windows = "ok", linux = "soon" }
 [[games]]
 id = "gow-ascension"
 library = "ps3"
-path = "ports/gow-ascension"
+# made on each PC from the port's code; the generator wants a path without spaces
+path = "%SystemDrive%/OtavixPorts/gow-ascension"
 profile = "perfis/gow-ascension.toml"
 repo = "otavix010/gow-ascension-pc"
-platforms = { windows = "wip", linux = "soon" }
+branch = "main"
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "gow-betrayal"
@@ -93,4 +95,39 @@ id = "silent-hill"
 library = "ps1"
 path = "ports/silent-hill"
 profile = "perfis/silent-hill.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "saints-row"
+library = "x360"
+path = "ports/saints-row"
+profile = "perfis/saints-row.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "dirt-2"
+library = "x360"
+path = "ports/dirt-2"
+profile = "perfis/dirt-2.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "army-of-two"
+library = "x360"
+path = "ports/army-of-two"
+profile = "perfis/army-of-two.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "army-of-two-40th-day"
+library = "x360"
+path = "ports/army-of-two-40th-day"
+profile = "perfis/army-of-two-40th-day.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "army-of-two-devils-cartel"
+library = "x360"
+path = "ports/army-of-two-devils-cartel"
+profile = "perfis/army-of-two-devils-cartel.toml"
 platforms = { windows = "wip", linux = "soon" }

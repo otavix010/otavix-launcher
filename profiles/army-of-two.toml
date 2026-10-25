@@ -1,0 +1,22 @@
+# Army of Two (Xbox 360) port: listed in the hub while it is made.
+[game]
+title = "Army of Two"
+subtitle = { pt = "Port nativo do Xbox 360 · recompilação estática", en = "Native Xbox 360 port · static recompilation", es = "Port nativo de Xbox 360 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "army-of-two.exe"
+accent = [90, 140, 70]
+legal = { pt = "O port lê a sua própria cópia do jogo. Army of Two é marca de Electronic Arts; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Army of Two is a trademark of Electronic Arts; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Army of Two es marca de Electronic Arts; este proyecto no tiene relación con ella." }
+
+# pictures in arte/army-of-two when there are (capa, the library card; fundo, the page), else the store's public ones
+[art]
+kind = "image"
+folder = "../arte/army-of-two"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d8024541084c/1033/boxartlg.jpg",
+  "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d8024541084c/1033/background.jpg",
+]

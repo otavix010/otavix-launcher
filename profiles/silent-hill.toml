@@ -16,3 +16,10 @@ include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fund
 card_only = 1
 seconds = 12
 trim = false
+
+# public pictures (a store's box and background), until the player's copy gives its own
+web = [
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Boxarts/Silent%20Hill%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Titles/Silent%20Hill%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Snaps/Silent%20Hill%20%28USA%29.png",
+]

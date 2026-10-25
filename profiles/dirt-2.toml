@@ -1,0 +1,22 @@
+# Dirt 2 (Xbox 360) port: listed in the hub while it is made.
+[game]
+title = "Dirt 2"
+subtitle = { pt = "Port nativo do Xbox 360 · recompilação estática", en = "Native Xbox 360 port · static recompilation", es = "Port nativo de Xbox 360 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "dirt-2.exe"
+accent = [220, 140, 30]
+legal = { pt = "O port lê a sua própria cópia do jogo. Dirt 2 é marca de Codemasters; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Dirt 2 is a trademark of Codemasters; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Dirt 2 es marca de Codemasters; este proyecto no tiene relación con ella." }
+
+# pictures in arte/dirt-2 when there are (capa, the library card; fundo, the page), else the store's public ones
+[art]
+kind = "image"
+folder = "../arte/dirt-2"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802434d0819/1033/boxartlg.jpg",
+  "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802434d0819/1033/background.jpg",
+]

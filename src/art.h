@@ -25,7 +25,8 @@ struct ArtSpec {
     bool trim = true;                  // dark borders cut off
     fs::path folder;                   // the pictures' own folder, instead of the game's (a port still being made)
     int card_only = 0;                 // the first pictures are the library card's, not the page's background
-    bool Empty() const { return kind.empty(); }
+    std::vector<std::string> web;      // public pictures by address (a store's box and background), downloaded once
+    bool Empty() const { return kind.empty() && web.empty(); }
 };
 
 ArtSpec ReadArtSpec(const fs::path& profile_file);
@@ -34,6 +35,8 @@ std::vector<ArtImage> LoadArt(const ArtSpec& spec, const fs::path& game);
 
 // a PNG or JPG file
 bool ReadImageFile(const fs::path& file, ArtImage& out);
+// the spec's web pictures: downloaded into cache the first time, then read from there
+std::vector<ArtImage> LoadWebArt(const ArtSpec& spec, const fs::path& cache);
 
 // a file of the game: from the folder, or from the disc image's XDVDFS; limit: only its first bytes
 bool ReadGameFile(const fs::path& game, const std::string& rel, std::vector<uint8_t>& out, size_t limit = SIZE_MAX);

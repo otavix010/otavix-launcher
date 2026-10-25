@@ -25,6 +25,8 @@ struct GameEntry {
     fs::path dir;      // the port's folder: its executable, settings and saves
     fs::path profile;  // its launcher.toml
     std::string repo;  // owner/name on GitHub: the port's files come from its releases
+    std::string branch;  // instead: the newest code of that branch (a port each PC builds for itself)
+    std::string Source() const { return branch.empty() ? repo : repo + "@" + branch; }
 
     const std::string& On(Platform p) const { return p == Platform::Windows ? on_windows : on_linux; }
 };

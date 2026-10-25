@@ -193,7 +193,10 @@ bool DownloadFile(const std::string& url, const fs::path& file, std::atomic<bool
     if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &u)) return error = "endereço inválido", false;
     HINTERNET s = WinHttpOpen(L"Otavix-Launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     HINTERNET c = s ? WinHttpConnect(s, host, u.nPort, 0) : nullptr;
-    HINTERNET q = c ? WinHttpOpenRequest(c, L"GET", path, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE) : nullptr;
+    // https, or plain http for an old public server (the Xbox 360 store pictures)
+    HINTERNET q = c ? WinHttpOpenRequest(c, L"GET", path, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+                                         u.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
+                    : nullptr;
     bool ok = q && WinHttpSendRequest(q, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0) && WinHttpReceiveResponse(q, nullptr);
     DWORD status = 0, size = sizeof(status);
     if (ok) WinHttpQueryHeaders(q, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &status, &size, nullptr);

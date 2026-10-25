@@ -28,6 +28,7 @@
 #include "catalog.h"
 #include "closegame.h"
 #include "hub.h"
+#include "build.h"
 #include "install.h"
 #include "i18n.h"
 #include "mods.h"
@@ -74,6 +75,12 @@ struct Game {
     bool install_taken = true;  // the finished install's game is already the one to play
     bool confirm_delete_archive = false;
     bool manual_open = false;  // the manual install's steps shown
+    GameBuild build;           // [install] kind = "build": the generator making the game on this PC
+    std::mutex prereq_m;
+    std::vector<int> prereq;   // each tool: -1 being checked, 0 missing, 1 there
+    bool prereq_asked = false;
+    bool build_noted = false;  // the finished build's version is kept
+    bool build_form = false;   // the folders asked again, to make it again
     std::vector<Mod> mods;
     bool mods_stale = true;
     std::atomic<bool> mods_busy = false;
@@ -180,6 +187,7 @@ struct App {
     Platform view = here;  // the version shown on the open game's page
     Music music;
     std::atomic<bool> theme_made{false};  // a theme from a game is ready: the page plays it
+    SDL_IOStream* proc_log = nullptr;  // the game's output, for a profile's log_file
     bool closing = false;  // the player closed the game from the controller: its exit is no error
     std::string install_id;  // random, made on the first start: one vote per game and computer
     // the server: port requests and their rankings
@@ -387,6 +395,10 @@ std::string GamePath(Game& gm) {
 // holds the game's file
 fs::path FindGame(Game& gm) {
     std::error_code ec;
+    if (gm.prof.install.kind == "build") {
+        if (!fs::is_regular_file(gm.entry.dir / FromU8(gm.prof.install.done), ec)) return {};
+        return gm.prof.game_file.empty() ? gm.entry.dir : gm.entry.dir / FromU8(gm.prof.game_file);
+    }
     std::string chosen_path = GamePath(gm);
     auto holds = [&](const fs::path& p) {
         if (fs::is_regular_file(p, ec)) return true;  // a disc image or the file itself
@@ -494,6 +506,7 @@ std::string Expand(Game& gm, const std::string& s) {
             if (e != std::string::npos) {
                 std::string key = s.substr(i + 1, e - i - 1);
                 if (key == "game") out += U8(FindGame(gm));
+                else if (key == "dir") out += U8(gm.entry.dir);
                 else if (const Option* o = gm.prof.Find(key)) out += ToText(gm.store.Get(*o));
                 i = e;
                 continue;
@@ -541,11 +554,19 @@ void Launch(int index) {
     std::string exe = gm.prof.exe;
     if (const Option* o = gm.prof.exe_option.empty() ? nullptr : gm.prof.Find(gm.prof.exe_option))
         exe = ToText(gm.store.Get(*o));
-    std::vector<std::string> args{U8(gm.entry.dir / FromU8(exe))};
+    std::error_code ec;
+    for (const std::string& e : gm.prof.exes)
+        if (fs::is_regular_file(gm.entry.dir / FromU8(e), ec)) {
+            exe = e;
+            break;
+        }
+    fs::path exe_path = (gm.entry.dir / FromU8(exe)).make_preferred();
+    std::vector<std::string> args{U8(exe_path)};
     for (const std::string& a : gm.prof.args) {
         std::string v = Expand(gm, a);
         // an option standing alone that is only a flag ("--windowed" or nothing) leaves no empty argument behind
         if (v.empty() && a.size() > 2 && a.front() == '{' && a.back() == '}' && a != "{game}") continue;
+        if (a.find("{dir}") != std::string::npos) v = U8(FromU8(v).make_preferred());  // a path in the port: \ throughout
         args.push_back(v);
     }
     std::vector<const char*> argv;
@@ -555,17 +576,30 @@ void Launch(int index) {
     SDL_Environment* env = SDL_CreateEnvironment(true);
     for (auto& [k, v] : gm.store.Environment(gm.prof)) SDL_SetEnvironmentVariable(env, k.c_str(), v.c_str(), true);
     if (!g.state.Bool("mods_on", true)) SDL_SetEnvironmentVariable(env, "OTAVIX_MODS", "0", true);
+    for (auto& [k, v] : gm.prof.env) SDL_SetEnvironmentVariable(env, k.c_str(), U8(FromU8(Expand(gm, v)).make_preferred()).c_str(), true);
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ENVIRONMENT_POINTER, env);
-    std::string wd = U8(gm.entry.dir);
+    std::string wd = U8(gm.prof.exe_workdir ? exe_path.parent_path() : gm.entry.dir);
     SDL_SetStringProperty(props, SDL_PROP_PROCESS_CREATE_WORKING_DIRECTORY_STRING, wd.c_str());
+    // a port that writes its log to the console: it goes to log_file
+    if (!gm.prof.log_file.empty()) {
+        fs::path log = gm.entry.dir / FromU8(gm.prof.log_file);
+        fs::create_directories(log.parent_path(), ec);
+        if ((g.proc_log = SDL_IOFromFile(U8(log).c_str(), "wb"))) {
+            SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_REDIRECT);
+            SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_POINTER, g.proc_log);
+            SDL_SetBooleanProperty(props, SDL_PROP_PROCESS_CREATE_STDERR_TO_STDOUT_BOOLEAN, true);
+        }
+    }
     g.music.Stop();
     g.proc = SDL_CreateProcessWithProperties(props);
     SDL_DestroyProperties(props);
     SDL_DestroyEnvironment(env);
     if (!g.proc) {
         Toast(std::string(Tr(S::StartFailed)) + ": " + SDL_GetError());
+        if (g.proc_log) SDL_CloseIO(g.proc_log);
+        g.proc_log = nullptr;
         return;
     }
     g.proc_game = index;
@@ -593,6 +627,8 @@ void PollGame() {
     if (!SDL_WaitProcess(g.proc, false, &code)) return;
     SDL_DestroyProcess(g.proc);
     g.proc = nullptr;
+    if (g.proc_log) SDL_CloseIO(g.proc_log);
+    g.proc_log = nullptr;
     if (g.proc_game >= 0) {
         Game& gm = *g.games[size_t(g.proc_game)];
         gm.last_exit = code;
@@ -940,9 +976,17 @@ bool CaptureEvent(const SDL_Event& e) {
 void StartArt(Game& gm) {
     if (gm.art_spec.Empty()) return;
     fs::path game = gm.art_spec.folder.empty() ? FindGame(gm) : gm.art_spec.folder;
-    if (game.empty()) return;
-    std::thread([&gm, spec = gm.art_spec, game] {
-        std::vector<ArtImage> imgs = LoadArt(spec, game);
+    if (game.empty() && gm.art_spec.web.empty()) return;
+    fs::path cache = g.hub_dir / "cache" / "arte" / FromU8(gm.entry.id);
+    std::thread([&gm, spec = gm.art_spec, game, cache] {
+        std::vector<ArtImage> imgs;
+        if (!game.empty()) imgs = LoadArt(spec, game);
+        // nothing from the player's copy yet: the public pictures
+        if (imgs.empty() && !spec.web.empty()) {
+            imgs = LoadWebArt(spec, cache);
+            // one picture (a box): the card's and the page's
+            if (!imgs.empty() && int(imgs.size()) <= spec.card_only) imgs.push_back(imgs.back());
+        }
         std::lock_guard lock(gm.art_m);
         gm.art_loaded = std::move(imgs);
         gm.art_ready = true;
@@ -1306,7 +1350,8 @@ void TutorialPage() {
 // the port's own files are there: no repository to fetch them from, or its executable in place
 bool PortPresent(const Game& gm) {
     std::error_code ec;
-    return gm.entry.repo.empty() || fs::is_regular_file(gm.entry.dir / FromU8(gm.prof.exe), ec);
+    const std::string& file = gm.prof.port_file.empty() ? gm.prof.exe : gm.prof.port_file;
+    return gm.entry.repo.empty() || fs::is_regular_file(gm.entry.dir / FromU8(file), ec);
 }
 
 // the port's files: downloaded when missing, updated when a newer release is out; false while there is nothing to play
@@ -1316,7 +1361,7 @@ bool PortCard(Game& gm) {
     bool present = PortPresent(gm);
     if (!gm.port_checked && !gm.fetcher.Busy()) {
         gm.port_checked = true;
-        gm.fetcher.Check(gm.entry.repo);
+        gm.fetcher.Check(gm.entry.Source());
     }
     if (gm.fetcher.Busy() && ps.stage != PortFetcher::Stage::Checking) {
         ImGui::TextColored(Accent(1.3f), "● %s", ps.stage == PortFetcher::Stage::Unpacking ? Tr(S::UnpackingPort) : Tr(S::DownloadingPort));
@@ -1339,7 +1384,11 @@ bool PortCard(Game& gm) {
         ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
         if (g.focus_page) ImGui::SetKeyboardFocusHere();
         ImGui::BeginDisabled(ps.stage == PortFetcher::Stage::Checking);
-        if (ImGui::Button(label, ImVec2(320 * g.scale, 0))) gm.fetcher.Install(gm.entry.repo, gm.entry.dir);
+        // tests: LAUNCHER_PORT_DOWNLOAD=1 presses it once the newest version is known
+        static bool test_download = SDL_getenv("LAUNCHER_PORT_DOWNLOAD") != nullptr;
+        bool press = test_download && ps.stage == PortFetcher::Stage::Ready;
+        if (press) test_download = false;
+        if (ImGui::Button(label, ImVec2(320 * g.scale, 0)) || press) gm.fetcher.Install(gm.entry.Source(), gm.entry.dir);
         ImGui::EndDisabled();
         ImGui::PopStyleColor();
         if (ps.stage == PortFetcher::Stage::Failed)
@@ -1348,13 +1397,15 @@ bool PortCard(Game& gm) {
     }
     // installed: its version, and a newer one when there is
     std::string mine = InstalledPortVersion(gm.entry.dir);
-    if (ps.stage == PortFetcher::Stage::Ready && !ps.latest.empty() && (mine.empty() || NewerVersion(ps.latest, mine))) {
+    // a branch's code: any other commit is newer
+    bool newer = mine.empty() || (gm.entry.branch.empty() ? NewerVersion(ps.latest, mine) : ps.latest != mine);
+    if (ps.stage == PortFetcher::Stage::Ready && !ps.latest.empty() && newer) {
         char b[128];
         std::snprintf(b, sizeof(b), Tr(S::PortNewer), ps.latest.c_str());
         ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", b);
         ImGui::SameLine();
         ImGui::BeginDisabled(g.proc != nullptr);
-        if (ImGui::SmallButton(Tr(S::UpdatePort))) gm.fetcher.Install(gm.entry.repo, gm.entry.dir);
+        if (ImGui::SmallButton(Tr(S::UpdatePort))) gm.fetcher.Install(gm.entry.Source(), gm.entry.dir);
         ImGui::EndDisabled();
     } else if (ps.stage == PortFetcher::Stage::Done) {
         ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "%s", Tr(S::PortUpdated));
@@ -1470,6 +1521,250 @@ void CrashCard(Game& gm) {
     ImGui::Spacing();
 }
 
+// ---------------------------------------------------------------------------------------------- made on this PC
+
+// a folder or file picked for a build's input, from the dialog's thread
+struct BuildPick {
+    std::mutex m;
+    int game = -1;
+    std::string key, path;
+    bool ready = false;
+} g_build_pick;
+
+void SDLCALL BuildPicked(void*, const char* const* list, int) {
+    if (!list || !list[0]) return;
+    std::lock_guard lock(g_build_pick.m);
+    g_build_pick.path = list[0];
+    g_build_pick.ready = true;
+}
+
+void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
+    {
+        std::lock_guard lock(g_build_pick.m);
+        g_build_pick.game = g.cur;
+        g_build_pick.key = in.key;
+        g_build_pick.ready = false;
+    }
+    std::string start = gm.store.GetOwn(in.key);
+    if (file) {
+        static std::string name, pattern;
+        name = Tx(in.label);
+        pattern.clear();
+        for (const std::string& e : in.filters) pattern += (pattern.empty() ? "" : ";") + e;
+        static SDL_DialogFileFilter filter;
+        filter = {name.c_str(), pattern.empty() ? "*" : pattern.c_str()};
+        SDL_ShowOpenFileDialog(BuildPicked, nullptr, g.win, &filter, 1, start.empty() ? nullptr : start.c_str(), false);
+    } else {
+        SDL_ShowOpenFolderDialog(BuildPicked, nullptr, g.win, start.empty() ? nullptr : start.c_str(), false);
+    }
+}
+
+// the tools the generator needs, checked on a thread
+void CheckPrereqs(Game& gm) {
+    {
+        std::lock_guard lock(gm.prereq_m);
+        gm.prereq.assign(gm.prof.install.prereqs.size(), -1);
+    }
+    std::vector<Prereq> list = gm.prof.install.prereqs;
+    std::thread([&gm, list] {
+        for (size_t i = 0; i < list.size(); i++) {
+            std::string out;
+            int code = RunHidden(ExpandEnv(list[i].check), &out, 30000);
+            bool ok = code == 0 && (!list[i].output || out.find_first_not_of(" \r\n\t") != std::string::npos);
+            std::lock_guard lock(gm.prereq_m);
+            if (i < gm.prereq.size()) gm.prereq[i] = ok ? 1 : 0;
+        }
+    }).detach();
+}
+
+void StartBuild(Game& gm, bool redo) {
+    const InstallSpec& in = gm.prof.install;
+    std::vector<std::string> args;
+    auto expand = [&](const std::string& a) {
+        std::string out = a;
+        for (size_t at; (at = out.find("{dir}")) != std::string::npos;) out.replace(at, 5, U8(gm.entry.dir));
+        for (const BuildInput& b : in.inputs)
+            for (size_t at; (at = out.find("{" + b.key + "}")) != std::string::npos;)
+                out.replace(at, b.key.size() + 2, gm.store.GetOwn(b.key));
+        return out;
+    };
+    for (const std::string& a : in.command) args.push_back(expand(a));
+    if (redo)
+        for (const std::string& a : in.redo) args.push_back(expand(a));
+    std::vector<std::string> steps;
+    for (const BuildStep& s : in.steps) steps.push_back(s.id);
+    gm.build_noted = false;
+    gm.build.Start(args, gm.entry.dir / FromU8(in.marks), steps);
+}
+
+void BuildCard(Game& gm) {
+    const InstallSpec& in = gm.prof.install;
+    GameBuild::Status bs = gm.build.Get();
+    std::error_code ec;
+    bool made = fs::is_regular_file(gm.entry.dir / FromU8(in.done), ec);
+    std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
+    {
+        std::lock_guard lock(g_build_pick.m);
+        if (g_build_pick.ready && g_build_pick.game == g.cur) {
+            gm.store.SetOwn(g_build_pick.key, g_build_pick.path);
+            gm.store.Save();
+            g_build_pick.ready = false;
+        }
+    }
+    if (bs.stage == GameBuild::Stage::Running) {
+        int total = int(in.steps.size()), cur = std::min(bs.step, total - 1);
+        char head[256];
+        std::snprintf(head, sizeof(head), Tr(S::BuildRunning), bs.step + 1 > total ? total : bs.step + 1, total,
+                      cur >= 0 ? Tx(in.steps[size_t(cur)].label) : "");
+        ImGui::TextColored(Accent(1.3f), "● %s", head);
+        uint64_t s = (SDL_GetTicks() - bs.started) / 1000;
+        char t[32];
+        std::snprintf(t, sizeof(t), "%u:%02u", unsigned(s / 60), unsigned(s % 60));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
+        ImGui::ProgressBar(total ? float(bs.step) / float(total) : 0.0f, ImVec2(-1, 0), t);
+        ImGui::PopStyleColor();
+        if (!bs.line.empty()) ImGui::TextDisabled("%s", bs.line.c_str());
+        Dim(Tr(S::BuildMinimize));
+        if (ImGui::Button(Tr(S::Cancel))) gm.build.Cancel();
+        return;
+    }
+    if (bs.stage == GameBuild::Stage::Done && !gm.build_noted) {
+        gm.build_noted = true;
+        gm.store.SetOwn("built_version", port);
+        gm.store.Save();
+        built = port;
+        Toast(Tr(S::BuildDoneTitle));
+    }
+    // made with no version kept (state from another launcher, or lost): taken as made with the one installed
+    if (made && built.empty() && !port.empty()) {
+        gm.store.SetOwn("built_version", port);
+        gm.store.Save();
+        built = port;
+    }
+    bool inputs_set = true;
+    for (const BuildInput& b : in.inputs) inputs_set &= !gm.store.GetOwn(b.key).empty();
+    if (made && bs.stage != GameBuild::Stage::Failed && !gm.build_form) {
+        ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::BuildDoneTitle));
+        ImGui::TextDisabled("%s", U8(FindGame(gm)).c_str());
+        // newer code of the port than the one the game was made with: made again, from the start
+        if (!port.empty() && built != port) {
+            ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", Tr(S::BuildNewCode));
+            ImGui::SameLine();
+            ImGui::BeginDisabled(g.proc != nullptr);
+            if (ImGui::SmallButton(Tr(S::BuildRedo))) {
+                if (inputs_set) StartBuild(gm, true);
+                else gm.build_form = true;  // the folders first
+            }
+            ImGui::EndDisabled();
+        }
+        if (gm.last_exit != INT_MIN) {
+            ImGui::Spacing();
+            ImGui::TextDisabled("%s: %.0f %s, %s %d", Tr(S::LastExit), gm.last_minutes, Tr(S::Minutes), Tr(S::ExitCode),
+                                gm.last_exit);
+        }
+        return;
+    }
+    // tests: LAUNCHER_BUILD_INPUTS="key=path;key=path" fills the folders, LAUNCHER_BUILD=1 then presses the button
+    if (static bool filled = false; !filled) {
+        filled = true;
+        if (const char* list = SDL_getenv("LAUNCHER_BUILD_INPUTS")) {
+            std::string all = list;
+            for (size_t at = 0; at < all.size();) {
+                size_t end = all.find(';', at), eq = all.find('=', at);
+                if (end == std::string::npos) end = all.size();
+                if (eq != std::string::npos && eq < end) gm.store.SetOwn(all.substr(at, eq - at), all.substr(eq + 1, end - eq - 1));
+                at = end + 1;
+            }
+            gm.store.Save();
+        }
+    }
+    static bool test_build = SDL_getenv("LAUNCHER_BUILD") != nullptr;
+    // not made yet: what it needs, then the player's folders
+    ImGui::PushFont(g.bold, 21);
+    ImGui::TextUnformatted(Tr(S::BuildTitle));
+    ImGui::PopFont();
+    ImGui::TextWrapped("%s", Tr(S::BuildIntro));
+    if (!in.time.Empty()) Dim(Tx(in.time));
+    if (!in.version.Empty()) {
+        ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", Tx(in.version));
+    }
+    ImGui::Spacing();
+    bool tools_ok = true;
+    if (!in.prereqs.empty()) {
+        if (!gm.prereq_asked) {
+            gm.prereq_asked = true;
+            CheckPrereqs(gm);
+        }
+        std::vector<int> state;
+        {
+            std::lock_guard lock(gm.prereq_m);
+            state = gm.prereq;
+        }
+        ImGui::TextUnformatted(Tr(S::BuildNeeds));
+        ImGui::Indent();
+        for (size_t i = 0; i < in.prereqs.size(); i++) {
+            const Prereq& p = in.prereqs[i];
+            int st = i < state.size() ? state[i] : -1;
+            tools_ok &= st == 1;
+            ImGui::PushID(int(i));
+            ImVec4 c = st == 1 ? ImVec4(0.45f, 0.85f, 0.5f, 1) : st == 0 ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.7f, 0.7f, 0.7f, 1);
+            ImGui::TextColored(c, "● %s — %s", Tx(p.name), st == 1 ? Tr(S::PrereqOk) : st == 0 ? Tr(S::PrereqMissing) : Tr(S::PrereqChecking));
+            if (st == 0) {
+                if (!p.help.Empty()) Dim(Tx(p.help));
+                if (!p.install.empty() && ImGui::SmallButton(Tr(S::PrereqInstall))) RunInConsole(p.install, Tx(p.name));
+            }
+            ImGui::PopID();
+        }
+        ImGui::Unindent();
+        if (!tools_ok && ImGui::SmallButton(Tr(S::PrereqRecheck))) CheckPrereqs(gm);
+        ImGui::Spacing();
+    }
+    bool inputs_ok = true;
+    ImGui::TextUnformatted(Tr(S::BuildInputs));
+    ImGui::Indent();
+    for (const BuildInput& b : in.inputs) {
+        ImGui::PushID(b.key.c_str());
+        std::string v = gm.store.GetOwn(b.key);
+        inputs_ok &= !v.empty();
+        ImGui::TextUnformatted(Tx(b.label));
+        if (!b.help.Empty()) Dim(Tx(b.help));
+        ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
+                           v.empty() ? Tr(S::NotChosen) : v.c_str());
+        if (b.folder) {
+            if (ImGui::SmallButton(Tr(S::PickFolderBtn))) PickBuildInput(gm, b, false);
+            if (b.file) ImGui::SameLine();
+        }
+        if (b.file && ImGui::SmallButton(Tr(S::PickFileBtn))) PickBuildInput(gm, b, true);
+        ImGui::Spacing();
+        ImGui::PopID();
+    }
+    ImGui::Unindent();
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+    ImGui::BeginDisabled(!tools_ok || !inputs_ok || g.proc != nullptr);
+    bool press = test_build && tools_ok && inputs_ok && g.proc == nullptr;
+    if (press) test_build = false;
+    if (ImGui::Button(Tr(S::BuildStart), ImVec2(320 * g.scale, 0)) || press) {
+        StartBuild(gm, made);
+        gm.build_form = false;
+    }
+    ImGui::EndDisabled();
+    ImGui::PopStyleColor();
+    if (bs.stage == GameBuild::Stage::Failed) {
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", Tr(S::BuildFailedTitle));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.82f, 1));
+        ImGui::TextWrapped("%s", bs.error.c_str());
+        ImGui::PopStyleColor();
+        if (ImGui::SmallButton(Tr(S::SendToGitHub))) {
+            std::string what = "A geração parou (código " + std::to_string(bs.code) + "):\n\n```\n" + bs.error + "\n```";
+            SDL_OpenURL(IssueUrl(gm, "Geração", what).c_str());
+        }
+    }
+}
+
 void ReportPage();
 
 void HomePage() {
@@ -1495,6 +1790,10 @@ void HomePage() {
             return;
         }
         if (!PortCard(gm)) return;
+        if (gm.prof.install.kind == "build") {
+            BuildCard(gm);
+            return;
+        }
         fs::path game = FindGame(gm);
         TakeInstallPick();
         Installer::Status is = gm.installer.Get();

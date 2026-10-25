@@ -54,10 +54,17 @@ A página **Como usar**, dentro do launcher, explica tudo passo a passo.
 |---|---|---|---|
 | [FIFA Street 2](https://github.com/otavix010/fifa-street-2-pc) | Xbox | jogável | em breve |
 | [God of War: Betrayal](https://github.com/otavix010/gow-betrayal-pc) | Celular (Java) | jogável | jogável |
-| God of War: Ascension | PlayStation 3 | em desenvolvimento | em breve |
+| [God of War: Ascension](https://github.com/otavix010/gow-ascension-pc) | PlayStation 3 | jogável (gerado no seu PC) | em breve |
 | inFAMOUS, inFAMOUS 2 | PlayStation 3 | em desenvolvimento | em breve |
-| Asura's Wrath, Dante's Inferno | Xbox 360 | em desenvolvimento | em breve |
+| Asura's Wrath, Dante's Inferno, Saints Row, Dirt 2, Army of Two (os três) | Xbox 360 | em desenvolvimento | em breve |
 | Silent Hill | PlayStation 1 | em desenvolvimento | em breve |
+
+O God of War: Ascension é gerado no seu PC: o launcher baixa o código do port, confere as ferramentas (Python e Visual
+Studio Build Tools, com botões que instalam), pede o disco, o update 1.04 e o firmware do PS3 e traduz e compila o jogo
+uma vez (de 4 a 20 minutos). Nada do jogo vem com o launcher nem com o port.
+
+Capas e fundos vêm de bases públicas (a loja do Xbox 360, o GameTDB, as miniaturas do libretro) e ficam em cache; a
+arte e a música tema da sua própria cópia, quando o port sabe ler, entram no lugar.
 
 ## Para desenvolvedores
 

@@ -1,5 +1,7 @@
 #include "hub.h"
 
+#include "build.h"
+
 #include <utility>
 
 namespace launcher {
@@ -25,7 +27,7 @@ std::array<float, 3> ReadColor(toml::node_view<const toml::node> n, std::array<f
 }
 
 fs::path Resolve(const fs::path& base, const std::string& p) {
-    fs::path f = FromU8(p);
+    fs::path f = FromU8(ExpandEnv(p));  // %SystemDrive%/OtavixPorts/...: a port that wants a path without spaces
     return (f.is_absolute() ? f : base / f).make_preferred();
 }
 
@@ -63,6 +65,7 @@ bool HubConfig::Load(const fs::path& hub_dir, std::string& error) {
             g.profile = prof.empty() ? g.dir / "launcher.toml" : Resolve(hub_dir, prof);
             g.on_windows = v["platforms"]["windows"].value_or(std::string());
             g.repo = v["repo"].value_or(std::string());
+            g.branch = v["branch"].value_or(std::string());
             g.on_linux = v["platforms"]["linux"].value_or(std::string());
             if (!g.id.empty()) games.push_back(std::move(g));
         }
