@@ -110,6 +110,44 @@ id = "video"
 advanced = true
 label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
 
+[[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
+[[options]]
+page = "audio"
+key = "GOWA_AUDIO_BUFFER_MS"
+target = "env"
+type = "choice"
+default = "20"
+label = { pt = "Buffer de áudio", en = "Audio buffer", es = "Búfer de audio" }
+help = { pt = "Quanto som fica guardado antes de tocar. Se o áudio cortar quando o jogo fica lento, aumente: 100 ms costuma resolver (é o que o RPCS3 usa). O som sai com esse atraso a mais.", en = "How much sound is kept ready before it plays. If the audio cuts out when the game slows down, raise it: 100 ms usually fixes it (RPCS3's value). The sound comes that much later.", es = "Cuánto sonido se guarda antes de sonar. Si el audio se corta cuando el juego va lento, súbelo: 100 ms suele resolverlo (el valor de RPCS3). El sonido sale con ese retraso de más." }
+choices = [
+  { value = "20", label = { pt = "20 ms (padrão, menor atraso)", en = "20 ms (default, least delay)", es = "20 ms (por defecto, menor retraso)" } },
+  { value = "50", label = "50 ms" },
+  { value = "100", label = { pt = "100 ms (se o som cortar)", en = "100 ms (if the sound cuts out)", es = "100 ms (si el sonido se corta)" } },
+  { value = "200", label = "200 ms" },
+]
+
+[[options]]
+page = "controls"
+key = "GOWA_TECLADO"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
+help = { pt = "Funciona junto com o controle, com a janela do jogo em foco. WASD move; espaço pula (✕); mouse esquerdo = ataque leve (□), direito = forte (△); E agarra (○); Shift + WASD esquiva; Q, F, C e R = L1, R1, L2 e R2; setas = direcional; Esc pausa; Tab = Select; Backspace volta nos menus. Para fechar: o X da janela ou Alt+F4.", en = "Works together with the controller, with the game's window focused. WASD moves; space jumps (✕); left mouse = light attack (□), right = heavy (△); E grabs (○); Shift + WASD dodges; Q, F, C and R = L1, R1, L2 and R2; arrows = d-pad; Esc pauses; Tab = Select; Backspace goes back in menus. To close: the window's X or Alt+F4.", es = "Funciona junto con el mando, con la ventana del juego en foco. WASD mueve; espacio salta (✕); ratón izquierdo = ataque ligero (□), derecho = fuerte (△); E agarra (○); Shift + WASD esquiva; Q, F, C y R = L1, R1, L2 y R2; flechas = cruceta; Esc pausa; Tab = Select; Retroceso vuelve en los menús. Para cerrar: la X de la ventana o Alt+F4." }
+choices = [
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+  { value = "0", label = { pt = "Desligado (só controle)", en = "Off (controller only)", es = "Desactivado (solo mando)" } },
+]
+
 [[options]]
 page = "video"
 key = "GOWA_TELA_CHEIA"
@@ -170,8 +208,8 @@ key = "GOWA_FRAMEGEN"
 target = "env"
 type = "choice"
 default = "0"
-label = { pt = "Quadros intermediários", en = "In-between frames", es = "Fotogramas intermedios" }
-help = { pt = "Gera um quadro entre cada dois do jogo, deixando o movimento mais fluido. Funciona melhor com o jogo acima de uns 40 fps.", en = "Makes a frame between every two of the game's, for smoother motion. Works best with the game above about 40 fps.", es = "Genera un fotograma entre cada dos del juego, con un movimiento más fluido. Funciona mejor con el juego por encima de unos 40 fps." }
+label = { pt = "Quadros intermediários (experimental)", en = "In-between frames (experimental)", es = "Fotogramas intermedios (experimental)" }
+help = { pt = "Gera um quadro entre cada dois do jogo, deixando o movimento mais fluido. Só entra com o jogo acima de 30 fps; abaixo disso ficam só os quadros reais. Custa processador e pode borrar em movimento rápido: em PCs que não passam de 30 fps, deixe desligado.", en = "Makes a frame between every two of the game's, for smoother motion. It only kicks in with the game above 30 fps; below that, only the real frames show. It costs processor time and can blur fast motion: on PCs that do not get past 30 fps, leave it off.", es = "Genera un fotograma entre cada dos del juego, con un movimiento más fluido. Solo entra con el juego por encima de 30 fps; por debajo, solo los fotogramas reales. Cuesta procesador y puede emborronar el movimiento rápido: en PC que no pasan de 30 fps, déjalo desactivado." }
 choices = [
   { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
   { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
