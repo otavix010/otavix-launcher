@@ -113,6 +113,10 @@ web = [
   "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d80243430817/1033/background.jpg",
 ]
 
+[icon]
+# the window's and the desktop shortcut's: the game's tile in the Xbox 360 store
+web = ["http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d80243430817/1033/tile.png"]
+
 # ------------------------------------------------------------------------------------------------ video
 
 [[options]]
@@ -143,12 +147,13 @@ key = "fps"
 type = "choice"
 default = 60
 label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
-help = { pt = "O jogo original roda a 30 fps. Aqui ele desenha cada quadro de verdade a 60 ou mais (não são quadros gerados por IA). Acima de 60, use um monitor com essa taxa.", en = "The original game runs at 30 fps. Here it really draws every frame at 60 or more (no AI-generated frames). Above 60, use a monitor with that refresh rate.", es = "El juego original va a 30 fps. Aquí dibuja cada fotograma de verdad a 60 o más (no son fotogramas generados por IA). Por encima de 60, usa un monitor con esa tasa." }
+help = { pt = "O jogo original roda a 30 fps. Aqui ele desenha cada quadro de verdade a 60 ou mais (não são quadros gerados por IA). Acima de 60, use um monitor com essa taxa. Ilimitado deixa o jogo ir até 240, o limite dos ports.", en = "The original game runs at 30 fps. Here it really draws every frame at 60 or more (no AI-generated frames). Above 60, use a monitor with that refresh rate. Unlimited lets the game go up to 240, the ports' limit.", es = "El juego original va a 30 fps. Aquí dibuja cada fotograma de verdad a 60 o más (no son fotogramas generados por IA). Por encima de 60, usa un monitor con esa tasa. Ilimitado deja el juego llegar hasta 240, el límite de los ports." }
 choices = [
   { value = 30, label = { pt = "30 fps (original)", en = "30 fps (original)", es = "30 fps (original)" } },
   { value = 60, label = "60 fps" },
   { value = 120, label = "120 fps" },
   { value = 144, label = "144 fps" },
+  { value = 0, label = { pt = "Ilimitado (até 240)", en = "Unlimited (up to 240)", es = "Ilimitado (hasta 240)" } },
 ]
 
 [[options]]

@@ -25,6 +25,9 @@ async function route(req, env) {
   if (req.method === 'POST' && p === '/v1/report') return report(req, env);
   if (req.method === 'POST' && p === '/v1/pedidos') return pedir(req, env);
   if (req.method === 'GET' && p === '/v1/ranking') return ranking(env, url, false);
+  if (req.method === 'POST' && p === '/v1/desempenho') return desempenho(req, env);
+  if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
+  if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
     if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
@@ -146,6 +149,71 @@ async function reports(env) {
   ).all();
   return text(200, rows.results.map((r) =>
     [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado].map(f).join('\t')).join('\n'));
+}
+
+// ------------------------------------------------------------------------------------------------ performance
+
+// a session's performance (the launcher's ReportJson), from a launcher whose player agreed to share it
+async function desempenho(req, env) {
+  const id = install(req);
+  if (!id) return text(400, 'sem identificador');
+  const r = await body(req, 20_000);
+  const t = now();
+  // 30 an hour from an address, 20 an hour from an install: a launcher sends one a session
+  const ip = await ipHash(req);
+  const hora = Math.floor(t / 3600);
+  await env.DB.prepare('INSERT INTO limite (ip, hora, n) VALUES (?, ?, 1) ON CONFLICT (ip, hora) DO UPDATE SET n = n + 1')
+    .bind(ip, hora).run();
+  const porIp = await env.DB.prepare('SELECT n FROM limite WHERE ip = ? AND hora = ?').bind(ip, hora).first();
+  if (porIp.n > 30) return text(429, 'muitos envios nesta hora');
+  const porInstall = await env.DB.prepare('SELECT COUNT(*) AS n FROM desempenho WHERE install = ? AND quando > ?')
+    .bind(id, t - 3600).first();
+  if (porInstall.n >= 20) return text(429, 'muitos envios nesta hora');
+  await env.DB.prepare('DELETE FROM limite WHERE hora < ?').bind(hora - 24).run();
+
+  const m = r.maquina && typeof r.maquina === 'object' ? r.maquina : {};
+  const j = r.jogo && typeof r.jogo === 'object' ? r.jogo : {};
+  const s = r.sessao && typeof r.sessao === 'object' ? r.sessao : {};
+  const num = (v, max) => Math.max(0, Math.min(max, Number(v) || 0));
+  const jogo = f(j.id).slice(0, 64);
+  if (!/^[a-z0-9-]+$/.test(jogo)) return text(400, 'jogo inválido');
+  if (!(num(s.fps_medio, 1000) > 0) || !(num(s.amostras, 1e7) > 0)) return text(400, 'sem fps');
+  await env.DB.prepare(
+    'INSERT INTO desempenho (quando, install, jogo, port, build, resumo, opcoes, cpu, nucleos, threads, avx512, gpu, ' +
+      'vram_mb, driver, ram_gb, windows, minutos, fps_medio, fps_1pct, fps_min, amostras) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  )
+    .bind(t, id, jogo, f(j.port).slice(0, 64), f(j.build).slice(0, 32), f(j.resumo).slice(0, 200),
+      JSON.stringify(j.opcoes && typeof j.opcoes === 'object' ? j.opcoes : {}).slice(0, 4000),
+      f(m.cpu).slice(0, 120), num(m.nucleos, 1024), num(m.threads, 4096), m.avx512 ? 1 : 0, f(m.gpu).slice(0, 120),
+      num(m.vram_mb, 1e7), f(m.driver).slice(0, 40), num(m.ram_gb, 1e5), f(m.windows).slice(0, 40),
+      num(s.minutos, 1e5), num(s.fps_medio, 1000), num(s.fps_1pct, 1000), num(s.fps_min, 1000), num(s.amostras, 1e7))
+    .run();
+  return text(200, 'ok');
+}
+
+// a game's performance by computer and options, the last 180 days: gpu, cpu, summary, sessions, computers,
+// average fps, 1% low, minimum (the sessions' averages, weighted by the seconds measured)
+async function resumo(env, url) {
+  const jogo = (url.searchParams.get('jogo') || '').slice(0, 64);
+  if (!/^[a-z0-9-]+$/.test(jogo)) return text(400, 'jogo inválido');
+  const rows = await env.DB.prepare(
+    'SELECT gpu, cpu, resumo, COUNT(*) AS sessoes, COUNT(DISTINCT install) AS maquinas, ' +
+      'SUM(fps_medio * amostras) / SUM(amostras) AS medio, SUM(fps_1pct * amostras) / SUM(amostras) AS p1, ' +
+      'MIN(fps_min) AS minimo FROM desempenho WHERE jogo = ? AND quando > ? ' +
+      'GROUP BY gpu, cpu, resumo ORDER BY maquinas DESC, sessoes DESC LIMIT 60'
+  ).bind(jogo, now() - 180 * 86400).all();
+  const n = (v) => (Math.round(v * 10) / 10).toFixed(1);
+  return text(200, rows.results.map((r) =>
+    [r.gpu, r.cpu, r.resumo, r.sessoes, r.maquinas, n(r.medio), n(r.p1), n(r.minimo)].map(f).join('\t')).join('\n'));
+}
+
+// everything this install sent, deleted
+async function apagar(req, env) {
+  const id = install(req);
+  if (!id) return text(400, 'sem identificador');
+  const res = await env.DB.prepare('DELETE FROM desempenho WHERE install = ?').bind(id).run();
+  return text(200, String(res.meta?.changes ?? 0));
 }
 
 // ------------------------------------------------------------------------------------------------ port requests

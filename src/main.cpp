@@ -27,6 +27,7 @@
 #include "theme.h"
 #include "catalog.h"
 #include "closegame.h"
+#include "desempenho.h"
 #include "hub.h"
 #include "build.h"
 #include "install.h"
@@ -209,6 +210,18 @@ struct App {
     bool rep_attach = true;
     std::string rep_msg;
     std::vector<std::pair<std::string, std::string>> sysinfo;
+    // performance: the file the running game writes, the first session's consent, the server's answers
+    fs::path perf_file;
+    bool perf_ask = false;    // a measured session ended and the player was never asked about sharing
+    Session perf_pending;     // that session, sent if the player agrees
+    Call perf_call, perf_sum_call, perf_del_call;
+    std::string perf_sum_game;                        // the game the community's rows are about
+    std::vector<std::vector<std::string>> perf_rows;  // gpu, cpu, summary, sessions, computers, fps avg, 1%, min
+    std::string perf_msg;
+    // the launcher's and the installed ports' newest versions: looked up on start and every 6 hours, each notice
+    // shown once a look
+    Uint64 last_check = 0;
+    bool upd_shown = false, ports_shown = false;
     // the owner's administration
     Call admin_call, admin_rank_call, admin_reports_call;
     std::vector<std::vector<std::string>> admin_ranking, admin_reports;  // console, key, name, votes, hidden, comments
@@ -580,6 +593,17 @@ void Launch(int index) {
     for (auto& [k, v] : gm.store.Environment(gm.prof)) SDL_SetEnvironmentVariable(env, k.c_str(), v.c_str(), true);
     if (!g.state.Bool("mods_on", true)) SDL_SetEnvironmentVariable(env, "OTAVIX_MODS", "0", true);
     for (auto& [k, v] : gm.prof.env) SDL_SetEnvironmentVariable(env, k.c_str(), U8(FromU8(Expand(gm, v)).make_preferred()).c_str(), true);
+    // the session's frame rate: the game writes this file (the God of War: Ascension reads its own variable's name)
+    g.perf_file = (g.hub_dir / "desempenho" / "partida.json").make_preferred();
+    fs::create_directories(g.perf_file.parent_path(), ec);
+    fs::remove(g.perf_file, ec);
+    SDL_SetEnvironmentVariable(env, "OTAVIX_DESEMPENHO", U8(g.perf_file).c_str(), true);
+    SDL_SetEnvironmentVariable(env, "GOWA_PERF_JSON", U8(g.perf_file).c_str(), true);
+    // the on-screen performance meter, off unless the player turned it on (F10 shows or hides it in the game)
+    if (g.state.Bool("osd", false)) {
+        SDL_SetEnvironmentVariable(env, "OTAVIX_OSD", "1", true);
+        SDL_SetEnvironmentVariable(env, "GOWA_OSD", "1", true);
+    }
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ENVIRONMENT_POINTER, env);
@@ -623,6 +647,117 @@ void Launch(int index) {
 
 void OpenGame(int i);
 std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+const std::string& Server();
+Headers ServerHeaders(bool admin = false);
+
+// ---------------------------------------------------------------------------------------------- performance
+
+fs::path PerfHistory() { return g.hub_dir / "desempenho" / "historico.tsv"; }
+
+// the options that matter most to the frame rate, those a profile has of these, in this order
+const char* kSummaryKeys[] = {"fps", "resolution_scale", "escala", "resolucao", "render_scale", "upscaler", "filtro"};
+
+// a game's options as they are now, the ones a session ran with: all but paths and button maps
+std::string SessionOptions(Game& gm, std::string& summary) {
+    std::vector<std::pair<std::string, std::string>> v;
+    for (const Option& o : gm.prof.options) {
+        if (o.type == OptType::Path || o.type == OptType::ButtonMap) continue;
+        v.push_back({o.key, ToText(gm.store.Get(o))});
+    }
+    summary.clear();
+    for (const char* key : kSummaryKeys)
+        for (auto& [k, val] : v)
+            if (k == key) summary += (summary.empty() ? "" : ";") + k + "=" + val;
+    return OptionsJson(v);
+}
+
+// a summary ("fps=60;resolution_scale=2") as the game's own labels: "60 fps · 2x (1440p)"
+std::string SummaryText(Game& gm, const std::string& summary) {
+    std::string out;
+    size_t a = 0;
+    while (a < summary.size()) {
+        size_t b = summary.find(';', a);
+        if (b == std::string::npos) b = summary.size();
+        std::string item = summary.substr(a, b - a), key = item.substr(0, item.find('=')), val;
+        if (item.find('=') != std::string::npos) val = item.substr(item.find('=') + 1);
+        std::string shown = val;
+        if (const Option* o = gm.prof.Find(key))
+            for (const ChoiceItem& c : o->choices)
+                if (ToText(c.value) == val) shown = Tx(c.label);
+        out += (out.empty() ? "" : " · ") + shown;
+        a = b + 1;
+    }
+    return out;
+}
+
+void SendSession(const Session& s) {
+    if (Server().empty()) return;
+    g.perf_call.Start("POST", Server() + "/v1/desempenho", ServerHeaders(), ReportJson(ThisMachine(), s, g.install_id));
+}
+
+// a game closed: the frame rate it measured, kept on this computer and, if the player agreed, sent
+void RecordSession(Game& gm) {
+    Session s;
+    s.when = int64_t(SDL_GetTicks() / 1000);
+    SDL_Time now = 0;
+    if (SDL_GetCurrentTime(&now)) s.when = int64_t(now / SDL_NS_PER_SECOND);
+    s.game = gm.entry.id;
+    s.port = InstalledPortVersion(gm.entry.dir);
+    s.minutes = gm.last_minutes;
+    s.options = SessionOptions(gm, s.summary);
+    std::error_code ec;
+    if (g.perf_file.empty() || !ReadGameFile(g.perf_file, s)) return;
+    fs::remove(g.perf_file, ec);
+    AppendHistory(PerfHistory(), s);
+    std::string share = g.state.Str("perf_share", "");
+    if (share == "sim") {
+        SendSession(s);
+    } else if (share.empty()) {
+        g.perf_pending = s;
+        g.perf_ask = true;
+    }
+}
+
+// a report as the player reads it: a key a line
+std::string PrettyJson(const std::string& json) {
+    std::string out;
+    int depth = 0;
+    bool in_string = false;
+    auto newline = [&] { out += "\n" + std::string(size_t(depth) * 2, ' '); };
+    for (size_t i = 0; i < json.size(); i++) {
+        char c = json[i];
+        if (in_string) {
+            out += c;
+            if (c == '\\' && i + 1 < json.size()) out += json[++i];
+            else if (c == '"') in_string = false;
+            continue;
+        }
+        if (c == '"') {
+            in_string = true;
+            out += c;
+        } else if (c == '{') {
+            out += c;
+            depth++;
+            if (i + 1 < json.size() && json[i + 1] != '}') newline();
+        } else if (c == '}') {
+            if (i > 0 && json[i - 1] != '{') {
+                depth--;
+                newline();
+            } else {
+                depth--;
+            }
+            out += c;
+        } else if (c == ',') {
+            out += c;
+            newline();
+        } else if (c == ':') {
+            out += ": ";
+        } else {
+            out += c;
+        }
+    }
+    return out;
+}
 
 void PollGame() {
     if (!g.proc) return;
@@ -637,6 +772,7 @@ void PollGame() {
         gm.last_exit = code;
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
+        RecordSession(gm);
         // closed with an error: its page shows it, with the report ready
         if (code != 0 && !g.closing) {
             gm.crashed = true;
@@ -1086,7 +1222,7 @@ Art PageArt(const Game& gm) {
 // ---------------------------------------------------------------------------------------------- a game's pages
 
 // the game's sidebar: home, its own pages, the advanced options (its advanced pages as tabs), saves, about
-enum class Kind { Home, Page, Advanced, Saves, Mods, Report, About };
+enum class Kind { Home, Page, Advanced, Saves, Mods, Perf, Report, About };
 struct Entry {
     Kind kind;
     int page = -1;  // Kind::Page: index in prof.pages
@@ -1107,6 +1243,7 @@ std::vector<Entry> Entries() {
     if (advanced) e.push_back({Kind::Advanced});
     e.push_back({Kind::Saves});
     if (!G().prof.mods_folder.empty()) e.push_back({Kind::Mods});
+    e.push_back({Kind::Perf});
     e.push_back({Kind::Report});
     e.push_back({Kind::About});
     return e;
@@ -1129,6 +1266,7 @@ const char* PageName(const Entry& e) {
         case Kind::Home: return Tr(S::Home);
         case Kind::Saves: return Tr(S::Saves);
         case Kind::Mods: return Tr(S::Mods);
+        case Kind::Perf: return Tr(S::Perf);
         case Kind::Report: return Tr(S::Report);
         case Kind::About: return Tr(S::About);
         case Kind::Advanced: return Tr(S::Advanced);
@@ -1414,6 +1552,185 @@ bool PortCard(Game& gm) {
         ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "%s", Tr(S::PortUpdated));
     }
     return true;
+}
+
+// an installed port with a newer version out, its tag in latest (the same test as the game's page, but quiet about a
+// port whose version is unknown: a copy made by hand)
+bool PortHasUpdate(Game& gm, std::string& latest) {
+    if (gm.entry.repo.empty() || !gm.ok || !Playable(gm, g.here) || !PortPresent(gm)) return false;
+    PortFetcher::Status ps = gm.fetcher.Get();
+    if (ps.stage != PortFetcher::Stage::Ready || ps.latest.empty()) return false;
+    std::string mine = InstalledPortVersion(gm.entry.dir);
+    if (mine.empty()) return false;
+    latest = ps.latest;
+    return gm.entry.branch.empty() ? NewerVersion(ps.latest, mine) : ps.latest != mine;
+}
+
+// the launcher's and the installed ports' newest versions: on start and every 6 hours while the launcher is open
+// (a few small requests to GitHub, on threads of their own)
+void PeriodicChecks() {
+    Uint64 now = SDL_GetTicks();
+    if (g.last_check && now - g.last_check < 6ull * 3600 * 1000) return;
+    bool first = g.last_check == 0;
+    g.last_check = now;
+    if (!g.state.Bool("check_updates", true)) return;
+    UpdateCheck u = g.updater.Get();
+    // on start the launcher's own look is already on its way
+    if (!first && !g.hub.update_repo.empty() && u.state != UpdateCheck::State::Downloading &&
+        u.state != UpdateCheck::State::Ready && u.state != UpdateCheck::State::Checking) {
+        g.updater.Start(g.hub.update_repo, g.hub.version);
+        g.upd_shown = false;
+    }
+    for (auto& gp : g.games) {
+        Game& gm = *gp;
+        if (gm.entry.repo.empty() || !gm.ok || !Playable(gm, g.here) || !PortPresent(gm) || gm.fetcher.Busy()) continue;
+        gm.port_checked = true;
+        gm.fetcher.Check(gm.entry.Source());
+    }
+    g.ports_shown = false;
+}
+
+// pop-ups over any page: the first measured session's question about sharing, a newer launcher, newer ports
+void Notices() {
+    if (g.perf_call.Get() == Call::State::Done) g.perf_call.Reset();  // a session sent: nothing to show
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
+    float width = std::min(io.DisplaySize.x * 0.85f, 780 * g.scale);
+    bool any_open = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(24 * g.scale, 20 * g.scale));
+    ImGui::PushFont(g.body, 19);
+
+    if (g.perf_ask && !any_open) {
+        ImGui::OpenPopup("perf_ask");
+        any_open = true;
+    }
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(width, 0));
+    if (ImGui::BeginPopupModal("perf_ask", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::PerfAskTitle));
+        ImGui::PopFont();
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", Tr(S::PerfAskText));
+        ImGui::Spacing();
+        if (ImGui::CollapsingHeader(Tr(S::PerfShowWhat))) {
+            static std::string shown;
+            shown = PrettyJson(ReportJson(ThisMachine(), g.perf_pending, g.install_id));
+            ImGui::InputTextMultiline("##what", shown.data(), shown.size() + 1, ImVec2(-1, 240 * g.scale),
+                                      ImGuiInputTextFlags_ReadOnly);
+        }
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        if (ImGui::Button(Tr(S::PerfSend))) {
+            g.state.Set("perf_share", std::string("sim"));
+            SendSession(g.perf_pending);
+            g.perf_ask = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::PerfDontSend))) {
+            g.state.Set("perf_share", std::string("nao"));
+            g.perf_ask = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+
+    UpdateCheck u = g.updater.Get();
+    bool launcher_new = u.state == UpdateCheck::State::Newer && !u.latest.empty() &&
+                        u.latest != g.state.Str("ignored_launcher", "");
+    if (launcher_new && !g.upd_shown && !any_open) {
+        g.upd_shown = true;
+        ImGui::OpenPopup("upd_launcher");
+        any_open = true;
+    }
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(width, 0));
+    if (ImGui::BeginPopupModal("upd_launcher", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::UpdPopTitle));
+        ImGui::PopFont();
+        ImGui::Spacing();
+        char b[160];
+        std::snprintf(b, sizeof(b), Tr(S::UpdPopLauncher), u.latest.c_str());
+        ImGui::TextWrapped("%s", b);
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        ImGui::BeginDisabled(u.installer.empty() || u.state != UpdateCheck::State::Newer);
+        if (ImGui::Button(Tr(S::UpdateNow))) {
+            g.updater.Download();  // the library's banner shows the download, then the installer runs
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndDisabled();
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::WhatsNew))) SDL_OpenURL(u.url.c_str());
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::UpdLater))) ImGui::CloseCurrentPopup();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::UpdIgnore))) {
+            g.state.Set("ignored_launcher", u.latest);
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+
+    // the ports: those with a newer version than the one skipped
+    static std::vector<std::pair<int, std::string>> ports;  // game, its newest version
+    if (!g.ports_shown && !any_open) {
+        std::vector<std::pair<int, std::string>> found;
+        bool checking = false;
+        for (size_t i = 0; i < g.games.size(); i++) {
+            Game& gm = *g.games[i];
+            if (gm.fetcher.Get().stage == PortFetcher::Stage::Checking) checking = true;
+            std::string latest;
+            std::string skipped = g.state.Str(("ignored_port_" + gm.entry.id).c_str(), "");
+            if (PortHasUpdate(gm, latest) && latest != skipped) found.push_back({int(i), latest});
+        }
+        // once every look is back
+        if (!checking) {
+            g.ports_shown = true;
+            if (!found.empty()) {
+                ports = found;
+                ImGui::OpenPopup("upd_ports");
+            }
+        }
+    }
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(width, 0));
+    if (ImGui::BeginPopupModal("upd_ports", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::UpdPortsTitle));
+        ImGui::PopFont();
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", Tr(S::UpdPortsText));
+        ImGui::Spacing();
+        for (auto& [i, latest] : ports) {
+            Game& gm = *g.games[size_t(i)];
+            ImGui::PushID(i);
+            ImGui::TextColored(Accent(1.3f), "●");
+            ImGui::SameLine();
+            std::string shown = latest.size() > 12 && gm.entry.branch.size() ? latest.substr(0, 7) : latest;
+            ImGui::Text("%s (%s)", Tx(gm.prof.title), shown.c_str());
+            ImGui::SameLine();
+            if (ImGui::SmallButton(Tr(S::UpdOpen))) {
+                OpenGame(i);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::PopID();
+        }
+        ImGui::Spacing();
+        if (ImGui::Button(Tr(S::UpdLater))) ImGui::CloseCurrentPopup();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::UpdIgnorePorts))) {
+            for (auto& [i, latest] : ports) g.state.Set(("ignored_port_" + g.games[size_t(i)]->entry.id).c_str(), latest);
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleVar();
 }
 
 // a finished install: its game becomes the one to play, whatever page is open and even with the window minimized
@@ -1769,6 +2086,10 @@ void BuildCard(Game& gm) {
 }
 
 void ReportPage();
+void PerfPage();
+void SettingsPerf();
+void Notices();
+void PeriodicChecks();
 
 void HomePage() {
     Game& gm = G();
@@ -2487,13 +2808,13 @@ void SettingsAbout() {
     }
 }
 
-int SettingsTabs() { return g.admin_token.empty() ? 4 : 5; }
+int SettingsTabs() { return g.admin_token.empty() ? 5 : 6; }
 void SettingsMods();
 void AdminPage();
 
 void SettingsPage() {
     Heading(Tr(S::LauncherSettings));
-    static const S kTabs[] = {S::General, S::Updates, S::Mods, S::About, S::Admin};
+    static const S kTabs[] = {S::General, S::Updates, S::Perf, S::Mods, S::About, S::Admin};
     if (ImGui::BeginTabBar("hubset")) {
         for (int i = 0; i < SettingsTabs(); i++) {
             ImGuiTabItemFlags f = g.focus_tab && i == g.settings_tab ? ImGuiTabItemFlags_SetSelected : 0;
@@ -2502,8 +2823,9 @@ void SettingsPage() {
                 ImGui::Spacing();
                 if (i == 0) SettingsGeneral();
                 else if (i == 1) SettingsUpdates();
-                else if (i == 2) SettingsMods();
-                else if (i == 3) SettingsAbout();
+                else if (i == 2) SettingsPerf();
+                else if (i == 3) SettingsMods();
+                else if (i == 4) SettingsAbout();
                 else AdminPage();
                 ImGui::EndTabItem();
             }
@@ -2547,7 +2869,7 @@ std::string ConsoleLabel(const std::string& id) {
 
 const std::string& Server() { return g.hub.server_url; }
 
-Headers ServerHeaders(bool admin = false) {
+Headers ServerHeaders(bool admin) {
     Headers h{{"X-Otavix-Install", g.install_id}};
     if (admin) h.push_back({"Authorization", "Bearer " + g.admin_token});
     return h;
@@ -2619,6 +2941,185 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
 
 void CrashCard(Game& gm);
 std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+
+// ---------------------------------------------------------------------------------------------- performance pages
+
+// the summary keys of a session's options JSON, "fps=60;resolution_scale=2"
+std::string SummaryOf(const std::string& options) {
+    std::string out;
+    for (const char* key : kSummaryKeys) {
+        std::string v = JsonString(options, key);
+        double d = 0;
+        if (v.empty() && JsonNumber(options, key, d)) {
+            char b[32];
+            std::snprintf(b, sizeof(b), "%g", d);
+            v = b;
+        }
+        if (!v.empty()) out += (out.empty() ? "" : ";") + std::string(key) + "=" + v;
+    }
+    return out;
+}
+
+std::string DateText(int64_t when) {
+    SDL_DateTime d{};
+    SDL_TimeToDateTime(SDL_Time(when) * SDL_NS_PER_SECOND, &d, true);
+    char b[32];
+    std::snprintf(b, sizeof(b), "%02d/%02d/%04d %02d:%02d", d.day, d.month, d.year, d.hour, d.minute);
+    return b;
+}
+
+void MachineLines() {
+    const Machine& m = ThisMachine();
+    ImGui::Text("%s: %s (%d/%d)%s", Tr(S::PerfCpu), m.cpu.c_str(), m.cores, m.threads, m.avx512 ? " · AVX-512" : "");
+    ImGui::Text("%s: %s (%.0f GB) · %s", Tr(S::PerfGpu), m.gpu.c_str(), double(m.vram_mb) / 1024.0, m.driver.c_str());
+    ImGui::Text("%s: %d GB · Windows %s", Tr(S::PerfRam), m.ram_gb, m.windows.c_str());
+}
+
+void SubHeading(const char* text) {
+    ImGui::Dummy(ImVec2(0, 8 * g.scale));
+    ImGui::PushFont(g.bold, 21);
+    ImGui::TextUnformatted(text);
+    ImGui::PopFont();
+}
+
+// a game's performance: this computer, its sessions here, and how it ran for those who share theirs
+void PerfPage() {
+    Game& gm = G();
+    Heading(Tr(S::Perf));
+    SubHeading(Tr(S::PerfThisPc));
+    MachineLines();
+
+    SubHeading(Tr(S::PerfMine));
+    static std::vector<Session> mine;
+    static std::string mine_game;
+    static Uint64 mine_at = 0;
+    if (mine_game != gm.entry.id || SDL_GetTicks() - mine_at > 3000) {
+        mine = LoadHistory(PerfHistory(), gm.entry.id);
+        mine_game = gm.entry.id;
+        mine_at = SDL_GetTicks();
+    }
+    ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+    if (mine.empty()) {
+        Dim(Tr(S::PerfNone));
+    } else if (ImGui::BeginTable("mine", 6, flags)) {
+        for (S h : {S::PerfDate, S::Minutes, S::PerfAvg, S::PerfLow, S::PerfMin, S::PerfOptions})
+            ImGui::TableSetupColumn(Tr(h));
+        ImGui::TableHeadersRow();
+        for (size_t k = 0; k < mine.size() && k < 20; k++) {
+            const Session& s = mine[mine.size() - 1 - k];
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(DateText(s.when).c_str());
+            ImGui::TableNextColumn();
+            ImGui::Text("%.0f", s.minutes);
+            ImGui::TableNextColumn();
+            ImGui::TextColored(Accent(1.3f), "%.1f", s.fps_avg);
+            ImGui::TableNextColumn();
+            ImGui::Text("%.1f", s.fps_p1);
+            ImGui::TableNextColumn();
+            ImGui::Text("%.1f", s.fps_min);
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(SummaryText(gm, SummaryOf(s.options)).c_str());
+        }
+        ImGui::EndTable();
+    }
+
+    SubHeading(Tr(S::PerfCommunity));
+    Dim(Tr(S::PerfCommunityIntro));
+    if (Server().empty()) {
+        Dim(Tr(S::PerfServerOff));
+        return;
+    }
+    HttpResult r;
+    if (g.perf_sum_call.Get(&r) == Call::State::Done) {
+        g.perf_rows = r.Ok() ? Lines(r.body) : std::vector<std::vector<std::string>>{};
+        g.perf_msg = r.Ok() ? "" : std::string(Tr(S::SendFailed)) + ": " + r.error;
+        g.perf_sum_call.Reset();
+    }
+    if (g.perf_sum_game != gm.entry.id && g.perf_sum_call.Get() == Call::State::Idle) {
+        g.perf_sum_game = gm.entry.id;
+        g.perf_rows.clear();
+        g.perf_sum_call.Start("GET", Server() + "/v1/desempenho?jogo=" + PercentEncode(gm.entry.id), ServerHeaders(), "");
+    }
+    if (ImGui::SmallButton(Tr(S::Refresh))) g.perf_sum_game.clear();
+    if (g.perf_rows.empty()) {
+        Dim(g.perf_sum_call.Get() == Call::State::Busy ? Tr(S::Loading)
+            : g.perf_msg.empty()                        ? Tr(S::PerfCommunityEmpty)
+                                                        : g.perf_msg.c_str());
+    } else if (ImGui::BeginTable("community", 7, flags)) {
+        for (S h : {S::PerfGpu, S::PerfCpu, S::PerfOptions, S::PerfSessions, S::PerfAvg, S::PerfLow, S::PerfMin})
+            ImGui::TableSetupColumn(Tr(h));
+        ImGui::TableHeadersRow();
+        for (const auto& row : g.perf_rows) {  // gpu, cpu, summary, sessions, computers, fps avg, 1%, min
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(Str(row, 0).c_str());
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(Str(row, 1).c_str());
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(SummaryText(gm, Str(row, 2)).c_str());
+            ImGui::TableNextColumn();
+            ImGui::Text("%s (%s %s)", Str(row, 3).c_str(), Str(row, 4).c_str(), Tr(S::PerfMachines));
+            ImGui::TableNextColumn();
+            ImGui::TextColored(Accent(1.3f), "%s", Str(row, 5).c_str());
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(Str(row, 6).c_str());
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(Str(row, 7).c_str());
+        }
+        ImGui::EndTable();
+    }
+}
+
+// the launcher's settings about performance: sharing, the on-screen meter, what is sent, and deleting it
+void SettingsPerf() {
+    HttpResult r;
+    if (g.perf_del_call.Get(&r) == Call::State::Done) {
+        g.perf_msg = r.Ok() ? Tr(S::PerfDeleted) : std::string(Tr(S::SendFailed)) + ": " + r.error;
+        g.perf_del_call.Reset();
+    }
+    bool share = g.state.Str("perf_share", "") == "sim";
+    RowLabel(Tr(S::PerfShare));
+    if (g.focus_page) ImGui::SetKeyboardFocusHere();
+    if (ImGui::Checkbox("##share", &share)) g.state.Set("perf_share", std::string(share ? "sim" : "nao"));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
+    ImGui::TextWrapped("%s", Tr(S::PerfShareHelp));
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+    bool osd = g.state.Bool("osd", false);
+    RowLabel(Tr(S::PerfOsd));
+    if (ImGui::Checkbox("##osd", &osd)) g.state.Set("osd", osd);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
+    ImGui::TextWrapped("%s", Tr(S::PerfOsdHelp));
+    ImGui::PopStyleColor();
+
+    SubHeading(Tr(S::PerfThisPc));
+    MachineLines();
+    SubHeading(Tr(S::PerfLastReport));
+    std::vector<Session> all = LoadHistory(PerfHistory());
+    if (all.empty()) {
+        Dim(Tr(S::PerfNoReport));
+    } else {
+        Session last = all.back();
+        last.summary = SummaryOf(last.options);
+        static std::string shown;
+        shown = PrettyJson(ReportJson(ThisMachine(), last, g.install_id));
+        ImGui::InputTextMultiline("##last", shown.data(), shown.size() + 1, ImVec2(-1, 220 * g.scale),
+                                  ImGuiInputTextFlags_ReadOnly);
+    }
+    ImGui::Spacing();
+    if (ImGui::Button(Tr(S::PerfDeleteLocal))) {
+        std::error_code ec;
+        fs::remove(PerfHistory(), ec);
+        g.perf_msg = Tr(S::PerfDeleted);
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(Server().empty() || g.perf_del_call.Get() == Call::State::Busy);
+    if (ImGui::Button(Tr(S::PerfDeleteServer)))
+        g.perf_del_call.Start("DELETE", Server() + "/v1/desempenho", ServerHeaders(), "");
+    ImGui::EndDisabled();
+    if (!g.perf_msg.empty()) Dim(g.perf_msg.c_str());
+}
 
 void ReportPage() {
     Game& gm = G();
@@ -3500,6 +4001,8 @@ void Frame() {
         SavesPageUi();
     } else if (cur.kind == Kind::Mods) {
         ModsPage();
+    } else if (cur.kind == Kind::Perf) {
+        PerfPage();
     } else if (cur.kind == Kind::Report) {
         ReportPage();
     } else if (cur.kind == Kind::About) {
@@ -3547,6 +4050,7 @@ void Frame() {
     }
     if (!g.toast.empty() && SDL_GetTicks() < g.toast_until) ImGui::TextUnformatted(g.toast.c_str());
     ImGui::End();
+    Notices();
 
     // a game's changes are kept as they are made, a moment after the last one
     static Uint64 dirty_since = 0;
@@ -3690,6 +4194,12 @@ int main(int argc, char** argv) {
     }
     // tests: LAUNCHER_SEARCH=text, typed into the port request's game name
     if (const char* q = SDL_getenv("LAUNCHER_SEARCH")) std::snprintf(g.req_name, sizeof(g.req_name), "%s", q);
+    // tests: LAUNCHER_PERF_TEST=file, a session of the open game measured as the file says, as if it had just closed
+    if (const char* f = SDL_getenv("LAUNCHER_PERF_TEST"); f && g.cur >= 0) {
+        g.perf_file = FromU8(f);
+        G().last_minutes = 12;
+        RecordSession(G());
+    }
     if (g.state.Bool("check_updates", true) && !g.hub.update_repo.empty()) g.updater.Start(g.hub.update_repo, g.hub.version);
 
     while (!g.quit) {
@@ -3709,6 +4219,7 @@ int main(int argc, char** argv) {
             if (e.type == SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED || e.type == SDL_EVENT_DISPLAY_ADDED) ModesOfPrimary();
         }
         PollGame();
+        PeriodicChecks();
         WatchCloseCombo();
         TakeDialog();
         TakeArt();

@@ -127,6 +127,20 @@ choices = [
 
 [[options]]
 page = "video"
+key = "GOWA_FLIP_HZ"
+target = "env"
+type = "choice"
+default = "60"
+label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
+help = { pt = "O jogo foi feito para 30 e 60 fps. Acima de 60, parte da lógica dele avança por quadro e o jogo acelera: Ilimitado (até 240) serve só para medir o desempenho.", en = "The game was made for 30 and 60 fps. Above 60, part of its logic steps each frame and the game speeds up: Unlimited (up to 240) is only for measuring performance.", es = "El juego se hizo para 30 y 60 fps. Por encima de 60, parte de su lógica avanza por fotograma y el juego se acelera: Ilimitado (hasta 240) sirve solo para medir el rendimiento." }
+choices = [
+  { value = "30", label = "30 fps" },
+  { value = "60", label = { pt = "60 fps (recomendado)", en = "60 fps (recommended)", es = "60 fps (recomendado)" } },
+  { value = "0", label = { pt = "Ilimitado (acelera o jogo; só para teste)", en = "Unlimited (speeds the game up; testing only)", es = "Ilimitado (acelera el juego; solo para pruebas)" } },
+]
+
+[[options]]
+page = "video"
 key = "GOWA_FRAMEGEN"
 target = "env"
 type = "choice"

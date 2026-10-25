@@ -113,6 +113,10 @@ web = [
   "http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802454108cf/1033/background.jpg",
 ]
 
+[icon]
+# the window's and the desktop shortcut's: the game's tile in the Xbox 360 store
+web = ["http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802454108cf/1033/tile.png"]
+
 # ------------------------------------------------------------------------------------------------ video
 
 [[options]]
@@ -143,10 +147,11 @@ key = "fps"
 type = "choice"
 default = 60
 label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
-help = { pt = "O jogo original roda a 60 fps. Acima disso ele desenha cada quadro de verdade (não são quadros gerados por IA); use um monitor com essa taxa.", en = "The original game runs at 60 fps. Above that it really draws every frame (no AI-generated frames); use a monitor with that refresh rate.", es = "El juego original va a 60 fps. Por encima de eso dibuja cada fotograma de verdad (no son fotogramas generados por IA); usa un monitor con esa tasa." }
+help = { pt = "O jogo original roda a 60 fps. Acima disso ele desenha cada quadro de verdade (não são quadros gerados por IA); use um monitor com essa taxa. Ilimitado deixa o jogo ir até 240, o limite dos ports.", en = "The original game runs at 60 fps. Above that it really draws every frame (no AI-generated frames); use a monitor with that refresh rate. Unlimited lets the game go up to 240, the ports' limit.", es = "El juego original va a 60 fps. Por encima de eso dibuja cada fotograma de verdad (no son fotogramas generados por IA); usa un monitor con esa tasa. Ilimitado deja el juego llegar hasta 240, el límite de los ports." }
 choices = [
   { value = 60, label = { pt = "60 fps (original)", en = "60 fps (original)", es = "60 fps (original)" } },
   { value = 120, label = "120 fps" },
+  { value = 0, label = { pt = "Ilimitado (até 240)", en = "Unlimited (up to 240)", es = "Ilimitado (hasta 240)" } },
 ]
 
 [[options]]

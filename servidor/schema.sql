@@ -37,3 +37,40 @@ CREATE TABLE IF NOT EXISTS reports (
   enviado INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip, quando);
+
+-- Sessions' performance, sent only by launchers whose player agreed: the computer's parts by model, the game and its
+-- options, the frame rate. No address is kept with them: the hourly limit counts in a table of its own.
+CREATE TABLE IF NOT EXISTS desempenho (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  quando INTEGER NOT NULL,
+  install TEXT NOT NULL,       -- the launcher's random id: what the player deletes by
+  jogo TEXT NOT NULL,
+  port TEXT NOT NULL,
+  build TEXT NOT NULL,
+  resumo TEXT NOT NULL,        -- the options that matter most, "fps=60;resolution_scale=2": rows are grouped by it
+  opcoes TEXT NOT NULL,        -- all the picture options, JSON
+  cpu TEXT NOT NULL,
+  nucleos INTEGER NOT NULL,
+  threads INTEGER NOT NULL,
+  avx512 INTEGER NOT NULL,
+  gpu TEXT NOT NULL,
+  vram_mb INTEGER NOT NULL,
+  driver TEXT NOT NULL,
+  ram_gb INTEGER NOT NULL,
+  windows TEXT NOT NULL,
+  minutos REAL NOT NULL,
+  fps_medio REAL NOT NULL,
+  fps_1pct REAL NOT NULL,
+  fps_min REAL NOT NULL,
+  amostras INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS desempenho_jogo ON desempenho (jogo, quando);
+CREATE INDEX IF NOT EXISTS desempenho_install ON desempenho (install, quando);
+
+-- the hour's count of performance reports per address hash, apart from the reports themselves
+CREATE TABLE IF NOT EXISTS limite (
+  ip TEXT NOT NULL,
+  hora INTEGER NOT NULL,
+  n INTEGER NOT NULL,
+  PRIMARY KEY (ip, hora)
+);
