@@ -4,7 +4,7 @@
 [game]
 title = "God of War: Ascension"
 subtitle = { pt = "Port nativo do PS3 · recompilação estática", en = "Native PS3 port · static recompilation", es = "Port nativo de PS3 · recompilación estática" }
-exe = ["port/build_native/gowa.exe", "port/build_nativerz/gowa.exe"]
+exe = ["port/build_native/gowa.exe", "port/build_v3rz/gowa.exe", "port/build_nativerz/gowa.exe"]
 workdir = "exe"
 port_file = "gerar.ps1"
 game_file = "jogo/GOWA.elf"
@@ -125,14 +125,14 @@ page = "audio"
 key = "GOWA_AUDIO_BUFFER_MS"
 target = "env"
 type = "choice"
-default = "20"
+default = "100"
 label = { pt = "Buffer de áudio", en = "Audio buffer", es = "Búfer de audio" }
-help = { pt = "Quanto som fica guardado antes de tocar. Se o áudio cortar quando o jogo fica lento, aumente: 100 ms costuma resolver (é o que o RPCS3 usa). O som sai com esse atraso a mais.", en = "How much sound is kept ready before it plays. If the audio cuts out when the game slows down, raise it: 100 ms usually fixes it (RPCS3's value). The sound comes that much later.", es = "Cuánto sonido se guarda antes de sonar. Si el audio se corta cuando el juego va lento, súbelo: 100 ms suele resolverlo (el valor de RPCS3). El sonido sale con ese retraso de más." }
+help = { pt = "Quanto som fica guardado antes de tocar. 100 ms (o valor do RPCS3) evita os cortes quando o jogo fica lento; se ainda cortar, 200 ms. Em PCs que seguram os 60 fps, 20 ms deixa o som mais imediato.", en = "How much sound is kept ready before it plays. 100 ms (RPCS3's value) avoids cuts when the game slows down; if it still cuts out, 200 ms. On PCs that hold 60 fps, 20 ms makes the sound more immediate.", es = "Cuánto sonido se guarda antes de sonar. 100 ms (el valor de RPCS3) evita los cortes cuando el juego va lento; si todavía se corta, 200 ms. En PC que mantienen los 60 fps, 20 ms hace el sonido más inmediato." }
 choices = [
-  { value = "20", label = { pt = "20 ms (padrão, menor atraso)", en = "20 ms (default, least delay)", es = "20 ms (por defecto, menor retraso)" } },
+  { value = "20", label = { pt = "20 ms (menor atraso, para PCs rápidos)", en = "20 ms (least delay, for fast PCs)", es = "20 ms (menor retraso, para PC rápidos)" } },
   { value = "50", label = "50 ms" },
-  { value = "100", label = { pt = "100 ms (se o som cortar)", en = "100 ms (if the sound cuts out)", es = "100 ms (si el sonido se corta)" } },
-  { value = "200", label = "200 ms" },
+  { value = "100", label = { pt = "100 ms (padrão)", en = "100 ms (default)", es = "100 ms (por defecto)" } },
+  { value = "200", label = { pt = "200 ms (se ainda cortar)", en = "200 ms (if it still cuts out)", es = "200 ms (si todavía se corta)" } },
 ]
 
 [[options]]
