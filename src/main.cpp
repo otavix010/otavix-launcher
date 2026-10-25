@@ -63,6 +63,7 @@ struct Game {
     std::vector<Backup> backups;
     bool backups_stale = true;
     int confirm_restore = -1;
+    bool crashed = false;  // the last session ended with an error, not yet reported or dismissed
     Installer installer;
     PortFetcher fetcher;  // the port's own files, from its releases
     bool port_checked = false;  // its newest release looked up this session
@@ -549,6 +550,9 @@ void Launch(int index) {
     }
 }
 
+void OpenGame(int i);
+std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+
 void PollGame() {
     if (!g.proc) return;
     int code = 0;
@@ -560,6 +564,13 @@ void PollGame() {
         gm.last_exit = code;
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
+        // closed with an error: its page shows it, with the report ready
+        if (code != 0) {
+            gm.crashed = true;
+            if (g.cur != g.proc_game || g.screen != Screen::Game) OpenGame(g.proc_game);
+            // tests: LAUNCHER_ISSUE_FILE=path gets the report's address as soon as the game fails
+            if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) std::ofstream(f) << IssueUrl(gm, "Crash", "teste");
+        }
     }
     SDL_RestoreWindow(g.win);
     SDL_RaiseWindow(g.win);
@@ -1256,6 +1267,98 @@ void ApplyInstalls() {
     }
 }
 
+// ---------------------------------------------------------------------------------------------- errors to GitHub
+
+std::string PercentEncode(const std::string& s) {
+    std::string o;
+    for (unsigned char c : s) {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            o += char(c);
+        } else {
+            char b[4];
+            std::snprintf(b, sizeof(b), "%%%02X", c);
+            o += b;
+        }
+    }
+    return o;
+}
+
+// an exit code as Windows writes it: crashes are NTSTATUS values such as 0xC0000005
+std::string ExitText(int code) {
+    char b[32];
+    if (code < 0 || code > 0xFFFF) std::snprintf(b, sizeof(b), "0x%08X", unsigned(code));
+    else std::snprintf(b, sizeof(b), "%d", code);
+    return b;
+}
+
+// a new issue on the port's repository (the launcher's for a game without one), filled in: what happened, the
+// computer, the versions, the settings and the end of the log, shortened to fit in the address
+std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what) {
+    if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
+    std::string repo = gm.entry.repo.empty() ? g.hub.update_repo : gm.entry.repo;
+    std::string port = InstalledPortVersion(gm.entry.dir);
+    std::string head = "**" + kind + "**\n\n" + what + "\n\n| | |\n|---|---|\n";
+    head += "| Jogo | " + gm.prof.title.Get(Lang::Pt) + " (`" + gm.entry.id + "`) |\n";
+    head += "| Versão do port | " + (port.empty() ? std::string("-") : port) + " |\n";
+    head += "| Launcher | " + g.hub.version + " · " + PlatformName(g.here) + " |\n";
+    for (auto& [k, v] : g.sysinfo) head += "| " + k + " | " + v + " |\n";
+    if (gm.last_exit != INT_MIN) {
+        char b[96];
+        std::snprintf(b, sizeof(b), "| Última saída | código %s depois de %.0f min |\n", ExitText(gm.last_exit).c_str(), gm.last_minutes);
+        head += b;
+    }
+    std::string config = FileTail(gm.entry.dir / FromU8(gm.prof.settings), 4096);
+    fs::path log = NewestFile(gm.entry.dir / FromU8(gm.prof.logs));
+    std::string tail = log.empty() ? std::string() : FileTail(log, 64 * 1024);
+    // the address holds about 8 000 characters: the log loses lines from its start until the whole fits
+    auto build = [&](const std::string& logpart) {
+        std::string body = head;
+        if (!config.empty()) body += "\n<details><summary>Configurações</summary>\n\n```toml\n" + config + "\n```\n</details>\n";
+        if (!logpart.empty())
+            body += "\n<details><summary>Final do log (" + U8(log.filename()) + ")</summary>\n\n```\n" + logpart + "\n```\n</details>\n";
+        body += "\nSe houver arquivos na pasta `CrashDumps` do port, compacte e arraste para cá.";
+        std::string title = gm.prof.title.Get(Lang::Pt) + ": " + kind;
+        return "https://github.com/" + repo + "/issues/new?title=" + PercentEncode(title) + "&body=" + PercentEncode(body);
+    };
+    std::string url = build(tail);
+    while (url.size() > 7800 && !tail.empty()) {
+        size_t cut = tail.find('\n', tail.size() / 4);
+        tail = cut == std::string::npos ? std::string() : tail.substr(cut + 1);
+        url = build(tail);
+    }
+    return url;
+}
+
+void CrashCard(Game& gm) {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.35f, 0.09f, 0.08f, 0.92f));
+    ImGui::BeginChild("crash", ImVec2(-1, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeY);
+    char b[256];
+    std::snprintf(b, sizeof(b), Tr(S::CrashTitle), ExitText(gm.last_exit).c_str(), gm.last_minutes);
+    ImGui::PushFont(g.bold, 21);
+    ImGui::TextWrapped("%s", b);
+    ImGui::PopFont();
+    ImGui::TextWrapped("%s", Tr(S::CrashText));
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+    if (ImGui::Button(Tr(S::SendToGitHub))) {
+        std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
+                      gm.last_minutes);
+        std::string url = IssueUrl(gm, "Crash", std::string(b) + "\n\n**O que eu estava fazendo:** (conte aqui)");
+        // tests: LAUNCHER_ISSUE_FILE=path keeps the address there instead of opening the browser
+        if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) std::ofstream(f) << url;
+        else SDL_OpenURL(url.c_str());
+        gm.crashed = false;
+    }
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    if (ImGui::Button(Tr(S::Dismiss))) gm.crashed = false;
+    ImGui::EndChild();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+    ImGui::Spacing();
+}
+
 void ReportPage();
 
 void HomePage() {
@@ -1265,6 +1368,7 @@ void HomePage() {
     ImGui::PopFont();
     if (!gm.prof.subtitle.Empty()) Dim(Tx(gm.prof.subtitle));
     ImGui::Dummy(ImVec2(0, 18 * g.scale));
+    if (gm.crashed) CrashCard(gm);
 
     fs::path game = FindGame(gm);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
@@ -2087,6 +2191,9 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     return j + "}";
 }
 
+void CrashCard(Game& gm);
+std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what);
+
 void ReportPage() {
     Game& gm = G();
     if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
@@ -2154,6 +2261,11 @@ void ReportPage() {
     }
     ImGui::EndDisabled();
     ImGui::PopStyleColor();
+    ImGui::SameLine();
+    if (ImGui::Button(Tr(S::SendToGitHub))) {
+        std::string what = std::string("**Tipo:** ") + T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]) + "\n\n" + g.rep_desc;
+        SDL_OpenURL(IssueUrl(gm, T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]), what).c_str());
+    }
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::OpenReports))) OpenPath(g.hub_dir / "reports");
     if (!g.rep_msg.empty()) ImGui::TextWrapped("%s", g.rep_msg.c_str());

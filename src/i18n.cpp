@@ -267,6 +267,10 @@ constexpr Row kRows[] = {
     {"Baixando a atualização…", "Downloading the update…", "Descargando la actualización…"},
     {"Instalando a atualização: o launcher fecha e reabre sozinho.", "Installing the update: the launcher closes and reopens by itself.", "Instalando la actualización: el launcher se cierra y vuelve a abrir solo."},
     {"Nova versão do Otavix Launcher: %s", "New Otavix Launcher version: %s", "Nueva versión de Otavix Launcher: %s"},
+    {"O jogo fechou com um erro (código %s) depois de %.0f minutos.", "The game closed with an error (code %s) after %.0f minutes.", "El juego se cerró con un error (código %s) después de %.0f minutos."},
+    {"Mande o erro para o GitHub: a página abre já preenchida com o seu sistema, as versões e o final do log; conte o que estava fazendo e clique em \"Submit new issue\" (precisa de uma conta grátis do GitHub).", "Send the error to GitHub: the page opens filled in with your system, the versions and the end of the log; say what you were doing and click \"Submit new issue\" (a free GitHub account is needed).", "Envía el error a GitHub: la página se abre ya completa con tu sistema, las versiones y el final del log; cuenta qué hacías y haz clic en \"Submit new issue\" (hace falta una cuenta gratuita de GitHub)."},
+    {"Enviar o erro para o GitHub", "Send the error to GitHub", "Enviar el error a GitHub"},
+    {"Agora não", "Not now", "Ahora no"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
