@@ -145,6 +145,7 @@ label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
 help = { pt = "O jogo original roda a 60 fps. Acima disso ele desenha cada quadro de verdade (não são quadros gerados por IA); use um monitor com essa taxa.", en = "The original game runs at 60 fps. Above that it really draws every frame (no AI-generated frames); use a monitor with that refresh rate.", es = "El juego original va a 60 fps. Por encima de eso dibuja cada fotograma de verdad (no son fotogramas generados por IA); usa un monitor con esa tasa." }
 choices = [
   { value = 60, label = { pt = "60 fps (original)", en = "60 fps (original)", es = "60 fps (original)" } },
+  { value = 120, label = "120 fps" },
 ]
 
 [[options]]
@@ -300,8 +301,8 @@ values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 80, swap_po
 
 [[presets]]
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
-help = { pt = "4K interno, 60 fps e filtro 16x. Para GPUs e processadores fortes.", en = "Internal 4K, 60 fps and 16x filtering. For strong GPUs and processors.", es = "4K interno, 60 fps y filtro 16x. Para GPUs y procesadores potentes." }
-values = { fps = 60, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
+help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores fortes, com monitor de 120 Hz.", en = "Internal 4K, 120 fps and 16x filtering. For strong GPUs and processors, with a 120 Hz monitor.", es = "4K interno, 120 fps y filtro 16x. Para GPUs y procesadores potentes, con monitor de 120 Hz." }
+values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[credits]]
 name = "ReXGlue SDK (rexglue)"
