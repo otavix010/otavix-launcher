@@ -40,6 +40,7 @@
 #include "ports.h"
 #include "net.h"
 #include "profile.h"
+#include "psxmods.h"
 #include "saves.h"
 #include "secret.h"
 #include "shortcut.h"
@@ -73,6 +74,7 @@ struct Game {
     bool art_ready = false;
     std::vector<Backup> backups;
     bool backups_stale = true;
+    PsxMods psx_mods;  // [mods] kind = "psxrecomp": the packages and the player's choices
     int confirm_restore = -1;
     bool crashed = false;  // the last session ended with an error, not yet reported or dismissed
     Installer installer;
@@ -4493,8 +4495,121 @@ void InstallZip(Game& gm, const fs::path& zip, bool keep_zip_aside) {
     }).detach();
 }
 
+// a PSXRecomp option's widget; true when changed
+bool PsxOptionWidget(PsxMods& m, const PsxPackage& p, const PsxOption& o) {
+    std::string v = m.Get(p, o);
+    bool changed = false;
+    ImGui::PushID(o.id.c_str());
+    if (o.type == "boolean") {
+        bool on = v == "true" || v == "1";
+        if (ImGui::Checkbox(o.label.c_str(), &on)) {
+            m.Set(p, o, on ? "true" : "false");
+            changed = true;
+        }
+    } else if (o.type == "choice" && !o.choices.empty()) {
+        std::string shown = v;
+        for (const PsxChoice& ch : o.choices)
+            if (ch.value == v) shown = ch.label;
+        ImGui::SetNextItemWidth(300 * g.scale);
+        if (ImGui::BeginCombo(o.label.c_str(), shown.c_str())) {
+            for (const PsxChoice& ch : o.choices)
+                if (ImGui::Selectable(ch.label.c_str(), ch.value == v) && ch.value != v) {
+                    m.Set(p, o, ch.value);
+                    changed = true;
+                }
+            ImGui::EndCombo();
+        }
+    } else if (o.type == "integer") {
+        int x = std::atoi(v.c_str());
+        ImGui::SetNextItemWidth(300 * g.scale);
+        if (ImGui::SliderInt(o.label.c_str(), &x, int(o.min), int(o.max))) {
+            int64_t step = std::max<int64_t>(1, o.step);
+            x = int(o.min + (int64_t(x) - o.min + step / 2) / step * step);
+            m.Set(p, o, std::to_string(x));
+            changed = true;
+        }
+    } else {
+        ImGui::TextUnformatted((o.label + ": " + v).c_str());
+    }
+    if (!o.description.empty()) ImGui::SetItemTooltip("%s", o.description.c_str());
+    ImGui::PopID();
+    return changed;
+}
+
+// the mods of a port made with PSXRecomp: its packages' features, the game's own first, switched on and off with
+// their options; the game's mods/state.toml written at each change
+void PsxModsPage(Game& gm) {
+    Heading(Tr(S::Mods));
+    Dim(gm.prof.mods_help.Empty() ? Tr(S::ModsPsxIntro) : Tx(gm.prof.mods_help));
+    ImGui::Spacing();
+    PsxMods& m = gm.psx_mods;
+    if (!m.Loaded() || gm.mods_stale) {
+        m.Load(gm.entry.dir / FromU8(gm.prof.mods_folder), gm.prof.mods_game_id);
+        gm.mods_stale = false;
+    }
+    if (g.focus_page) ImGui::SetKeyboardFocusHere();
+    if (ImGui::Button(Tr(S::OpenModsFolder))) OpenPath(m.Folder());
+    ImGui::SameLine();
+    if (ImGui::Button(Tr(S::Refresh))) gm.mods_stale = true;
+    if (!m.Error().empty()) ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", m.Error().c_str());
+    if (m.Packages().empty()) {
+        char b[600];
+        std::snprintf(b, sizeof(b), Tr(S::ModsPsxNone), U8(m.Folder()).c_str());
+        Dim(b);
+        return;
+    }
+    bool changed = false;
+    int section = -1;
+    for (const PsxPackage& p : m.Packages()) {
+        int s = p.OfTheGame() ? 0 : 1;
+        if (s != section) {
+            section = s;
+            SubHeading(s == 0 ? Tr(S::ModsPsxGame) : Tr(S::ModsPsxFramework));
+            ImGui::Spacing();
+        }
+        ImGui::PushID(p.id.c_str());
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16 * g.scale, 12 * g.scale));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.09f, 0.09f, 0.11f, 0.85f));
+        ImGui::BeginChild("pkg", ImVec2(-1, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeY);
+        ImGui::PushFont(g.bold, 20);
+        ImGui::TextUnformatted(p.name.c_str());
+        ImGui::PopFont();
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s · %s", p.author.c_str(), p.version.c_str());
+        if (!p.description.empty()) Dim(p.description.c_str());
+        for (const PsxFeature& f : p.features) {
+            ImGui::PushID(f.id.c_str());
+            bool on = m.Enabled(p, f);
+            ImGui::PushFont(g.bold, 18);
+            if (ImGui::Checkbox(f.name.c_str(), &on)) {
+                m.SetEnabled(p, f, on);
+                changed = true;
+            }
+            ImGui::PopFont();
+            if (!f.description.empty() && f.description != p.description) Dim(f.description.c_str());
+            if (on) {
+                ImGui::Indent();
+                for (const PsxOption& o : p.options)
+                    if (o.feature == f.id) changed |= PsxOptionWidget(m, p, o);
+                ImGui::Unindent();
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+        ImGui::Spacing();
+        ImGui::PopID();
+    }
+    if (changed && !m.Save()) Toast(Tr(S::SaveFailed));
+}
+
 void ModsPage() {
     Game& gm = G();
+    if (gm.prof.mods_kind == "psxrecomp") {
+        PsxModsPage(gm);
+        return;
+    }
     Heading(Tr(S::Mods));
     Dim(gm.prof.mods_help.Empty() ? Tr(S::ModsHelp) : Tx(gm.prof.mods_help));
     ImGui::Spacing();
@@ -4982,7 +5097,8 @@ void LoadGames() {
         bool here = Playable(*gm, g.here);
         if (here) fs::create_directories(e.dir, ec);
         fs::path settings = here ? e.dir / FromU8(gm->prof.settings) : data / "settings.toml";
-        gm->store.Open(settings, data / "estado.toml");
+        fs::path ini = here && !gm->prof.ini.empty() ? e.dir / FromU8(gm->prof.ini) : fs::path();
+        gm->store.Open(settings, data / "estado.toml", ini, gm->prof.ini_template);
         // a port's first settings: its first preset, the recommended one
         if (here && !fs::exists(settings, ec) && !gm->prof.presets.empty()) {
             for (auto& [k, v] : gm->prof.presets[0].values) {
@@ -5087,6 +5203,45 @@ int main(int argc, char** argv) {
         g.focus_page = true;
     }
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
+    // tests: LAUNCHER_SET="key=value;..." sets the open game's options (by their kind) and saves them
+    if (const char* list = SDL_getenv("LAUNCHER_SET"); list && g.cur >= 0) {
+        std::string all = list;
+        for (size_t at = 0; at < all.size();) {
+            size_t end = all.find(';', at), eq = all.find('=', at);
+            if (end == std::string::npos) end = all.size();
+            if (eq != std::string::npos && eq < end)
+                if (const Option* o = G().prof.Find(all.substr(at, eq - at))) {
+                    std::string v = all.substr(eq + 1, end - eq - 1);
+                    Value val = v;
+                    if (std::holds_alternative<int64_t>(o->def)) val = int64_t(std::atoll(v.c_str()));
+                    else if (std::holds_alternative<bool>(o->def)) val = v == "1" || v == "true";
+                    G().store.Set(*o, val);
+                }
+            at = end + 1;
+        }
+        G().store.Save();
+    }
+    // tests: LAUNCHER_PSX="package/feature=on;package/feature/option=value" on a PSXRecomp port's mods, then saved
+    if (const char* list = SDL_getenv("LAUNCHER_PSX"); list && g.cur >= 0 && G().prof.mods_kind == "psxrecomp") {
+        Game& gm = G();
+        gm.psx_mods.Load(gm.entry.dir / FromU8(gm.prof.mods_folder), gm.prof.mods_game_id);
+        std::string all = list;
+        for (size_t at = 0; at < all.size();) {
+            size_t end = all.find(';', at), eq = all.find('=', at);
+            if (end == std::string::npos) end = all.size();
+            std::string path = all.substr(at, eq - at), v = all.substr(eq + 1, end - eq - 1);
+            for (const PsxPackage& pk : gm.psx_mods.Packages())
+                if (path.rfind(pk.id + "/", 0) == 0) {
+                    std::string rest = path.substr(pk.id.size() + 1);
+                    for (const PsxFeature& f : pk.features)
+                        if (rest == f.id) gm.psx_mods.SetEnabled(pk, f, v == "on");
+                    for (const PsxOption& o : pk.options)
+                        if (rest == o.feature + "/" + o.id) gm.psx_mods.Set(pk, o, v);
+                }
+            at = end + 1;
+        }
+        gm.psx_mods.Save();
+    }
     // tests: LAUNCHER_INPUT_FETCH=key, the open game's install input's download button pressed
     if (const char* k = SDL_getenv("LAUNCHER_INPUT_FETCH"); k && g.cur >= 0)
         for (const BuildInput& b : G().prof.install.inputs)

@@ -375,6 +375,10 @@ constexpr Row kRows[] = {
     {"Procurar atualizações dos ports", "Check for port updates", "Buscar actualizaciones de los ports"},
     {"atualizado", "up to date", "actualizado"},
     {"Nenhum port instalado ainda.", "No port installed yet.", "Ningún port instalado todavía."},
+    {"Os mods ficam fora do jogo: ligue e desligue aqui, antes de jogar. Vale na próxima vez que o jogo abrir.", "Mods live outside the game: switch them on and off here, before playing. It takes effect the next time the game starts.", "Los mods quedan fuera del juego: actívalos y desactívalos aquí, antes de jugar. Vale la próxima vez que el juego se abra."},
+    {"Deste jogo", "For this game", "De este juego"},
+    {"Gerais (para qualquer jogo do PSXRecomp)", "General (for any PSXRecomp game)", "Generales (para cualquier juego de PSXRecomp)"},
+    {"Nenhum mod encontrado em %s.", "No mods found in %s.", "No se encontraron mods en %s."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

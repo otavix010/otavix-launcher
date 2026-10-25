@@ -52,6 +52,7 @@ OptType ReadType(const std::string& s) {
 Target ReadTarget(const std::string& s) {
     if (s == "env") return Target::Env;
     if (s == "launcher") return Target::Launcher;
+    if (s == "ini") return Target::Ini;
     return Target::Settings;
 }
 
@@ -72,6 +73,8 @@ bool Profile::Load(const fs::path& file, std::string& error) {
     status = g["status"].value_or(status);
     status_text = ReadText(g["status_text"]);
     mods_folder = std::as_const(t)["mods"]["folder"].value_or(std::string());
+    mods_kind = std::as_const(t)["mods"]["kind"].value_or(std::string());
+    mods_game_id = std::as_const(t)["mods"]["game_id"].value_or(std::string());
     mods_help = ReadText(std::as_const(t)["mods"]["help"]);
     install.check = std::as_const(t)["install"]["check"].value_or(std::string());
     install.sha1 = std::as_const(t)["install"]["sha1"].value_or(std::string());
@@ -144,6 +147,8 @@ bool Profile::Load(const fs::path& file, std::string& error) {
                 install.prereqs.push_back(p);
             }
     settings = g["settings"].value_or(settings);
+    ini = g["ini"].value_or(std::string());
+    ini_template = g["ini_template"].value_or(std::string());
     logs = g["logs"].value_or(logs);
     game_file = g["game_file"].value_or(std::string());
     game_option = g["game_option"].value_or(std::string());

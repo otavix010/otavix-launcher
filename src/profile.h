@@ -43,7 +43,9 @@ enum class OptType {
 
 // where a choice is kept: the game's settings file, an environment variable of the game's process, or the
 // launcher's own state (launcher_state.toml)
-enum class Target { Settings, Env, Launcher };
+// Settings: the game's settings file ("section.key" for a key in a section); Env: a variable the game starts with;
+// Launcher: the launcher's own state; Ini: "section.key" in the game's .ini file ([game] ini)
+enum class Target { Settings, Env, Launcher, Ini };
 
 struct ChoiceItem {
     Value value;
@@ -140,6 +142,8 @@ struct Profile {
     std::string status = "ok";  // ok, or wip: listed in its library, not playable yet
     Text status_text;           // what the card says when it is not playable
     std::string mods_folder;    // [mods] folder: the port reads mods from there; empty, no mods
+    std::string mods_kind;      // [mods] kind: "psxrecomp" for PSXRecomp's packages and state.toml; else zip mods
+    std::string mods_game_id;   // [mods] game_id: the disc's id, for the packages meant for it (PSXRecomp)
     Text mods_help;             // [mods] help: how this port's mods are laid out
     InstallSpec install;
     std::string exe;                  // beside the launcher
@@ -149,6 +153,8 @@ struct Profile {
     std::string log_file;             // the game's output is written there
     std::string port_file;            // the file that tells the port's own files are there (default: exe)
     std::string settings = "settings.toml";
+    std::string ini;  // [game] ini: an .ini file of the game's, beside the settings, for options with target = "ini"
+    std::string ini_template;  // [game] ini_template: what that .ini starts as when the game has not made it yet
     std::string logs = "logs";
     std::vector<std::string> saves;   // folders beside the exe holding the saves
     std::string game_file;            // the file a game folder must hold (default.xbe, GOWA.elf ...)

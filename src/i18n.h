@@ -23,6 +23,7 @@ enum class S {
     AnswerTitle, AnswerYourReport, AnswerOk, AnswersHere, AnswerBtn, AnswerLabel, AnswerSend, Answered,
     IssueCopied, IssueNoBrowser, IssueNoBrowserReport, UnpackHelp, UnpackFailed,
     PortUpdates, CheckPortsNow, PortUpToDate, NoPortsInstalled,
+    ModsPsxIntro, ModsPsxGame, ModsPsxFramework, ModsPsxNone,
     Count
 };
 

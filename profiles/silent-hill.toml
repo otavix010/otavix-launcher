@@ -4,7 +4,49 @@ title = "Silent Hill"
 subtitle = { pt = "Port nativo do PlayStation 1 · recompilação estática", en = "Native PlayStation 1 port · static recompilation", es = "Port nativo de PlayStation 1 · recompilación estática" }
 status = "wip"
 status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
-exe = "silenthill.exe"
+exe = "build-release/SilentHill.exe"
+# the runtime reads its files beside the exe
+settings = "build-release/settings.toml"
+ini = "build-release/input.ini"
+saves = ["build-release/saves"]
+# the input.ini the game makes on its first start, for a launcher that writes it before that
+ini_template = """
+; PSXRecomp input mapping. PSX buttons are active when any listed
+; source is pressed. Per-device overrides live in [mapping.<guid>].
+; [gamepads] lists previously used pads (guid = display name).
+
+[controller]
+enabled = true
+device = 0
+deadzone = 3277
+
+[mapping]
+up        = dpup
+down      = dpdown
+left      = dpleft
+right     = dpright
+triangle  = y
+circle    = b
+cross     = a
+square    = x
+l1        = leftshoulder
+l2        = lefttrigger
+r1        = rightshoulder
+r2        = righttrigger
+l3        = leftstick
+r3        = rightstick
+start     = start
+select    = back
+ls_up     = lefty-
+ls_down   = lefty+
+ls_left   = leftx-
+ls_right  = leftx+
+rs_up     = righty-
+rs_down   = righty+
+rs_left   = rightx-
+rs_right  = rightx+
+"""
+env = { PSX_NO_LAUNCHER = "1" }  # the framework's own small launcher skipped: this one is it
 accent = [140, 140, 150]
 legal = { pt = "O port lê a sua própria cópia do jogo. Silent Hill é marca da Konami; este projeto não tem relação com ela.", en = "The port reads your own copy of the game. Silent Hill is a trademark of Konami; this project is not affiliated with it.", es = "El port lee tu propia copia del juego. Silent Hill es marca de Konami; este proyecto no tiene relación con ella." }
 
@@ -23,3 +65,171 @@ web = [
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Titles/Silent%20Hill%20%28USA%29.png",
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Snaps/Silent%20Hill%20%28USA%29.png",
 ]
+
+# PSXRecomp's mods: packages in mods/bundled (with the build) and mods/installed, choices in mods/state.toml
+[mods]
+kind = "psxrecomp"
+folder = "build-release/mods"
+game_id = "SLES-01514"
+
+[[pages]]
+id = "video"
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "controls"
+label = { pt = "Controles e som", en = "Controls and sound", es = "Controles y sonido" }
+
+[[options]]
+page = "video"
+key = "video.fullscreen"
+type = "choice"
+default = 1
+label = { pt = "Modo de tela", en = "Display mode", es = "Modo de pantalla" }
+choices = [
+  { value = 0, label = { pt = "Janela", en = "Window", es = "Ventana" } },
+  { value = 1, label = { pt = "Tela cheia sem bordas", en = "Borderless fullscreen", es = "Pantalla completa sin bordes" } },
+  { value = 2, label = { pt = "Tela cheia exclusiva", en = "Exclusive fullscreen", es = "Pantalla completa exclusiva" } },
+]
+
+[[options]]
+page = "video"
+key = "video.window_width"
+type = "choice"
+default = 1440
+label = { pt = "Tamanho da janela", en = "Window size", es = "Tamaño de la ventana" }
+help = { pt = "Só vale no modo janela. A altura acompanha (4:3, como no PlayStation).", en = "Only in window mode. The height follows (4:3, as on the PlayStation).", es = "Solo en modo ventana. La altura acompaña (4:3, como en PlayStation)." }
+choices = [
+  { value = 960, label = "960 × 720" },
+  { value = 1440, label = "1440 × 1080" },
+  { value = 1920, label = "1920 × 1440" },
+  { value = 2880, label = "2880 × 2160" },
+]
+
+[[options]]
+page = "video"
+key = "PSX_SUPERSAMPLE"
+target = "env"
+type = "choice"
+default = "2.0"
+label = { pt = "Escala de renderização", en = "Render scale", es = "Escala de renderizado" }
+help = { pt = "Sobre a resolução da tela: 200% desenha com o dobro de linhas e reduz, o anti-aliasing de verdade. O PlayStation pesa pouco: 200% roda em qualquer placa.", en = "Over the screen's resolution: 200% draws with twice the lines and scales down, real anti-aliasing. The PlayStation is light: 200% runs on any card.", es = "Sobre la resolución de la pantalla: 200% dibuja con el doble de líneas y reduce, el antialiasing de verdad. La PlayStation pesa poco: 200% corre en cualquier tarjeta." }
+choices = [
+  { value = "1.0", label = "100%" },
+  { value = "1.5", label = "150%" },
+  { value = "2.0", label = { pt = "200% (recomendado)", en = "200% (recommended)", es = "200% (recomendado)" } },
+  { value = "3.0", label = "300%" },
+]
+
+[[options]]
+page = "video"
+key = "PSX_AA_MODE"
+target = "env"
+type = "choice"
+default = "off"
+label = { pt = "Anti-aliasing", en = "Anti-aliasing", es = "Antialiasing" }
+help = { pt = "FXAA suaviza os serrilhados da imagem final. Com a escala em 200% ou mais quase não é preciso.", en = "FXAA smooths the final picture's jagged edges. With the scale at 200% or more it is hardly needed.", es = "FXAA suaviza los bordes de la imagen final. Con la escala en 200% o más casi no hace falta." }
+choices = [
+  { value = "off", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "fxaa", label = "FXAA" },
+  { value = "fxaa_hq", label = { pt = "FXAA (alta qualidade)", en = "FXAA (high quality)", es = "FXAA (alta calidad)" } },
+]
+
+[[options]]
+page = "video"
+key = "PSX_DITHERING"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Pontilhado (dithering)", en = "Dithering", es = "Tramado (dithering)" }
+help = { pt = "O PlayStation pontilhava as cores para esconder as faixas. Desligado deixa a imagem limpa; o original parece um filtro colorido em telas grandes.", en = "The PlayStation dithered its colours to hide banding. Off keeps the picture clean; the original looks like a coloured filter on big screens.", es = "La PlayStation tramaba los colores para ocultar las bandas. Desactivado deja la imagen limpia; el original parece un filtro de color en pantallas grandes." }
+choices = [
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "2", label = { pt = "Fino", en = "Fine", es = "Fino" } },
+  { value = "1", label = { pt = "Original", en = "Original", es = "Original" } },
+]
+
+[[options]]
+page = "video"
+key = "video.vsync"
+type = "choice"
+default = "on"
+label = { pt = "Sincronização vertical", en = "V-sync", es = "Sincronización vertical" }
+choices = [
+  { value = "on", label = { pt = "Ligada", en = "On", es = "Activada" } },
+  { value = "adaptive", label = { pt = "Adaptativa", en = "Adaptive", es = "Adaptativa" } },
+  { value = "vrr", label = "G-Sync / FreeSync" },
+  { value = "off", label = { pt = "Desligada", en = "Off", es = "Desactivada" } },
+]
+
+[[options]]
+page = "video"
+key = "video.frame_interpolation"
+type = "toggle"
+default = false
+label = { pt = "Movimento suave", en = "Smooth motion", es = "Movimiento suave" }
+help = { pt = "O jogo roda a 50 ou 60 como no PlayStation; isto calcula quadros intermediários até a taxa do monitor (ou a escolhida abaixo), sem acelerar o jogo.", en = "The game runs at 50 or 60 as on the PlayStation; this works out in-between frames up to the monitor's rate (or the one chosen below), without speeding the game up.", es = "El juego corre a 50 o 60 como en PlayStation; esto calcula cuadros intermedios hasta la tasa del monitor (o la elegida abajo), sin acelerar el juego." }
+
+[[options]]
+page = "video"
+key = "video.frame_interpolation_fps"
+type = "choice"
+default = 0
+label = { pt = "Taxa do movimento suave", en = "Smooth motion's rate", es = "Tasa del movimiento suave" }
+choices = [
+  { value = 0, label = { pt = "A do monitor", en = "The monitor's", es = "La del monitor" } },
+  { value = 90, label = "90 fps" },
+  { value = 120, label = "120 fps" },
+  { value = 144, label = "144 fps" },
+  { value = 165, label = "165 fps" },
+  { value = 240, label = "240 fps" },
+]
+
+[[options]]
+page = "controls"
+key = "SH_VOLUME"
+target = "env"
+type = "slider"
+default = 100
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Volume", en = "Volume", es = "Volumen" }
+
+[[options]]
+page = "controls"
+key = "controller.deadzone"
+target = "ini"
+type = "choice"
+default = 3277
+label = { pt = "Zona morta do analógico", en = "Stick dead zone", es = "Zona muerta del analógico" }
+help = { pt = "Quanto o analógico precisa inclinar antes de contar. Com o mod de controles modernos, vale a zona morta do mod (página Mods).", en = "How far the stick must tilt before it counts. With the modern controls mod, the mod's dead zone applies (Mods page).", es = "Cuánto debe inclinarse el analógico antes de contar. Con el mod de controles modernos vale la zona muerta del mod (página Mods)." }
+choices = [
+  { value = 1638, label = "5%" },
+  { value = 3277, label = { pt = "10% (padrão)", en = "10% (default)", es = "10% (predeterminado)" } },
+  { value = 4915, label = "15%" },
+  { value = 6554, label = "20%" },
+  { value = 8192, label = "25%" },
+]
+
+[[options]]
+page = "controls"
+key = "mapping"
+target = "ini"
+type = "buttons"
+label = { pt = "Botões", en = "Buttons", es = "Botones" }
+help = { pt = "Cada botão do controle do PlayStation e o botão do seu controle que faz o papel dele.", en = "Each button of the PlayStation controller and the button of your controller that plays its part.", es = "Cada botón del mando de PlayStation y el botón de tu mando que hace su papel." }
+buttons = [
+  { key = "cross", label = { pt = "X (cruz)", en = "Cross", es = "Equis" }, default = "a" },
+  { key = "circle", label = { pt = "Círculo", en = "Circle", es = "Círculo" }, default = "b" },
+  { key = "square", label = { pt = "Quadrado", en = "Square", es = "Cuadrado" }, default = "x" },
+  { key = "triangle", label = { pt = "Triângulo", en = "Triangle", es = "Triángulo" }, default = "y" },
+  { key = "l1", label = "L1", default = "leftshoulder" },
+  { key = "r1", label = "R1", default = "rightshoulder" },
+  { key = "l2", label = "L2", default = "lefttrigger" },
+  { key = "r2", label = "R2", default = "righttrigger" },
+  { key = "start", label = "Start", default = "start" },
+  { key = "select", label = "Select", default = "back" },
+]
+

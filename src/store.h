@@ -1,15 +1,33 @@
 // Where the choices live: the game's settings file, and the launcher's own state beside it.
 #pragma once
 #include <map>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "profile.h"
 
 namespace launcher {
 
+// a plain .ini kept line by line: the player's comments, order and unknown keys stay as they were
+class IniFile {
+public:
+    void Load(const fs::path& f);
+    void LoadText(const std::string& text);
+    std::optional<std::string> Get(const std::string& section, const std::string& key) const;
+    void Set(const std::string& section, const std::string& key, const std::string& value);
+    std::string Text() const;
+
+private:
+    std::vector<std::string> lines_;
+};
+
 class Store {
 public:
-    void Open(const fs::path& game_settings, const fs::path& own_state);
+    // ini: the game's .ini for options with target = "ini" (empty when the profile has none); ini_template, what it
+    // starts as while the game has not made it
+    void Open(const fs::path& game_settings, const fs::path& own_state, const fs::path& ini = {},
+              const std::string& ini_template = {});
     bool Save();  // both files; false when one could not be written
     bool Dirty() const { return dirty_; }
 
@@ -39,9 +57,10 @@ private:
     toml::table& TableFor(Target t);
     const toml::table& TableFor(Target t) const;
 
-    fs::path game_file_, own_file_;
+    fs::path game_file_, own_file_, ini_file_;
     toml::table game_, own_;
-    bool dirty_ = false;
+    IniFile ini_;
+    bool dirty_ = false, ini_dirty_ = false;
 };
 
 std::string ToText(const Value& v);
