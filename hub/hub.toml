@@ -84,7 +84,7 @@ path = "%SystemDrive%/OtavixPorts/asuras-wrath"
 profile = "perfis/asuras-wrath.toml"
 repo = "otavix010/asuras-wrath-pc"
 branch = "main"
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "dantes-inferno"
@@ -94,7 +94,7 @@ path = "%SystemDrive%/OtavixPorts/dantes-inferno"
 profile = "perfis/dantes-inferno.toml"
 repo = "otavix010/dantes-inferno-pc"
 branch = "main"
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "silent-hill"
@@ -111,7 +111,7 @@ path = "%SystemDrive%/OtavixPorts/saints-row"
 profile = "perfis/saints-row.toml"
 repo = "otavix010/saints-row-pc"
 branch = "main"
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "dirt-2"
@@ -121,7 +121,7 @@ path = "%SystemDrive%/OtavixPorts/dirt-2"
 profile = "perfis/dirt-2.toml"
 repo = "otavix010/dirt-2-pc"
 branch = "main"
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "army-of-two"
