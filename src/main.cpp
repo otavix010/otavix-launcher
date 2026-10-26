@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cwctype>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -2137,6 +2138,31 @@ struct BuildPick {
     std::string key, path;
     bool ready = false;
 } g_build_pick;
+// the note on a folder picked for a required input, "game/key": 1 the port's own folder (refused), 2 the folder
+// holding the games (kept, with a warning)
+std::map<std::string, int> g_pick_note;
+
+// where a folder picked for a required input (the game's disc) stands against the port. Reports 33 and 34: the
+// dialog opens where Windows last was, often the folder just picked for the games, and two players took that as
+// the disc. 1: the port's own folder or one inside it, never the game; 2: the folder the games are installed in,
+// where the game may still be in a folder of its own; 0: elsewhere.
+int PickedPortPlace(const Game& gm, const std::string& picked) {
+    std::error_code ec;
+    if (!fs::is_directory(FromU8(picked), ec)) return 0;
+    fs::path p = fs::weakly_canonical(FromU8(picked), ec);
+    if (ec) return 0;
+    fs::path d = fs::weakly_canonical(gm.entry.dir, ec);
+    if (ec || d.empty()) return 0;
+    auto low = [](fs::path x) {
+        std::wstring s = x.make_preferred().wstring();
+        while (s.size() > 3 && s.back() == L'\\') s.pop_back();
+        for (wchar_t& c : s) c = wchar_t(towlower(c));
+        return s;
+    };
+    const std::wstring ps = low(p), ds = low(d);
+    if (ps == ds || (ps.size() > ds.size() && ps.compare(0, ds.size(), ds) == 0 && ps[ds.size()] == L'\\')) return 1;
+    return ps == low(d.parent_path()) ? 2 : 0;
+}
 
 void SDLCALL BuildPicked(void*, const char* const* list, int) {
     if (!list || !list[0]) return;
@@ -2659,8 +2685,14 @@ void BuildCard(Game& gm) {
     {
         std::lock_guard lock(g_build_pick.m);
         if (g_build_pick.ready && g_build_pick.game == g.cur) {
-            gm.store.SetOwn(g_build_pick.key, g_build_pick.path);
-            gm.store.Save();
+            bool required = false;
+            for (const BuildInput& b : in.inputs) required |= b.key == g_build_pick.key && b.auto_text.Empty();
+            const int place = required ? PickedPortPlace(gm, g_build_pick.path) : 0;
+            g_pick_note[gm.entry.id + "/" + g_build_pick.key] = place;
+            if (place != 1) {
+                gm.store.SetOwn(g_build_pick.key, g_build_pick.path);
+                gm.store.Save();
+            }
             g_build_pick.ready = false;
         }
     }
@@ -2760,6 +2792,15 @@ void BuildCard(Game& gm) {
             }
             gm.store.Save();
         }
+        // tests: LAUNCHER_PICK="key=path" stands for a folder picked in the dialog (and opens the folders form)
+        if (const char* pick = SDL_getenv("LAUNCHER_PICK"); pick && std::strchr(pick, '=')) {
+            std::lock_guard lock(g_build_pick.m);
+            g_build_pick.game = g.cur;
+            g_build_pick.key.assign(pick, std::strchr(pick, '='));
+            g_build_pick.path = std::strchr(pick, '=') + 1;
+            g_build_pick.ready = true;
+            gm.build_form = true;
+        }
     }
     static bool test_build = SDL_getenv("LAUNCHER_BUILD") != nullptr;
     // not made yet: what it needs, then the player's folders
@@ -2833,6 +2874,11 @@ void BuildCard(Game& gm) {
             ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
                                v.empty() ? Tr(S::NotChosen) : v.c_str());
             if (!v.empty() && found_there.count(id)) Dim(Tr(S::DiscFoundThere));
+        }
+        if (auto note = g_pick_note.find(id); note != g_pick_note.end() && note->second) {
+            ImGui::PushStyleColor(ImGuiCol_Text, note->second == 1 ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.95f, 0.8f, 0.35f, 1));
+            ImGui::TextWrapped("%s", Tr(note->second == 1 ? S::PickedPortItself : S::PickedPortsFolder));
+            ImGui::PopStyleColor();
         }
         if (b.folder) {
             if (ImGui::SmallButton(Tr(S::PickFolderBtn))) PickBuildInput(gm, b, false);

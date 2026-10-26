@@ -1,10 +1,10 @@
-﻿# Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
+# Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
 # repo: the port's GitHub repository; the launcher downloads and updates the port from its releases.
 # platforms: the port's state on each system: ok (playable), wip (in development), soon (planned); left out, not there.
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.36"
+version = "1.0.37"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 

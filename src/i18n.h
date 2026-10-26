@@ -31,7 +31,7 @@ enum class S {
     WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
     FilterInstalled, HintFilter,
     BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
-    DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc,
+    DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc, PickedPortItself, PickedPortsFolder,
     GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,
     GameFolderAt, ChangeFolder, GameFolderBusy, GameFolderNotEmpty, GameFolderMoveFailed,
     ReportToLauncher,
