@@ -29,7 +29,7 @@ enum class S {
     ReportPhotos, ReportPhotosHelp, ReportAddPhotos, ReportPastePhoto, ReportImages, ReportNoClipboard, ReportPhotoLimit,
     ReportSendingPhotos, ReportPhotosSent, ReportPhotosFailed, RemoveRequest, RemoveRequestConfirm, MyRequests,
     WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
-    FilterInstalled, HintFilter,
+    FilterInstalled, FilterBeta, HintFilter,
     BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
     DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc, PickedPortItself, PickedPortsFolder,
     GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,

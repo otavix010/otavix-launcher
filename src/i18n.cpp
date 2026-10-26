@@ -413,6 +413,7 @@ constexpr Row kRows[] = {
     {"Jogáveis", "Playable", "Jugables"},
     {"Em desenvolvimento", "In development", "En desarrollo"},
     {"Instalados", "Installed", "Instalados"},
+    {"Beta", "Beta", "Beta"},
     {"Filtro", "Filter", "Filtro"},
     {"O jogo não foi encontrado no lugar escolhido ao gerar.", "The game is not where it was picked when it was made.", "El juego no está donde se eligió al generarlo."},
     {"O port não copia o jogo: ele usa a pasta escolhida ao gerar, e ela foi movida, apagada ou está num HD desligado. Escolha a pasta (ou o arquivo) do jogo de novo: leva segundos e não precisa gerar tudo outra vez.",

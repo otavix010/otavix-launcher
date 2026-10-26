@@ -227,7 +227,8 @@ struct App {
     std::string search_vote_name, search_vote_id;
     std::set<std::string> search_voted;     // "console/key" requested from the search in this run
     bool focus_search = false;
-    int search_filter = 0;                  // the hub's games shown: 0 all, 1 playable here, 2 in development, 3 installed
+    int search_filter = 0;                  // the hub's games shown: 0 all, 1 playable here, 2 in development, 3 installed,
+                                            // 4 beta (made and played here, still in development)
     // the report being written
     Call report_call;
     int rep_cat = 0;
@@ -3534,12 +3535,13 @@ bool InstalledHere(int i) {
 // the games shown, in a library page and in the search alike, kept between sessions: everything, only the ones
 // installed here, only the ports that play here, or only those still in development (the search's catalog, games
 // without a port, shows only under everything); X on the controller goes round them
-constexpr int kFilterOrder[] = {0, 3, 1, 2};  // as the buttons show them; the values are search_filter's
-constexpr S kFilterNames[] = {S::FilterAll, S::FilterPlayable, S::FilterWip, S::FilterInstalled};
+constexpr int kFilterOrder[] = {0, 3, 1, 4, 2};  // as the buttons show them; the values are search_filter's
+constexpr S kFilterNames[] = {S::FilterAll, S::FilterPlayable, S::FilterWip, S::FilterInstalled, S::FilterBeta};
 
 bool PassesFilter(int i) {
     if (g.search_filter == 0) return true;
     if (g.search_filter == 3) return InstalledHere(i);
+    if (g.search_filter == 4) return g.games[size_t(i)]->StateOn(g.here, g.here) == "beta";
     std::string st = g.games[size_t(i)]->StateOn(g.here, g.here);
     return g.search_filter == 1 ? st == "ok" : st == "wip" || st == "beta";
 }
@@ -6504,8 +6506,8 @@ int main(int argc, char** argv) {
     }
     // the library's filter as it was left; tests: LAUNCHER_SEARCH_FILTER=n (0 all, 1 playable, 2 in development,
     // 3 installed)
-    g.search_filter = int(std::clamp<int64_t>(g.state.Int("library_filter", 0), 0, 3));
-    if (const char* f = SDL_getenv("LAUNCHER_SEARCH_FILTER")) g.search_filter = std::clamp(std::atoi(f), 0, 3);
+    g.search_filter = int(std::clamp<int64_t>(g.state.Int("library_filter", 0), 0, 4));
+    if (const char* f = SDL_getenv("LAUNCHER_SEARCH_FILTER")) g.search_filter = std::clamp(std::atoi(f), 0, 4);
     if (const char* p = SDL_getenv("LAUNCHER_PAGE"); p && g.cur >= 0) G().page = std::atoi(p);
     // tests: LAUNCHER_REPORT=text opens the open game's report page with that description, LAUNCHER_REPORT_PHOTO=file
     // adds a picture as the dialog would (LAUNCHER_REPORT_SEND=1 then presses Send, in ReportPage)
