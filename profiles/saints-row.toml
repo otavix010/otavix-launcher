@@ -13,6 +13,10 @@ settings = "opcoes.toml"
 args = ["--game_data_root", "{dir}/assets", "--iso", "{iso}", "--user_data_root", "{dir}/saves", "--cache_root", "{dir}/cache"]
 env = { PORT_OPCOES = "{dir}/opcoes.toml" }
 logs = "out"
+# a report carries the crash log the port writes beside its exe (code, address and stack as module+offset;
+# it keeps every session's crashes, so the one that made the player report is in it) and the runtime's log of
+# the newest session (logs/<exe>_NNN.log, flushed line by line; the runtime writes nothing to the console)
+report_files = ["out/build/win-amd64-release/falha.log", "out/build/win-amd64-release/logs/*.log"]
 saves = ["saves"]
 accent = [150, 60, 170]
 legal = { pt = "O port lê a sua própria cópia do jogo: nada do jogo vem com ele, o código é gerado no seu PC. Saints Row é marca da Deep Silver; este projeto não tem relação com ela nem com a Microsoft.", en = "The port reads your own copy of the game: none of the game ships with it, the code is made on your PC. Saints Row is a trademark of Deep Silver; this project is not affiliated with Deep Silver or Microsoft.", es = "El port lee tu propia copia del juego: nada del juego viene con él, el código se genera en tu PC. Saints Row es marca de Deep Silver; este proyecto no tiene relación con ella ni con Microsoft." }
