@@ -2122,6 +2122,65 @@ void StartInputFetch(Game& gm, const BuildInput& in) {
     }).detach();
 }
 
+// the folder the player keeps the games' discs in (Settings > General): the disc pickers open there, and a game's disc
+// is looked for there by its name; empty when not set or gone
+fs::path DiscsFolder() {
+    std::string f = g.state.Str("discs_folder", "");
+    std::error_code ec;
+    return !f.empty() && fs::is_directory(FromU8(f), ec) ? FromU8(f).make_preferred() : fs::path();
+}
+
+// a name's words, lower case, apostrophes dropped: "Dante's Inferno" and "dantes inferno" are the same
+std::vector<std::string> NameWords(const std::string& s) {
+    std::vector<std::string> words;
+    std::string w;
+    for (unsigned char c : s) {
+        if (c == '\'') continue;
+        if (std::isalnum(c) || c >= 0x80) {
+            w += char(std::tolower(c));
+        } else if (!w.empty()) {
+            words.push_back(w);
+            w.clear();
+        }
+    }
+    if (!w.empty()) words.push_back(w);
+    return words;
+}
+
+// the game's disc in the discs folder or a folder inside it: the one entry the input takes (a file with its
+// extensions, or a folder holding its mark) whose name, up to the first "(" or "[" (the region, the languages), is
+// the game's title: "Saints Row (World) (En,Fr,De,Es,It).iso" for Saints Row, never "Army of Two - The 40th Day" for
+// Army of Two. Empty when none or more than one: then the player picks. The generator still checks the version.
+std::string FindDisc(const Game& gm, const BuildInput& in) {
+    fs::path dir = DiscsFolder();
+    if (dir.empty()) return {};
+    std::vector<std::string> title = NameWords(gm.prof.title.Get(Lang::En));
+    if (title.empty()) return {};
+    std::vector<fs::path> found;
+    std::error_code ec;
+    auto consider = [&](const fs::path& p, bool is_dir) {
+        if (is_dir) {
+            if (!in.folder || in.unpack.empty() || !fs::exists(p / FromU8(in.unpack), ec)) return;
+        } else {
+            if (!in.file) return;
+            std::string ext = U8(p.extension());
+            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+            if (std::find(in.filters.begin(), in.filters.end(), ext.empty() ? ext : ext.substr(1)) == in.filters.end())
+                return;
+        }
+        std::string name = U8(is_dir ? p.filename() : p.stem());
+        name = name.substr(0, name.find_first_of("(["));
+        if (NameWords(name) == title) found.push_back(p);
+    };
+    for (auto& e : fs::directory_iterator(dir, ec)) {
+        bool is_dir = e.is_directory(ec);
+        consider(e.path(), is_dir);
+        if (is_dir)
+            for (auto& inner : fs::directory_iterator(e.path(), ec)) consider(inner.path(), inner.is_directory(ec));
+    }
+    return found.size() == 1 ? U8(found[0]) : std::string();
+}
+
 void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
     {
         std::lock_guard lock(g_build_pick.m);
@@ -2130,6 +2189,7 @@ void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
         g_build_pick.ready = false;
     }
     std::string start = gm.store.GetOwn(in.key);
+    if (start.empty()) start = U8(DiscsFolder());
     if (file) {
         static std::string name, pattern;
         name = Tx(in.label);
@@ -2369,8 +2429,28 @@ void BuildCard(Game& gm) {
             ImGui::Spacing();
             ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::BuildCopyMissing));
             ImGui::TextWrapped("%s", Tr(S::BuildCopyMissingHelp));
+            // the disc in the discs folder (moved there): one click takes it, the generator runs with nothing to redo
+            static std::map<std::string, std::pair<Uint64, std::vector<std::pair<std::string, std::string>>>> seen;
+            auto& [at, discs] = seen[gm.entry.id];
+            if (Uint64 now = SDL_GetTicks(); at == 0 || now - at > 5000) {
+                at = now;
+                discs.clear();
+                for (const BuildInput& b : in.inputs)
+                    if (std::string d = FindDisc(gm, b); !d.empty() && d != gm.store.GetOwn(b.key))
+                        discs.emplace_back(b.key, d);
+            }
+            for (auto& [key, d] : discs) ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s %s", Tr(S::DiscFoundAt), d.c_str());
             ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
             ImGui::BeginDisabled(g.proc != nullptr);
+            if (!discs.empty()) {
+                if (ImGui::Button(Tr(S::UseFoundDisc))) {
+                    for (auto& [key, d] : discs) gm.store.SetOwn(key, d);
+                    gm.store.Save();
+                    discs.clear();
+                    BuildOrUnpack(gm, false);
+                }
+                ImGui::SameLine();
+            }
             if (ImGui::Button(Tr(S::BuildRepick))) gm.build_form = true;
             ImGui::EndDisabled();
             ImGui::PopStyleColor();
@@ -2456,8 +2536,18 @@ void BuildCard(Game& gm) {
     ImGui::Indent();
     for (const BuildInput& b : in.inputs) {
         ImGui::PushID(b.key.c_str());
-        std::string v = gm.store.GetOwn(b.key);
         bool optional = !b.auto_text.Empty();
+        // a required input still empty: the game's disc looked for in the discs folder, once a session
+        static std::set<std::string> looked, found_there;
+        std::string id = gm.entry.id + "/" + b.key;
+        if (!optional && gm.store.GetOwn(b.key).empty() && looked.insert(id).second) {
+            if (std::string disc = FindDisc(gm, b); !disc.empty()) {
+                gm.store.SetOwn(b.key, disc);
+                gm.store.Save();
+                found_there.insert(id);
+            }
+        }
+        std::string v = gm.store.GetOwn(b.key);
         inputs_ok &= !v.empty() || optional;
         ImGui::TextUnformatted(Tx(b.label));
         if (!b.help.Empty()) Dim(Tx(b.help));
@@ -2468,6 +2558,7 @@ void BuildCard(Game& gm) {
         } else {
             ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
                                v.empty() ? Tr(S::NotChosen) : v.c_str());
+            if (!v.empty() && found_there.count(id)) Dim(Tr(S::DiscFoundThere));
         }
         if (b.folder) {
             if (ImGui::SmallButton(Tr(S::PickFolderBtn))) PickBuildInput(gm, b, false);
@@ -3153,6 +3244,16 @@ void LibraryPage(int library) {
     }
 }
 
+// the discs folder picked in Settings: the dialog answers on its own thread
+std::mutex g_discs_m;
+std::string g_discs_pick;
+
+void DiscsFolderPicked(void*, const char* const* files, int) {
+    if (!files || !files[0]) return;
+    std::lock_guard lock(g_discs_m);
+    g_discs_pick = files[0];
+}
+
 void SettingsGeneral() {
     // language
     static const char* kCodes[] = {"auto", "pt", "en", "es"};
@@ -3255,6 +3356,26 @@ void SettingsGeneral() {
     bool last = g.state.Bool("start_last", false);
     RowLabel(Tr(S::StartLast));
     if (ImGui::Checkbox("##last", &last)) g.state.Set("start_last", last);
+    ImGui::Spacing();
+    // the discs folder (DiscsFolder): where the disc pickers open and the games' discs are found by name
+    {
+        std::lock_guard lock(g_discs_m);
+        if (!g_discs_pick.empty()) {
+            g.state.Set("discs_folder", g_discs_pick);
+            g_discs_pick.clear();
+        }
+    }
+    std::string discs = g.state.Str("discs_folder", "");
+    RowLabel(Tr(S::DiscsFolder));
+    ImGui::TextUnformatted(discs.empty() ? Tr(S::NotChosen) : discs.c_str());
+    ImGui::SameLine();
+    if (ImGui::SmallButton(Tr(S::PickFolderBtn)))
+        SDL_ShowOpenFolderDialog(DiscsFolderPicked, nullptr, g.win, discs.empty() ? nullptr : discs.c_str(), false);
+    if (!discs.empty()) {
+        ImGui::SameLine();
+        if (ImGui::SmallButton(Tr(S::Clear))) g.state.Set("discs_folder", std::string());
+    }
+    Dim(Tr(S::DiscsFolderHelp));
 }
 
 // a newer launcher: updated in place (downloaded, installed silently over this folder, reopened), or its page

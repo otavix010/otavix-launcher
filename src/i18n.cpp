@@ -419,6 +419,11 @@ constexpr Row kRows[] = {
      "The port does not copy the game: it uses the folder picked when it was made, and that folder was moved, deleted or is on a drive that is off. Pick the game's folder (or file) again: it takes seconds and nothing is made again.",
      "El port no copia el juego: usa la carpeta elegida al generarlo, y esa carpeta se movió, se borró o está en un disco apagado. Elige la carpeta (o el archivo) del juego de nuevo: tarda segundos y no hay que generar todo otra vez."},
     {"Escolher o disco de novo", "Pick the disc again", "Elegir el disco de nuevo"},
+    {"Pasta dos discos", "Discs folder", "Carpeta de los discos"},
+    {"Onde ficam as imagens dos discos dos seus jogos. A escolha do disco abre nela, e o launcher acha sozinho o disco de cada jogo pelo nome (o gerador ainda confere a versão).", "Where your games' disc images are. The disc picker opens there, and the launcher finds each game's disc by its name (the generator still checks the version).", "Donde están las imágenes de los discos de tus juegos. La selección del disco se abre ahí, y el launcher encuentra solo el disco de cada juego por su nombre (el generador sigue comprobando la versión)."},
+    {"Achado na pasta dos discos.", "Found in the discs folder.", "Encontrado en la carpeta de los discos."},
+    {"Achado na pasta dos discos:", "Found in the discs folder:", "Encontrado en la carpeta de los discos:"},
+    {"Usar este disco", "Use this disc", "Usar este disco"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

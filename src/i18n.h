@@ -31,6 +31,7 @@ enum class S {
     WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
     FilterInstalled, HintFilter,
     BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
+    DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc,
     Count
 };
 
