@@ -2122,6 +2122,51 @@ void StartInputFetch(Game& gm, const BuildInput& in) {
     }).detach();
 }
 
+// a folder the generators can take: no spaces (the commands through cmd and the PS3 tools break on them) and nothing
+// outside ASCII
+bool GoodGamesFolder(const std::string& path) {
+    for (unsigned char c : path)
+        if (c == ' ' || c >= 0x80) return false;
+    return !path.empty();
+}
+
+// the folder the games are installed in (Settings > General), one folder each; empty: the hub's own places (also for
+// a path the generators could not take, written by hand)
+fs::path GamesFolder() {
+    std::string f = g.state.Str("games_folder", "");
+    return GoodGamesFolder(f) ? FromU8(f).make_preferred() : fs::path();
+}
+
+// where a game lives: pinned once installed away from the hub's place; else, for a port not installed yet, the games
+// folder; else the hub's place. A game the hub keeps beside the launcher, or one with no port to fetch, stays there.
+void PlaceGame(Game& gm) {
+    fs::path home = gm.entry.dir;
+    for (const GameEntry& e : g.hub.games)
+        if (e.id == gm.entry.id) home = e.dir;
+    gm.entry.dir = home;
+    std::string pinned = g.state.Str(("game_dir_" + gm.entry.id).c_str(), "");
+    if (!pinned.empty()) {
+        gm.entry.dir = FromU8(pinned);
+        return;
+    }
+    fs::path base = GamesFolder();
+    if (base.empty() || gm.entry.beside || gm.entry.repo.empty() || PortPresent(gm)) return;
+    gm.entry.dir = base / FromU8(gm.entry.id);
+}
+
+void OpenGameFolder(Game& gm);
+
+// a game installed away from the hub's place keeps its folder whatever the games folder becomes later
+void PinInstalledGames() {
+    for (auto& p : g.games) {
+        Game& gm = *p;
+        fs::path home = gm.entry.dir;
+        for (const GameEntry& e : g.hub.games)
+            if (e.id == gm.entry.id) home = e.dir;
+        if (gm.entry.dir != home && PortPresent(gm)) g.state.Set(("game_dir_" + gm.entry.id).c_str(), U8(gm.entry.dir));
+    }
+}
+
 // the folder the player keeps the games' discs in (Settings > General): the disc pickers open there, and a game's disc
 // is looked for there by its name; empty when not set or gone
 fs::path DiscsFolder() {
@@ -3244,9 +3289,33 @@ void LibraryPage(int library) {
     }
 }
 
-// the discs folder picked in Settings: the dialog answers on its own thread
+// the discs folder and the games folder picked in Settings: the dialogs answer on their own thread
 std::mutex g_discs_m;
-std::string g_discs_pick;
+std::string g_discs_pick, g_games_pick;
+
+void GamesFolderPicked(void*, const char* const* files, int) {
+    if (!files || !files[0]) return;
+    std::lock_guard lock(g_discs_m);
+    g_games_pick = files[0];
+}
+
+// a new games folder (empty: the hub's places), at once: the installed games pinned where they are first, then each
+// port not installed yet (and not downloading) moved to its new folder
+void SetGamesFolder(const std::string& folder) {
+    if (!folder.empty() && !GoodGamesFolder(folder)) {
+        Toast(Tr(S::GamesFolderBad), 7000);
+        return;
+    }
+    PinInstalledGames();
+    g.state.Set("games_folder", folder);
+    for (auto& p : g.games) {
+        Game& gm = *p;
+        if (gm.fetcher.Busy()) continue;
+        fs::path before = gm.entry.dir;
+        PlaceGame(gm);
+        if (gm.entry.dir != before) OpenGameFolder(gm);
+    }
+}
 
 void DiscsFolderPicked(void*, const char* const* files, int) {
     if (!files || !files[0]) return;
@@ -3366,16 +3435,37 @@ void SettingsGeneral() {
         }
     }
     std::string discs = g.state.Str("discs_folder", "");
+    // the buttons beside the name, the path under them (a long one would push the buttons off the page)
     RowLabel(Tr(S::DiscsFolder));
-    ImGui::TextUnformatted(discs.empty() ? Tr(S::NotChosen) : discs.c_str());
-    ImGui::SameLine();
     if (ImGui::SmallButton(Tr(S::PickFolderBtn)))
         SDL_ShowOpenFolderDialog(DiscsFolderPicked, nullptr, g.win, discs.empty() ? nullptr : discs.c_str(), false);
     if (!discs.empty()) {
         ImGui::SameLine();
         if (ImGui::SmallButton(Tr(S::Clear))) g.state.Set("discs_folder", std::string());
     }
+    ImGui::TextWrapped("%s", discs.empty() ? Tr(S::NotChosen) : discs.c_str());
     Dim(Tr(S::DiscsFolderHelp));
+    ImGui::Spacing();
+    // the games folder (GamesFolder): where the ports not installed yet go, the installed ones staying where they are;
+    // not while a game is made or played
+    std::string games_pick;
+    {
+        std::lock_guard lock(g_discs_m);
+        games_pick.swap(g_games_pick);
+    }
+    if (!games_pick.empty()) SetGamesFolder(games_pick);
+    std::string games = g.state.Str("games_folder", "");
+    RowLabel(Tr(S::GamesFolder));
+    ImGui::BeginDisabled(g.proc != nullptr);
+    if (ImGui::SmallButton(Tr(S::PickFolderBtn)))
+        SDL_ShowOpenFolderDialog(GamesFolderPicked, nullptr, g.win, games.empty() ? nullptr : games.c_str(), false);
+    if (!games.empty()) {
+        ImGui::SameLine();
+        if (ImGui::SmallButton(Tr(S::Clear))) SetGamesFolder("");
+    }
+    ImGui::EndDisabled();
+    ImGui::TextWrapped("%s", games.empty() ? Tr(S::GamesFolderAuto) : games.c_str());
+    Dim(Tr(S::GamesFolderHelp));
 }
 
 // a newer launcher: updated in place (downloaded, installed silently over this folder, reopened), or its page
@@ -5839,35 +5929,42 @@ void Frame() {
 
 // ---------------------------------------------------------------------------------------------- start
 
+// the launcher's own state for each port lives in the hub; the port's settings in its folder (a port not playable here
+// gets no file of its folder)
+void OpenGameFolder(Game& gm) {
+    fs::path data = g.hub_dir / "dados" / FromU8(gm.entry.id);
+    std::error_code ec;
+    fs::create_directories(data, ec);
+    bool here = Playable(gm, g.here);
+    if (here) fs::create_directories(gm.entry.dir, ec);
+    fs::path settings = here ? gm.entry.dir / FromU8(gm.prof.settings) : data / "settings.toml";
+    fs::path ini = here && !gm.prof.ini.empty() ? gm.entry.dir / FromU8(gm.prof.ini) : fs::path();
+    gm.store.Open(settings, data / "estado.toml", ini, gm.prof.ini_template);
+    // a port's first settings: its first preset, the recommended one
+    if (here && !fs::exists(settings, ec) && !gm.prof.presets.empty()) {
+        for (auto& [k, v] : gm.prof.presets[0].values) {
+            if (const Option* o = gm.prof.Find(k)) gm.store.Set(*o, v);
+            else gm.store.SetKey(k, v);
+        }
+        gm.store.Save();
+    }
+}
+
 void LoadGames() {
     for (const GameEntry& e : g.hub.games) {
         auto gm = std::make_unique<Game>();
         gm->entry = e;
         gm->ok = gm->prof.Load(e.profile, gm->error);
         if (!gm->ok && gm->error.empty()) gm->error = U8(e.profile);
-        // the launcher's own state for each port lives in the hub; a port not playable yet gets no file of its folder
-        fs::path data = g.hub_dir / "dados" / FromU8(e.id);
-        std::error_code ec;
-        fs::create_directories(data, ec);
-        bool here = Playable(*gm, g.here);
-        if (here) fs::create_directories(e.dir, ec);
-        fs::path settings = here ? e.dir / FromU8(gm->prof.settings) : data / "settings.toml";
-        fs::path ini = here && !gm->prof.ini.empty() ? e.dir / FromU8(gm->prof.ini) : fs::path();
-        gm->store.Open(settings, data / "estado.toml", ini, gm->prof.ini_template);
-        // a port's first settings: its first preset, the recommended one
-        if (here && !fs::exists(settings, ec) && !gm->prof.presets.empty()) {
-            for (auto& [k, v] : gm->prof.presets[0].values) {
-                if (const Option* o = gm->prof.Find(k)) gm->store.Set(*o, v);
-                else gm->store.SetKey(k, v);
-            }
-            gm->store.Save();
-        }
+        PlaceGame(*gm);
+        OpenGameFolder(*gm);
         gm->art_spec = ReadArtSpec(e.profile);
         gm->theme_spec = ReadThemeSpec(e.profile);
         gm->icon_spec = ReadIconSpec(e.profile);
         StartArt(*gm);
         g.games.push_back(std::move(gm));
     }
+    PinInstalledGames();
 }
 
 int FindGameIndex(const std::string& id) {

@@ -60,7 +60,9 @@ bool HubConfig::Load(const fs::path& hub_dir, std::string& error) {
             GameEntry g;
             g.id = v["id"].value_or(std::string());
             g.library = v["library"].value_or(std::string());
-            g.dir = Resolve(hub_dir, v["path"].value_or(std::string(".")));
+            std::string path = v["path"].value_or(std::string("."));
+            g.dir = Resolve(hub_dir, path);
+            g.beside = !FromU8(ExpandEnv(path)).is_absolute();
             std::string prof = v["profile"].value_or(std::string());
             g.profile = prof.empty() ? g.dir / "launcher.toml" : Resolve(hub_dir, prof);
             g.on_windows = v["platforms"]["windows"].value_or(std::string());

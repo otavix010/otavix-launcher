@@ -424,6 +424,10 @@ constexpr Row kRows[] = {
     {"Achado na pasta dos discos.", "Found in the discs folder.", "Encontrado en la carpeta de los discos."},
     {"Achado na pasta dos discos:", "Found in the discs folder:", "Encontrado en la carpeta de los discos:"},
     {"Usar este disco", "Use this disc", "Usar este disco"},
+    {"Pasta dos jogos", "Games folder", "Carpeta de los juegos"},
+    {"Onde os jogos novos são instalados, uma pasta para cada jogo. Os já instalados continuam onde estão. O caminho não pode ter espaços nem acentos: os geradores dos jogos não aceitam.", "Where new games are installed, a folder for each game. The installed ones stay where they are. The path cannot have spaces or accents: the games' generators do not take them.", "Dónde se instalan los juegos nuevos, una carpeta para cada juego. Los ya instalados se quedan donde están. La ruta no puede tener espacios ni acentos: los generadores de los juegos no los aceptan."},
+    {"Automática (a do hub)", "Automatic (the hub's)", "Automática (la del hub)"},
+    {"Escolha uma pasta sem espaços nem acentos no caminho: os geradores dos jogos não aceitam.", "Pick a folder with no spaces or accents in its path: the games' generators do not take them.", "Elige una carpeta sin espacios ni acentos en la ruta: los generadores de los juegos no los aceptan."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

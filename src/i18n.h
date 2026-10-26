@@ -32,6 +32,7 @@ enum class S {
     FilterInstalled, HintFilter,
     BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
     DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc,
+    GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,
     Count
 };
 

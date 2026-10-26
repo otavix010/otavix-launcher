@@ -23,6 +23,8 @@ struct GameEntry {
     std::string library;
     std::string on_windows, on_linux;  // its state on each system
     fs::path dir;      // the port's folder: its executable, settings and saves
+    bool beside = false;  // the hub gives a path relative to the launcher: the game lives with it, wherever the
+                          // games folder is
     fs::path profile;  // its launcher.toml
     std::string repo;  // owner/name on GitHub: the port's files come from its releases
     std::string branch;  // instead: the newest code of that branch (a port each PC builds for itself)
