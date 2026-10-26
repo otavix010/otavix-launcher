@@ -857,8 +857,10 @@ void PollGame() {
         gm.backups_stale = true;
         RecordSession(gm);
         gm.icon.Release();
-        // closed with an error: its page shows it, with the report ready
-        if (code != 0 && !g.closing) {
+        // closed with an error: its page shows it, with the report ready. 0xC000013A (STATUS_CONTROL_C_EXIT) is the
+        // game ended from outside (Task Manager, the console closed, Windows shutting down), not a fault of its own:
+        // report 38, a GoW running at 60 fps whose log ends with no error
+        if (code != 0 && unsigned(code) != 0xC000013Au && !g.closing) {
             gm.crashed = true;
             if (g.cur != g.proc_game || g.screen != Screen::Game) OpenGame(g.proc_game);
             // tests: LAUNCHER_ISSUE_FILE=path gets the report's address as soon as the game fails
@@ -2114,6 +2116,8 @@ void CrashCard(Game& gm) {
     ImGui::TextWrapped("%s", b);
     ImGui::PopFont();
     ImGui::TextWrapped("%s", Tr(S::CrashText));
+    // an instruction the processor lacks (report 40: a GoW built for AVX2 on an Ivy Bridge Xeon)
+    if (unsigned(gm.last_exit) == 0xC000001Du) ImGui::TextWrapped("%s", Tr(S::CrashIllegalInstruction));
     ImGui::Spacing();
     std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
                   gm.last_minutes);
@@ -2832,8 +2836,8 @@ void BuildCard(Game& gm) {
         }
         if (gm.last_exit != INT_MIN) {
             ImGui::Spacing();
-            ImGui::TextDisabled("%s: %.0f %s, %s %d", Tr(S::LastExit), gm.last_minutes, Tr(S::Minutes), Tr(S::ExitCode),
-                                gm.last_exit);
+            ImGui::TextDisabled("%s: %.0f %s, %s %s", Tr(S::LastExit), gm.last_minutes, Tr(S::Minutes), Tr(S::ExitCode),
+                                ExitText(gm.last_exit).c_str());
         }
         return;
     }
@@ -3163,8 +3167,8 @@ void HomePage() {
         }
         if (gm.last_exit != INT_MIN) {
             ImGui::Spacing();
-            ImGui::TextDisabled("%s: %.0f %s, %s %d", Tr(S::LastExit), gm.last_minutes, Tr(S::Minutes), Tr(S::ExitCode),
-                                gm.last_exit);
+            ImGui::TextDisabled("%s: %.0f %s, %s %s", Tr(S::LastExit), gm.last_minutes, Tr(S::Minutes), Tr(S::ExitCode),
+                                ExitText(gm.last_exit).c_str());
         }
     });
     ImGui::PopStyleVar();
@@ -4919,7 +4923,7 @@ void ReportPage() {
     fs::path log = GameLog(gm);
     if (ImGui::CollapsingHeader(Tr(S::ReportPreview))) {
         ImGui::BulletText("%s · %s · launcher %s", Tx(gm.prof.title), PlatformName(g.view), g.hub.version.c_str());
-        if (gm.last_exit != INT_MIN) ImGui::BulletText("%s: %s %d", Tr(S::LastExit), Tr(S::ExitCode), gm.last_exit);
+        if (gm.last_exit != INT_MIN) ImGui::BulletText("%s: %s %s", Tr(S::LastExit), Tr(S::ExitCode), ExitText(gm.last_exit).c_str());
         for (auto& [k, v] : g.sysinfo) ImGui::BulletText("%s: %s", k.c_str(), v.c_str());
         if (g.rep_attach) {
             std::error_code ec;
@@ -5715,6 +5719,11 @@ void AdminPage() {
         SDL_DateTime d{};
         SDL_TimeToDateTime(SDL_Time(std::atoll(Str(row, 0).c_str())) * SDL_NS_PER_SECOND, &d, true);
         ImGui::PushID(int(i));
+        // the report's number first: the one the owner and the sessions that fix the reports call it by
+        ImGui::PushFont(g.bold, 18);
+        ImGui::Text("#%s", Str(row, 7).c_str());
+        ImGui::PopFont();
+        ImGui::SameLine();
         ImGui::TextColored(Accent(1.3f), "%02d/%02d %02d:%02d", d.day, d.month, d.hour, d.minute);
         ImGui::SameLine();
         ImGui::Text("%s · %s · %s%s%s", Str(row, 1).c_str(), Str(row, 2).c_str(), Str(row, 3).c_str(),
