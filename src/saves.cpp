@@ -6,9 +6,9 @@
 
 namespace launcher {
 
-namespace {
-
 fs::path BackupRoot(const fs::path& game_dir) { return game_dir / "backups"; }
+
+namespace {
 
 std::string Stamp() {
     std::time_t t = std::time(nullptr);

@@ -2287,19 +2287,37 @@ void PinInstalledGames() {
     }
 }
 
-// the player's own folder for one game, picked on its page before anything was made there: the game goes to
-// <picked>\<id>, pinned. A port already downloaded moves with it, but only a small one with nothing made, no link
-// inside (GoW's junction to the player's disc must never be followed by a copy or a delete) and an empty destination.
+// what the last "Change folder" of a game came to, shown on its page until the next one (report 36: a toast of a few
+// seconds went unread, and the player saw the folder "not change"): the message, and the old folder left behind
+struct FolderNote {
+    S text;
+    std::string old_dir;
+};
+std::map<std::string, FolderNote> g_folder_note;
+
+// the player's own folder for one game, picked on its page before the game was made there: the game goes to
+// <picked>\<id>, pinned. A port already downloaded moves with it when it is small, with nothing made, no link inside
+// (GoW's junction to the player's disc must never be followed by a copy or a delete) and an empty destination.
+// Otherwise (report 36: a player wanting the port off a full C:, held by "finish making it here or delete the folder")
+// the game starts over in the new folder: its saves (and their backups) copied there, the port downloaded and the game
+// made again there, and the old folder left exactly as it was, for the player to delete; nothing here deletes or
+// copies through a link.
 bool MoveGameTo(Game& gm, const std::string& picked) {
+    g_folder_note.erase(gm.entry.id);
     if (!GoodGamesFolder(picked)) {
-        Toast(Tr(S::GamesFolderBad), 7000);
+        g_folder_note[gm.entry.id] = {S::GamesFolderBad, ""};
         return false;
     }
     fs::path dest = (FromU8(picked) / FromU8(gm.entry.id)).make_preferred();
     fs::path from = gm.entry.dir;
     std::error_code ec;
     if (dest == from) return true;
+    bool start_over = false;
     if (PortPresent(gm)) {
+        if (fs::exists(dest, ec) && !fs::is_empty(dest, ec)) {
+            g_folder_note[gm.entry.id] = {S::GameFolderNotEmpty, ""};
+            return false;
+        }
         uintmax_t size = 0;
         bool link = false;
         for (auto it = fs::recursive_directory_iterator(from, ec); !ec && it != fs::recursive_directory_iterator();
@@ -2315,27 +2333,43 @@ bool MoveGameTo(Game& gm, const std::string& picked) {
         if (!gm.prof.install.marks.empty())
             for (auto& e : fs::directory_iterator(from / FromU8(gm.prof.install.marks), ec))
                 made_some |= e.path().extension() == ".ok";
-        if (link || made_some || size > (uintmax_t(2) << 30)) {
-            Toast(Tr(S::GameFolderBusy), 8000);
-            return false;
-        }
-        if (fs::exists(dest, ec) && !fs::is_empty(dest, ec)) {
-            Toast(Tr(S::GameFolderNotEmpty), 7000);
-            return false;
-        }
-        fs::create_directories(dest.parent_path(), ec);
-        fs::remove(dest, ec);  // an empty one, for the rename
-        ec.clear();
-        fs::rename(from, dest, ec);
-        if (ec) {  // another drive: copied, and the old folder removed only once the copy is whole
+        start_over = link || made_some || size > (uintmax_t(2) << 30);
+        if (start_over) {
             ec.clear();
-            fs::copy(from, dest, fs::copy_options::recursive, ec);
+            fs::create_directories(dest, ec);
             if (ec) {
                 Toast(std::string(Tr(S::GameFolderMoveFailed)) + ec.message(), 8000);
-                fs::remove_all(dest, ec);
                 return false;
             }
-            fs::remove_all(from, ec);
+            // only plain folders of the old one: a save folder that were a link is left where it is
+            for (const std::string& s : gm.prof.saves) {
+                fs::path a = from / FromU8(s);
+                if (fs::symlink_status(a, ec).type() != fs::file_type::directory) continue;
+                fs::create_directories(dest / FromU8(s), ec);
+                fs::copy(a, dest / FromU8(s), fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+            }
+            if (fs::symlink_status(BackupRoot(from), ec).type() == fs::file_type::directory) {
+                fs::create_directories(BackupRoot(dest), ec);
+                fs::copy(BackupRoot(from), BackupRoot(dest), fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+            }
+            gm.store.SetOwn("built_version", "");  // made again there
+            gm.store.Save();
+            g_folder_note[gm.entry.id] = {S::GameFolderStartOver, U8(from)};
+        } else {
+            fs::create_directories(dest.parent_path(), ec);
+            fs::remove(dest, ec);  // an empty one, for the rename
+            ec.clear();
+            fs::rename(from, dest, ec);
+            if (ec) {  // another drive: copied, and the old folder removed only once the copy is whole
+                ec.clear();
+                fs::copy(from, dest, fs::copy_options::recursive, ec);
+                if (ec) {
+                    Toast(std::string(Tr(S::GameFolderMoveFailed)) + ec.message(), 8000);
+                    fs::remove_all(dest, ec);
+                    return false;
+                }
+                fs::remove_all(from, ec);
+            }
         }
     }
     gm.entry.dir = dest;
@@ -2368,6 +2402,23 @@ void GameFolderLine(Game& gm, bool can_move) {
     if (!picked.empty() && can_move) MoveGameTo(gm, picked);
     std::string at = std::string(Tr(S::GameFolderAt)) + " " + U8(gm.entry.dir);
     Dim(at.c_str());  // wrapped: a long path stays on the page
+    if (auto note = g_folder_note.find(gm.entry.id); note != g_folder_note.end()) {
+        const bool done = note->second.text == S::GameFolderStartOver;
+        ImGui::PushStyleColor(ImGuiCol_Text, done ? ImVec4(0.95f, 0.8f, 0.35f, 1) : ImVec4(0.95f, 0.45f, 0.4f, 1));
+        if (done) {
+            char b[1400];
+            std::snprintf(b, sizeof(b), Tr(S::GameFolderStartOver), note->second.old_dir.c_str());
+            ImGui::TextWrapped("%s", b);
+        } else {
+            ImGui::TextWrapped("%s", Tr(note->second.text));
+        }
+        ImGui::PopStyleColor();
+        if (done) {
+            ImGui::PushID("old_dir");
+            if (ImGui::SmallButton(Tr(S::OpenOldFolder))) OpenPath(FromU8(note->second.old_dir));
+            ImGui::PopID();
+        }
+    }
     if (!can_move) return;
     SameLineIfFits(Tr(S::ChangeFolder));
     if (ImGui::SmallButton(Tr(S::ChangeFolder))) {

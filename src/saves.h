@@ -13,6 +13,8 @@ struct Backup {
     uint64_t bytes = 0;
 };
 
+// backups\ beside the game
+fs::path BackupRoot(const fs::path& game_dir);
 uint64_t FolderBytes(const fs::path& dir);
 std::vector<Backup> ListBackups(const fs::path& game_dir);
 // copies the profile's save folders; false when there was nothing to copy or the copy failed
