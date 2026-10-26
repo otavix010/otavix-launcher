@@ -154,6 +154,7 @@ struct Profile {
     std::string exe;                  // beside the launcher
     std::vector<std::string> exes;    // exe = [...]: the first that exists (one build per CPU)
     bool exe_workdir = false;         // workdir = "exe": run in the executable's folder, not the port's
+    std::string workdir;              // or a folder in the port to run in ("trabalho/disc": the PS2 ports' disc)
     std::vector<std::pair<std::string, std::string>> env;  // [game] env: variables for the game, {dir} replaced
     std::string log_file;             // the game's output is written there
     std::vector<std::string> report_files;  // report_files = [...]: files a report carries besides the log (a * in

@@ -104,7 +104,7 @@ struct Game {
     int last_exit = INT_MIN;
     double last_minutes = 0;
 
-    // ok, wip or soon on that system; a port that names no system is playable here only
+    // ok, beta (playable, in development), wip or soon on that system; a port that names no system is playable here only
     std::string StateOn(Platform p, Platform here) const {
         if (entry.on_windows.empty() && entry.on_linux.empty()) return p == here ? prof.status : "";
         return entry.On(p);
@@ -291,21 +291,23 @@ App g;
 Game& G() { return *g.games[size_t(g.cur)]; }
 
 bool Playable(const Game& gm, Platform p) {
-    return gm.ok && p == g.here && gm.StateOn(p, g.here) == "ok";
+    const std::string st = gm.StateOn(p, g.here);
+    return gm.ok && p == g.here && (st == "ok" || st == "beta");
 }
 
 const char* PlatformName(Platform p) { return p == Platform::Windows ? "Windows" : "Linux/SteamOS"; }
 
-// green playable, amber in development, grey coming
+// green playable, amber in development (beta too: made and played, but still in development), grey coming
 ImU32 StateColor(const std::string& st) {
-    return st == "ok" ? IM_COL32(80, 200, 110, 255) : st == "wip" ? IM_COL32(230, 170, 50, 255) : IM_COL32(120, 120, 130, 255);
+    return st == "ok" ? IM_COL32(80, 200, 110, 255) : st == "wip" || st == "beta" ? IM_COL32(230, 170, 50, 255) : IM_COL32(120, 120, 130, 255);
 }
 
 // a card's or page's word for a port's state on a system: empty when it is playable here
 std::string StateLabel(const Game& gm, Platform p) {
     std::string st = gm.StateOn(p, g.here);
     if (st == "ok") return p == g.here ? std::string() : std::string(T(g.lang, S::Available));
-    if (st == "wip") return T(g.lang, S::Wip);
+    // beta: playable here, and the card still says it is in development
+    if (st == "wip" || st == "beta") return T(g.lang, S::Wip);
     if (st == "soon") return T(g.lang, S::Soon);
     return gm.prof.status_text.Empty() ? std::string(T(g.lang, S::Wip)) : gm.prof.status_text.Get(g.lang);
 }
@@ -683,7 +685,9 @@ void Launch(int index) {
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
     SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ENVIRONMENT_POINTER, env);
-    std::string wd = U8(gm.prof.exe_workdir ? exe_path.parent_path() : gm.entry.dir);
+    std::string wd = U8(gm.prof.exe_workdir       ? exe_path.parent_path()
+                        : !gm.prof.workdir.empty() ? (gm.entry.dir / FromU8(gm.prof.workdir)).make_preferred()
+                                                   : gm.entry.dir);
     SDL_SetStringProperty(props, SDL_PROP_PROCESS_CREATE_WORKING_DIRECTORY_STRING, wd.c_str());
     // a port that writes its log to the console: it goes to log_file
     if (!gm.prof.log_file.empty()) {
@@ -1331,8 +1335,10 @@ struct Entry {
 
 std::vector<Entry> Entries() {
     std::vector<Entry> e{{Kind::Home}};
-    // a version that does not play here: its state and the credits
+    // a version that does not play here: its state, what the port's updates bring (a port still in development) and
+    // the credits
     if (!Playable(G(), g.view)) {
+        if (!G().entry.repo.empty()) e.push_back({Kind::News});
         e.push_back({Kind::About});
         return e;
     }
@@ -3191,7 +3197,7 @@ void HomePage() {
     ImGui::BeginDisabled(!can || game.empty() || playing);
     if (g.focus_page) ImGui::SetKeyboardFocusHere();
     std::string state = StateLabel(gm, g.view);
-    if (state.empty() && !PortPresent(gm)) state = Tr(S::PortMissing);
+    if ((state.empty() || gm.StateOn(g.view, g.here) == "beta") && !PortPresent(gm)) state = Tr(S::PortMissing);
     const char* label = !can ? state.c_str() : playing ? Tr(S::Playing) : Tr(S::Play);
     // a port made on this PC whose code changed since the game was made: Play asks first (the old executable lacks the
     // fixes, and a player who updated the port and pressed Play reported a bug the update had already fixed -- GoW,
@@ -3535,7 +3541,7 @@ bool PassesFilter(int i) {
     if (g.search_filter == 0) return true;
     if (g.search_filter == 3) return InstalledHere(i);
     std::string st = g.games[size_t(i)]->StateOn(g.here, g.here);
-    return g.search_filter == 1 ? st == "ok" : st == "wip";
+    return g.search_filter == 1 ? st == "ok" : st == "wip" || st == "beta";
 }
 
 void SetFilter(int f) {
@@ -3991,9 +3997,11 @@ void NewsPage(Game& gm) {
     for (size_t i = 0; i < all.size() && i < 30; i++) {
         bool have = false;
         for (const NewsEntry& n : mine) have = have || n.head == all[i].head;
-        std::string label = all[i].head + "   ● " + Tr(have ? S::NewsInstalled : S::NewsInUpdate);
+        // a page with nothing to install here (a port still in development): the notes without "in your port" marks
+        std::string label = all[i].head;
+        if (Playable(gm, g.here)) label += std::string("   ● ") + Tr(have ? S::NewsInstalled : S::NewsInUpdate);
         ImGui::PushID(int(i));
-        ImGui::PushStyleColor(ImGuiCol_Text, have ? ImVec4(0.92f, 0.92f, 0.94f, 1) : ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
+        ImGui::PushStyleColor(ImGuiCol_Text, have || !Playable(gm, g.here) ? ImVec4(0.92f, 0.92f, 0.94f, 1) : ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
         const bool open = ImGui::CollapsingHeader(label.c_str(), i == 0 ? ImGuiTreeNodeFlags_DefaultOpen : 0);
         ImGui::PopStyleColor();
         if (open) {

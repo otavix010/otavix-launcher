@@ -1,0 +1,23 @@
+# Dirge of Cerberus: Final Fantasy VII (PlayStation 2) port: listed in the hub while it is made (no generator yet; the European SLES-54185)
+[game]
+title = "Dirge of Cerberus: Final Fantasy VII"
+subtitle = { pt = "Port nativo do PlayStation 2 · recompilação estática", en = "Native PlayStation 2 port · static recompilation", es = "Port nativo de PlayStation 2 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "dirge-of-cerberus.exe"
+accent = [165, 25, 35]
+legal = { pt = "O port lê a sua própria cópia do jogo. Dirge of Cerberus: Final Fantasy VII é marca dos seus donos; este projeto não tem relação com eles.", en = "The port reads your own copy of the game. Dirge of Cerberus: Final Fantasy VII is a trademark of its owners; this project is not affiliated with them.", es = "El port lee tu propia copia del juego. Dirge of Cerberus: Final Fantasy VII es marca de sus dueños; este proyecto no tiene relación con ellos." }
+
+# pictures in arte/dirge-of-cerberus when there are (capa, the library card; fundo, the page), else the public ones (libretro)
+[art]
+kind = "image"
+folder = "../arte/dirge-of-cerberus"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png",
+]

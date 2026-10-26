@@ -90,7 +90,8 @@ bool Profile::Load(const fs::path& file, std::string& error) {
         for (auto& e : *a)
             if (auto s = e.value<std::string>()) exes.push_back(*s);
     if (!exes.empty()) exe = exes[0];
-    exe_workdir = g["workdir"].value_or(std::string()) == "exe";
+    workdir = g["workdir"].value_or(std::string());
+    exe_workdir = workdir == "exe";
     if (const toml::table* e = g["env"].as_table())
         for (auto& [k, v] : *e)
             if (auto s = v.value<std::string>()) env.push_back({std::string(k.str()), *s});

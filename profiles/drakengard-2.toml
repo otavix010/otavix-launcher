@@ -1,0 +1,23 @@
+# Drakengard 2 (PlayStation 2) port: listed in the hub while it is made (no generator yet; the European SLES-53794)
+[game]
+title = "Drakengard 2"
+subtitle = { pt = "Port nativo do PlayStation 2 · recompilação estática", en = "Native PlayStation 2 port · static recompilation", es = "Port nativo de PlayStation 2 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "drakengard-2.exe"
+accent = [60, 95, 155]
+legal = { pt = "O port lê a sua própria cópia do jogo. Drakengard 2 é marca dos seus donos; este projeto não tem relação com eles.", en = "The port reads your own copy of the game. Drakengard 2 is a trademark of its owners; this project is not affiliated with them.", es = "El port lee tu propia copia del juego. Drakengard 2 es marca de sus dueños; este proyecto no tiene relación con ellos." }
+
+# pictures in arte/drakengard-2 when there are (capa, the library card; fundo, the page), else the public ones (libretro)
+[art]
+kind = "image"
+folder = "../arte/drakengard-2"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Drakengard%202%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/Drakengard%202%20%28USA%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/Drakengard%202%20%28USA%29.png",
+]

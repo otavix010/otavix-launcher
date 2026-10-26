@@ -1,0 +1,79 @@
+# 10.000 Bullets (PlayStation 2) port: made on the player's PC by the port's generator (gerar.ps1 of otavix010/10000-bullets-pc),
+# from their own DVD image (the European SLES-53481). The runtime gets what the generator's jogar.cmd gives it: the
+# ISO, the disc's files in trabalho\disc (its working folder) and the game's ELF. In development.
+[game]
+title = "10.000 Bullets"
+subtitle = { pt = "Port nativo do PlayStation 2 · recompilação estática", en = "Native PlayStation 2 port · static recompilation", es = "Port nativo de PlayStation 2 · recompilación estática" }
+status = "wip"
+status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
+exe = "bin/10000bullets.exe"
+workdir = "trabalho/disc"  # as jogar.cmd: the game opens its files from the disc's folder
+port_file = "gerar.ps1"
+args = ["{dir}/trabalho/disc/SLES_534.81"]
+# the ISO picked when making it (the game reads its sectors), the disc's files and jogo.json's "ambiente"
+env = { PS2X_CD_IMAGE = "{iso}", PS2X_CD_ROOT = "{dir}/trabalho/disc" }
+log_file = "out/jogo.log"
+logs = "out"
+accent = [200, 160, 40]
+legal = { pt = "O port lê a sua própria cópia do jogo. 10.000 Bullets é marca dos seus donos; este projeto não tem relação com eles.", en = "The port reads your own copy of the game. 10.000 Bullets is a trademark of its owners; this project is not affiliated with them.", es = "El port lee tu propia copia del juego. 10.000 Bullets es marca de sus dueños; este proyecto no tiene relación con ellos." }
+
+# pictures in arte/10000-bullets when there are (capa, the library card; fundo, the page), else the public ones (libretro)
+[art]
+kind = "image"
+folder = "../arte/10000-bullets"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/10.000%20Bullets%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/10.000%20Bullets%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/10.000%20Bullets%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png",
+]
+
+[install]
+kind = "build"
+done = "out/gerar/6_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}"]
+redo = ["-RefazerDe", "3"]  # new code of the port: its PS2Recomp fixes, the translation and the build again, not the disc
+version = { pt = "10.000 Bullets europeu (SLES-53481): a imagem .iso do DVD do PlayStation 2", en = "10.000 Bullets, European (SLES-53481): the PlayStation 2 DVD's .iso image", es = "10.000 Bullets europeo (SLES-53481): la imagen .iso del DVD de PlayStation 2" }
+time = { pt = "Leva de alguns minutos a meia hora, conforme o processador, e só uma vez. Baixa e compila o PS2Recomp. Precisa de um processador com AVX2.", en = "It takes from a few minutes to half an hour depending on the processor, and only once. It downloads and builds PS2Recomp. It needs a processor with AVX2.", es = "Tarda de unos minutos a media hora según el procesador, y solo una vez. Descarga y compila PS2Recomp. Necesita un procesador con AVX2." }
+
+[[install.prereqs]]
+name = "Python 3.11"
+check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)\""
+install = "winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements"
+help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
+
+[[install.prereqs]]
+name = "Visual Studio Build Tools (C++ e CMake)"
+check = "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 Microsoft.VisualStudio.Component.VC.CMake.Project -property installationPath"
+output = true
+install = "winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\""
+help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado sem o CMake: abra o Visual Studio Installer, clique em Modificar e marque \"C++ CMake tools\".", en = "It compiles the game (about 6 GB). If Build Tools is installed without CMake: open the Visual Studio Installer, click Modify and tick \"C++ CMake tools\".", es = "Compila el juego (unos 6 GB). Si Build Tools ya está instalado sin CMake: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ CMake tools\"." }
+
+[[install.inputs]]
+key = "iso"
+pick = "file"
+filters = ["iso"]
+label = { pt = "A imagem do DVD (.iso)", en = "The DVD image (.iso)", es = "La imagen del DVD (.iso)" }
+help = { pt = "Tem que ser a versão europeia (SLES-53481). O gerador confere o executável do jogo e avisa se for outra versão. O jogo lê a ISO enquanto roda: deixe-a onde está.", en = "It must be the European release (SLES-53481). The generator checks the game's executable and says so when it is another version. The game reads the ISO while it runs: leave it where it is.", es = "Tiene que ser la versión europea (SLES-53481). El generador comprueba el ejecutable del juego y avisa si es otra versión. El juego lee la ISO mientras se ejecuta: déjala donde está." }
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_disco"
+label = { pt = "conferindo e extraindo o disco", en = "checking and extracting the disc", es = "comprobando y extrayendo el disco" }
+[[install.steps]]
+id = "3_ps2recomp"
+label = { pt = "preparando o PS2Recomp", en = "preparing PS2Recomp", es = "preparando PS2Recomp" }
+[[install.steps]]
+id = "4_traduzir"
+label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
+[[install.steps]]
+id = "5_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "6_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }

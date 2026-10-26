@@ -1,10 +1,11 @@
 # Otavix Launcher: the libraries and the ports. Paths are relative to the launcher's folder.
 # repo: the port's GitHub repository; the launcher downloads and updates the port from its releases.
-# platforms: the port's state on each system: ok (playable), wip (in development), soon (planned); left out, not there.
+# platforms: the port's state on each system: ok (playable), beta (made and played, still in development), wip (in development, nothing to
+# install), soon (planned); left out, not there.
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.37"
+version = "1.0.38"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -25,6 +26,11 @@ accent = [16, 124, 16]
 id = "ps1"
 name = "PlayStation 1"
 accent = [150, 150, 160]
+
+[[libraries]]
+id = "ps2"
+name = "PlayStation 2"
+accent = [30, 70, 165]
 
 [[libraries]]
 id = "ps3"
@@ -145,4 +151,154 @@ id = "army-of-two-devils-cartel"
 library = "x360"
 path = "ports/army-of-two-devils-cartel"
 profile = "perfis/army-of-two-devils-cartel.toml"
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "spawn-armageddon"
+
+library = "ps2"
+
+# made on each PC from the port's code (gerar.ps1 -Iso); beta: made and played, and still "in development"
+
+path = "%SystemDrive%/OtavixPorts/spawn-armageddon"
+
+profile = "perfis/spawn-armageddon.toml"
+
+repo = "otavix010/spawn-armageddon-pc"
+
+branch = "main"
+
+platforms = { windows = "beta", linux = "soon" }
+
+
+
+[[games]]
+
+id = "ghost-rider"
+
+library = "ps2"
+
+# made on each PC from the port's code (gerar.ps1 -Iso); beta: made and played, and still "in development"
+
+path = "%SystemDrive%/OtavixPorts/ghost-rider"
+
+profile = "perfis/ghost-rider.toml"
+
+repo = "otavix010/ghost-rider-pc"
+
+branch = "main"
+
+platforms = { windows = "beta", linux = "soon" }
+
+
+
+[[games]]
+
+id = "moh-european-assault"
+
+library = "ps2"
+
+# made on each PC from the port's code (gerar.ps1 -Iso); beta: made and played, and still "in development"
+
+path = "%SystemDrive%/OtavixPorts/moh-european-assault"
+
+profile = "perfis/moh-european-assault.toml"
+
+repo = "otavix010/moh-european-assault-pc"
+
+branch = "main"
+
+platforms = { windows = "beta", linux = "soon" }
+
+
+
+[[games]]
+
+id = "10000-bullets"
+
+library = "ps2"
+
+# made on each PC from the port's code (gerar.ps1 -Iso); beta: made and played, and still "in development"
+
+path = "%SystemDrive%/OtavixPorts/10000-bullets"
+
+profile = "perfis/10000-bullets.toml"
+
+repo = "otavix010/10000-bullets-pc"
+
+branch = "main"
+
+platforms = { windows = "beta", linux = "soon" }
+
+
+
+[[games]]
+
+id = "dirge-of-cerberus"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/dirge-of-cerberus"
+
+profile = "perfis/dirge-of-cerberus.toml"
+
+repo = "otavix010/dirge-of-cerberus-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+
+
+[[games]]
+
+id = "drakengard"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/drakengard"
+
+profile = "perfis/drakengard.toml"
+
+repo = "otavix010/drakengard-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+
+
+[[games]]
+
+id = "drakengard-2"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/drakengard-2"
+
+profile = "perfis/drakengard-2.toml"
+
+repo = "otavix010/drakengard-2-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+
+
+[[games]]
+
+id = "onimusha-3"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/onimusha-3"
+
+profile = "perfis/onimusha-3.toml"
+
+repo = "otavix010/onimusha-3-pc"
+
+branch = "main"
+
 platforms = { windows = "wip", linux = "soon" }
