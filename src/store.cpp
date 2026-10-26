@@ -327,8 +327,11 @@ void Store::SetOwnBool(const std::string& key, bool v) {
 
 std::map<std::string, std::string> Store::Environment(const Profile& p) const {
     std::map<std::string, std::string> env;
+    // an empty value leaves the variable unset: the game's own default (GOWA_PIN="" read as "on" forced the
+    // pinning that its unset default decides by the CPU)
     for (const Option& o : p.options)
-        if (o.target == Target::Env) env[o.key] = ToText(Get(o));
+        if (o.target == Target::Env)
+            if (std::string v = ToText(Get(o)); !v.empty()) env[o.key] = v;
     return env;
 }
 

@@ -222,6 +222,20 @@ choices = [
 
 [[options]]
 page = "video"
+key = "GOWA_PIN"
+target = "env"
+type = "choice"
+default = ""
+label = { pt = "Fixar as threads nos núcleos", en = "Pin threads to cores", es = "Fijar los hilos a los núcleos" }
+help = { pt = "Põe cada parte pesada do jogo num núcleo só dela. Automático liga em processadores com 8 núcleos ou mais, onde costuma render alguns fps a mais. Em alguns processadores (APUs como o Ryzen 7 5700G, com menos cache) pode render menos: se o jogo estiver travando, teste Desligado na mesma cena e compare.", en = "Puts each heavy part of the game on a core of its own. Automatic turns it on with 8 cores or more, where it usually gives a few more fps. On some processors (APUs such as the Ryzen 7 5700G, with less cache) it may give less: if the game stutters, try Off in the same scene and compare.", es = "Pone cada parte pesada del juego en un núcleo propio. Automático lo activa con 8 núcleos o más, donde suele dar algunos fps más. En algunos procesadores (APU como el Ryzen 7 5700G, con menos caché) puede rendir menos: si el juego se traba, prueba Desactivado en la misma escena y compara." }
+choices = [
+  { value = "", label = { pt = "Automático (padrão)", en = "Automatic (default)", es = "Automático (por defecto)" } },
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+]
+
+[[options]]
+page = "video"
 key = "GOWA_FRAMEGEN"
 target = "env"
 type = "choice"
