@@ -268,7 +268,7 @@ constexpr Row kRows[] = {
     {"Instalando a atualização: o launcher fecha e reabre sozinho.", "Installing the update: the launcher closes and reopens by itself.", "Instalando la actualización: el launcher se cierra y vuelve a abrir solo."},
     {"Nova versão do Otavix Launcher: %s", "New Otavix Launcher version: %s", "Nueva versión de Otavix Launcher: %s"},
     {"O jogo fechou com um erro (código %s) depois de %.0f minutos.", "The game closed with an error (code %s) after %.0f minutes.", "El juego se cerró con un error (código %s) después de %.0f minutos."},
-    {"Mande o erro para o GitHub: a página abre já preenchida com o seu sistema, as versões e o final do log; conte o que estava fazendo e clique em \"Submit new issue\" (precisa de uma conta grátis do GitHub).", "Send the error to GitHub: the page opens filled in with your system, the versions and the end of the log; say what you were doing and click \"Submit new issue\" (a free GitHub account is needed).", "Envía el error a GitHub: la página se abre ya completa con tu sistema, las versiones y el final del log; cuenta qué hacías y haz clic en \"Submit new issue\" (hace falta una cuenta gratuita de GitHub)."},
+    {"Reporte o erro pelo launcher: o report já leva o seu sistema e o log do jogo, sem precisar de conta; conte o que estava fazendo e clique em Enviar. Quem tiver conta no GitHub também pode abrir o erro lá.", "Report the error through the launcher: the report already carries your system and the game's log, no account needed; say what you were doing and click Send. With a GitHub account you can also open the error there.", "Reporta el error desde el launcher: el reporte ya lleva tu sistema y el log del juego, sin necesidad de cuenta; cuenta qué hacías y haz clic en Enviar. Con una cuenta de GitHub también puedes abrir el error allí."},
     {"Enviar o erro para o GitHub", "Send the error to GitHub", "Enviar el error a GitHub"},
     {"Agora não", "Not now", "Ahora no"},
     {"Para fechar o jogo: segure Back + Start (Select + Start) por 2 segundos, ou Alt+F4.", "To close the game: hold Back + Start (Select + Start) for 2 seconds, or Alt+F4.", "Para cerrar el juego: mantén Back + Start (Select + Start) 2 segundos, o Alt+F4."},
@@ -433,6 +433,7 @@ constexpr Row kRows[] = {
     {"Esta pasta já tem parte do jogo gerada (ou um disco extraído): termine de gerar aqui, ou apague a pasta do jogo antes de mudar.", "This folder already holds part of the made game (or an unpacked disc): finish making it here, or delete the game's folder before changing it.", "Esta carpeta ya tiene parte del juego generado (o un disco extraído): termina de generarlo aquí, o borra la carpeta del juego antes de cambiarla."},
     {"A pasta escolhida já tem uma pasta deste jogo com arquivos: escolha outra.", "The folder picked already has a folder of this game with files in it: pick another.", "La carpeta elegida ya tiene una carpeta de este juego con archivos: elige otra."},
     {"Não deu para mover o port: ", "The port could not be moved: ", "No se pudo mover el port: "},
+    {"Reportar ao launcher", "Report to the launcher", "Reportar al launcher"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

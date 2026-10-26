@@ -34,6 +34,7 @@ enum class S {
     DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc,
     GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,
     GameFolderAt, ChangeFolder, GameFolderBusy, GameFolderNotEmpty, GameFolderMoveFailed,
+    ReportToLauncher,
     Count
 };
 

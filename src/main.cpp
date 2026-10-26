@@ -1934,6 +1934,31 @@ std::string ExitText(int code) {
     return b;
 }
 
+// the log a report or an issue carries: a generation that stopped, the generator's own; else the profile's log_file;
+// else the newest .log or .txt in its logs folder (the newest file of any kind was a generator's GOWA.imports.json
+// once the game had been made again)
+fs::path GameLog(Game& gm) {
+    std::error_code ec;
+    if (gm.prof.install.kind == "build" && gm.build.Get().stage == GameBuild::Stage::Failed) {
+        fs::path b = gm.entry.dir / FromU8(gm.prof.install.marks) / "launcher.log";
+        if (fs::is_regular_file(b, ec)) return b;
+    }
+    if (!gm.prof.log_file.empty()) {
+        fs::path f = gm.entry.dir / FromU8(gm.prof.log_file);
+        if (fs::is_regular_file(f, ec)) return f;
+    }
+    fs::path best;
+    fs::file_time_type when{};
+    for (auto& e : fs::directory_iterator(gm.entry.dir / FromU8(gm.prof.logs), ec)) {
+        std::string ext = e.path().extension().string();
+        for (char& c : ext) c = char(std::tolower(static_cast<unsigned char>(c)));
+        if (!e.is_regular_file(ec) || (ext != ".log" && ext != ".txt")) continue;
+        auto t = e.last_write_time(ec);
+        if (best.empty() || t > when) best = e.path(), when = t;
+    }
+    return best;
+}
+
 // a new issue on the port's repository (the launcher's for a game without one), filled in: what happened, the
 // computer, the versions, the settings and the end of the log, the log shortened until the address is under limit
 struct Issue {
@@ -1955,7 +1980,7 @@ Issue MakeIssue(Game& gm, const std::string& kind, const std::string& what, size
         head += b;
     }
     std::string config = FileTail(gm.entry.dir / FromU8(gm.prof.settings), 4096);
-    fs::path log = NewestFile(gm.entry.dir / FromU8(gm.prof.logs));
+    fs::path log = GameLog(gm);
     std::string tail = log.empty() ? std::string() : FileTail(log, 64 * 1024);
     Issue is{repo, gm.prof.title.Get(Lang::Pt) + ": " + kind};
     auto build = [&](const std::string& logpart) {
@@ -1975,8 +2000,10 @@ Issue MakeIssue(Game& gm, const std::string& kind, const std::string& what, size
     return is;
 }
 
-// the address GitHub takes: about 8 000 characters
-std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what) { return MakeIssue(gm, kind, what, 7800).url; }
+// the address GitHub takes from a player who is not logged in: its login page carries the whole address, and past
+// about 7 000 characters GitHub answers that with an error 500 (checked: 6 000 comes back whole after the login)
+constexpr size_t kLongIssue = 6000;
+std::string IssueUrl(Game& gm, const std::string& kind, const std::string& what) { return MakeIssue(gm, kind, what, kLongIssue).url; }
 
 // past this an address may not reach the page: Windows hands it to the browser through the command the browser
 // registered, and some browsers or systems cut it or refuse it
@@ -1985,7 +2012,7 @@ constexpr size_t kShortIssue = 2000;
 // the issue in the browser. A long report goes by the clipboard: the page opens with the title and a line asking to
 // paste it. When the system does not open the browser, the player is told, with the address (or the report) copied.
 void OpenIssue(Game& gm, const std::string& kind, const std::string& what) {
-    Issue is = MakeIssue(gm, kind, what, 7800);
+    Issue is = MakeIssue(gm, kind, what, kLongIssue);
     // tests: LAUNCHER_ISSUE_FILE=path keeps the address there instead of opening the browser
     if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) {
         std::ofstream(f) << is.url;
@@ -2017,6 +2044,19 @@ void OpenIssue(Game& gm, const std::string& kind, const std::string& what) {
     Toast(b, 12000);
 }
 
+// the game's report page, filled in from an error card: "Report to the launcher" is the main way (no account needed;
+// the owner reads it and answers in the launcher), GitHub the other. cat is kCats' place: 0 crash, 5 other
+void OpenReport(Game& gm, int cat, const std::string& desc) {
+    g.rep_cat = cat;
+    SDL_strlcpy(g.rep_desc, desc.c_str(), sizeof(g.rep_desc));
+    g.rep_attach = true;
+    g.rep_msg.clear();
+    auto entries = Entries();
+    for (size_t k = 0; k < entries.size(); k++)
+        if (entries[k].kind == Kind::Report) gm.page = int(k);
+    g.focus_page = true;
+}
+
 void CrashCard(Game& gm) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.35f, 0.09f, 0.08f, 0.92f));
@@ -2028,14 +2068,19 @@ void CrashCard(Game& gm) {
     ImGui::PopFont();
     ImGui::TextWrapped("%s", Tr(S::CrashText));
     ImGui::Spacing();
+    std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
+                  gm.last_minutes);
     ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
-    if (ImGui::Button(Tr(S::SendToGitHub))) {
-        std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
-                      gm.last_minutes);
-        OpenIssue(gm, "Crash", std::string(b) + "\n\n**O que eu estava fazendo:** (conte aqui)");
+    if (ImGui::Button(Tr(S::ReportToLauncher))) {
+        OpenReport(gm, 0, std::string(b) + "\n\nO que eu estava fazendo: ");
         gm.crashed = false;
     }
     ImGui::PopStyleColor();
+    ImGui::SameLine();
+    if (ImGui::Button(Tr(S::SendToGitHub))) {
+        OpenIssue(gm, "Crash", std::string(b) + "\n\n**O que eu estava fazendo:** (conte aqui)");
+        gm.crashed = false;
+    }
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::Dismiss))) gm.crashed = false;
     ImGui::EndChild();
@@ -2776,7 +2821,16 @@ void BuildCard(Game& gm) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.82f, 1));
         ImGui::TextWrapped("%s", bs.error.c_str());
         ImGui::PopStyleColor();
-        if (ImGui::SmallButton(Tr(S::SendToGitHub))) {
+        // tests: LAUNCHER_CARD_REPORT=1 presses "Report to the launcher" once
+        static bool test_card = SDL_getenv("LAUNCHER_CARD_REPORT") != nullptr;
+        bool press_report = test_card;
+        test_card = false;
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        if (ImGui::Button(Tr(S::ReportToLauncher)) || press_report)
+            OpenReport(gm, 5, "A geração parou (código " + std::to_string(bs.code) + "):\n" + bs.error + "\n\nO que eu fiz antes: ");
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::SendToGitHub))) {
             std::string what = "A geração parou (código " + std::to_string(bs.code) + "):\n\n```\n" + bs.error + "\n```";
             OpenIssue(gm, "Geração", what);
         }
@@ -4519,7 +4573,7 @@ void ReportPage() {
     ReportPhotos();
 
     // everything that goes along, before it goes
-    fs::path log = NewestFile(gm.entry.dir / FromU8(gm.prof.logs));
+    fs::path log = GameLog(gm);
     if (ImGui::CollapsingHeader(Tr(S::ReportPreview))) {
         ImGui::BulletText("%s · %s · launcher %s", Tx(gm.prof.title), PlatformName(g.view), g.hub.version.c_str());
         if (gm.last_exit != INT_MIN) ImGui::BulletText("%s: %s %d", Tr(S::LastExit), Tr(S::ExitCode), gm.last_exit);
