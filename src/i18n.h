@@ -36,6 +36,7 @@ enum class S {
     GameFolderAt, ChangeFolder, GameFolderBusy, GameFolderNotEmpty, GameFolderMoveFailed,
     ReportToLauncher,
     StaleTitle, StaleText, StaleBuildNow, StalePlayOld,
+    News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild,
     Count
 };
 

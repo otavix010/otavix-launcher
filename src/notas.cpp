@@ -74,4 +74,30 @@ ReleaseNotes::State ReleaseNotes::Get(const std::string& repo, std::vector<Relea
     return s->second;
 }
 
+void ReleaseNotes::FetchFile(const std::string& repo, const std::string& branch, const std::string& path) {
+    if (repo.empty() || branch.empty()) return;
+    const std::string key = repo + "@" + branch + ":" + path;
+    {
+        std::lock_guard lock(m_);
+        if (file_state_[key] != State::None) return;
+        file_state_[key] = State::Loading;
+    }
+    std::thread([this, key, repo, branch, path] {
+        // raw.githubusercontent.com is GitHub's file server, not its API: no 60-an-hour limit per address
+        HttpResult r = HttpRequest("GET", "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path, {}, "");
+        std::lock_guard lock(m_);
+        files_[key] = r.Ok() ? r.body : std::string();
+        file_state_[key] = r.Ok() ? State::Ready : State::Failed;
+    }).detach();
+}
+
+ReleaseNotes::State ReleaseNotes::GetFile(const std::string& repo, const std::string& branch, const std::string& path,
+                                          std::string* out) {
+    std::lock_guard lock(m_);
+    auto s = file_state_.find(repo + "@" + branch + ":" + path);
+    if (s == file_state_.end()) return State::None;
+    if (out && s->second == State::Ready) *out = files_[s->first];
+    return s->second;
+}
+
 }  // namespace launcher

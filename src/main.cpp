@@ -1322,7 +1322,7 @@ Art PageArt(const Game& gm) {
 // ---------------------------------------------------------------------------------------------- a game's pages
 
 // the game's sidebar: home, its own pages, the advanced options (its advanced pages as tabs), saves, about
-enum class Kind { Home, Page, Advanced, Saves, Mods, Perf, Report, About };
+enum class Kind { Home, Page, Advanced, Saves, Mods, Perf, News, Report, About };
 struct Entry {
     Kind kind;
     int page = -1;  // Kind::Page: index in prof.pages
@@ -1344,6 +1344,7 @@ std::vector<Entry> Entries() {
     e.push_back({Kind::Saves});
     if (!G().prof.mods_folder.empty()) e.push_back({Kind::Mods});
     e.push_back({Kind::Perf});
+    if (!G().entry.repo.empty()) e.push_back({Kind::News});   // a port: what each update changed
     e.push_back({Kind::Report});
     e.push_back({Kind::About});
     return e;
@@ -1367,6 +1368,7 @@ const char* PageName(const Entry& e) {
         case Kind::Saves: return Tr(S::Saves);
         case Kind::Mods: return Tr(S::Mods);
         case Kind::Perf: return Tr(S::Perf);
+        case Kind::News: return Tr(S::News);
         case Kind::Report: return Tr(S::Report);
         case Kind::About: return Tr(S::About);
         case Kind::Advanced: return Tr(S::Advanced);
@@ -3824,6 +3826,93 @@ void NotesBlock(const std::string& repo, const std::string& installed, bool open
     }
 }
 
+// a port's NOVIDADES.md: "## <date> · <version>" entries, newest first, each with "### pt" / "### en" / "### es"
+// sections (a body without them serves every language)
+struct NewsEntry {
+    std::string head, body;
+};
+std::vector<NewsEntry> ParseNews(const std::string& md) {
+    std::vector<NewsEntry> out;
+    size_t at = 0;
+    while (at < md.size()) {
+        size_t end = md.find('\n', at);
+        if (end == std::string::npos) end = md.size();
+        std::string line = md.substr(at, end - at);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.rfind("## ", 0) == 0) out.push_back({line.substr(3), ""});
+        else if (!out.empty()) out.back().body += line + "\n";
+        at = end + 1;
+    }
+    return out;
+}
+std::string NewsBody(const std::string& body, Lang lang) {
+    auto section = [&](const char* code) -> std::string {
+        const std::string mark = std::string("### ") + code;
+        size_t at = body.find(mark);
+        if (at == std::string::npos) return {};
+        at = body.find('\n', at);
+        if (at == std::string::npos) return {};
+        size_t end = body.find("\n### ", at);
+        return body.substr(at + 1, end == std::string::npos ? std::string::npos : end - at - 1);
+    };
+    std::string s = section(lang == Lang::En ? "en" : lang == Lang::Es ? "es" : "pt");
+    if (s.empty()) s = section("pt");
+    return s.empty() ? body : s;
+}
+
+// the game's "What's new": a port that follows a branch (made of commits, no release per fix) keeps its notes for the
+// players in NOVIDADES.md -- the one in the port folder is what the player has, the one on GitHub what the update
+// brings; a port with releases shows their notes, as the settings do
+void NewsPage(Game& gm) {
+    Heading(Tr(S::News));
+    Dim(Tr(S::NewsIntro));
+    ImGui::Spacing();
+    const std::string port = InstalledPortVersion(gm.entry.dir);
+    if (gm.entry.branch.empty()) {
+        NotesBlock(gm.entry.repo, port, true);
+        return;
+    }
+    if (gm.prof.install.kind == "build") {
+        const std::string built = gm.store.GetOwn("built_version");
+        if (!port.empty() && !built.empty() && built != port) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
+            ImGui::TextWrapped("● %s", Tr(S::NewsRebuild));
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
+        }
+    }
+    std::string local;
+    {
+        std::ifstream f(gm.entry.dir / "NOVIDADES.md", std::ios::binary);
+        if (f) local.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+    }
+    g.notes.FetchFile(gm.entry.repo, gm.entry.branch, "NOVIDADES.md");
+    std::string remote;
+    ReleaseNotes::State st = g.notes.GetFile(gm.entry.repo, gm.entry.branch, "NOVIDADES.md", &remote);
+    std::vector<NewsEntry> mine = ParseNews(local), all = ParseNews(remote);
+    if (all.empty()) all = mine;   // offline, or the file not on GitHub: what the port folder has
+    if (all.empty()) {
+        Dim(st == ReleaseNotes::State::Loading ? Tr(S::Loading) : Tr(S::NewsNone));
+        return;
+    }
+    for (size_t i = 0; i < all.size() && i < 30; i++) {
+        bool have = false;
+        for (const NewsEntry& n : mine) have = have || n.head == all[i].head;
+        std::string label = all[i].head + "   ● " + Tr(have ? S::NewsInstalled : S::NewsInUpdate);
+        ImGui::PushID(int(i));
+        ImGui::PushStyleColor(ImGuiCol_Text, have ? ImVec4(0.92f, 0.92f, 0.94f, 1) : ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
+        const bool open = ImGui::CollapsingHeader(label.c_str(), i == 0 ? ImGuiTreeNodeFlags_DefaultOpen : 0);
+        ImGui::PopStyleColor();
+        if (open) {
+            ImGui::Indent(12 * g.scale);
+            MarkdownText(NewsBody(all[i].body, g.lang));
+            ImGui::Unindent(12 * g.scale);
+            ImGui::Spacing();
+        }
+        ImGui::PopID();
+    }
+}
+
 // the ports installed and playable here, by their place in g.games
 std::vector<int> InstalledPorts() {
     std::vector<int> installed;
@@ -6115,6 +6204,8 @@ void Frame() {
         ModsPage();
     } else if (cur.kind == Kind::Perf) {
         PerfPage();
+    } else if (cur.kind == Kind::News) {
+        NewsPage(G());
     } else if (cur.kind == Kind::Report) {
         ReportPage();
     } else if (cur.kind == Kind::About) {

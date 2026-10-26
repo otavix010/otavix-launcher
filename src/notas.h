@@ -18,11 +18,17 @@ public:
     enum class State { None, Loading, Ready, Failed };
     void Fetch(const std::string& repo);  // once a session per repository
     State Get(const std::string& repo, std::vector<Release>* out = nullptr);
+    // a text file of a repository's branch as it is on GitHub (raw), once a session: a port's NOVIDADES.md, for what
+    // its update brings before it is installed
+    void FetchFile(const std::string& repo, const std::string& branch, const std::string& path);
+    State GetFile(const std::string& repo, const std::string& branch, const std::string& path, std::string* out = nullptr);
 
 private:
     std::mutex m_;
     std::map<std::string, State> state_;
     std::map<std::string, std::vector<Release>> releases_;
+    std::map<std::string, State> file_state_;
+    std::map<std::string, std::string> files_;
 };
 
 // a release list's JSON (GitHub's), drafts left out
