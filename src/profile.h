@@ -131,6 +131,9 @@ struct InstallSpec {
     std::string done;                // build: the file there once the game is made
     std::string marks;               // build: the folder of the steps' marks and logs
     std::vector<std::string> command, redo;  // build: the generator ({dir}, {key}); redo: added to make it all again
+    std::string needs;               // build: a file the made game reads from the player's copy, relative to the port
+                                     // ("vfs/PS3_GAME/PARAM.SFO", through the generator's link) or an input ("{iso}");
+                                     // missing, the copy was moved or deleted and is picked again
     std::vector<BuildInput> inputs;
     std::vector<BuildStep> steps;
     std::vector<Prereq> prereqs;
@@ -139,6 +142,8 @@ struct InstallSpec {
 
 struct Profile {
     Text title, subtitle, legal;
+    Text perf_note;             // [performance] note: what the game's performance page says first (what weighs most,
+                                // where to start)
     std::string status = "ok";  // ok, or wip: listed in its library, not playable yet
     Text status_text;           // what the card says when it is not playable
     std::string mods_folder;    // [mods] folder: the port reads mods from there; empty, no mods

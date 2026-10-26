@@ -30,6 +30,7 @@ enum class S {
     ReportSendingPhotos, ReportPhotosSent, ReportPhotosFailed, RemoveRequest, RemoveRequestConfirm, MyRequests,
     WithdrawRequest, RequestWithdrawn, FilterAll, FilterPlayable, FilterWip,
     FilterInstalled, HintFilter,
+    BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
     Count
 };
 

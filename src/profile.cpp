@@ -72,6 +72,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
     legal = ReadText(g["legal"]);
     status = g["status"].value_or(status);
     status_text = ReadText(g["status_text"]);
+    perf_note = ReadText(std::as_const(t)["performance"]["note"]);
     mods_folder = std::as_const(t)["mods"]["folder"].value_or(std::string());
     mods_kind = std::as_const(t)["mods"]["kind"].value_or(std::string());
     mods_game_id = std::as_const(t)["mods"]["game_id"].value_or(std::string());
@@ -99,6 +100,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
     install.kind = in["kind"].value_or(std::string());
     install.done = in["done"].value_or(std::string());
     install.marks = in["marks"].value_or(std::string());
+    install.needs = in["needs"].value_or(std::string());
     install.time = ReadText(in["time"]);
     for (const char* list : {"command", "redo"})
         if (const toml::array* a = in[list].as_array())

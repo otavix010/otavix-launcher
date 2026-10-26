@@ -414,6 +414,11 @@ constexpr Row kRows[] = {
     {"Em desenvolvimento", "In development", "En desarrollo"},
     {"Instalados", "Installed", "Instalados"},
     {"Filtro", "Filter", "Filtro"},
+    {"O jogo não foi encontrado no lugar escolhido ao gerar.", "The game is not where it was picked when it was made.", "El juego no está donde se eligió al generarlo."},
+    {"O port não copia o jogo: ele usa a pasta escolhida ao gerar, e ela foi movida, apagada ou está num HD desligado. Escolha a pasta (ou o arquivo) do jogo de novo: leva segundos e não precisa gerar tudo outra vez.",
+     "The port does not copy the game: it uses the folder picked when it was made, and that folder was moved, deleted or is on a drive that is off. Pick the game's folder (or file) again: it takes seconds and nothing is made again.",
+     "El port no copia el juego: usa la carpeta elegida al generarlo, y esa carpeta se movió, se borró o está en un disco apagado. Elige la carpeta (o el archivo) del juego de nuevo: tarda segundos y no hay que generar todo otra vez."},
+    {"Escolher o disco de novo", "Pick the disc again", "Elegir el disco de nuevo"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

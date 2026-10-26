@@ -452,6 +452,21 @@ std::string GamePath(Game& gm) {
 
 // where the game is: the chosen folder or image, else a search folder beside the port or above it; empty when nothing
 // holds the game's file
+// a made game whose copy of the game is gone: the file it reads is missing (the folder or file picked was moved,
+// deleted, or is on a drive that is off); picked again, the generator remakes its link in seconds. needs is relative
+// to the port's folder ("vfs/PS3_GAME/PARAM.SFO", through the generator's link) or an input's path ("{iso}")
+bool CopyMissing(const Game& gm) {
+    const InstallSpec& in = gm.prof.install;
+    std::error_code ec;
+    if (in.kind != "build" || in.needs.empty() || !fs::is_regular_file(gm.entry.dir / FromU8(in.done), ec)) return false;
+    std::string n = in.needs;
+    for (const BuildInput& b : in.inputs)
+        for (size_t at; (at = n.find("{" + b.key + "}")) != std::string::npos;) n.replace(at, b.key.size() + 2, gm.store.GetOwn(b.key));
+    if (n.empty()) return false;
+    fs::path p = FromU8(n);
+    return !fs::is_regular_file(p.is_absolute() ? p : gm.entry.dir / p, ec);
+}
+
 fs::path FindGame(Game& gm) {
     std::error_code ec;
     if (gm.prof.install.kind == "build") {
@@ -607,6 +622,11 @@ void Launch(int index) {
     if (g.proc) return;
     Game& gm = *g.games[size_t(index)];
     if (!Playable(gm, g.here)) return;
+    // the copy of the game gone: the game would open and quit; its page says what to do
+    if (CopyMissing(gm)) {
+        Toast(Tr(S::BuildCopyMissing), 6000);
+        return;
+    }
     if (gm.store.Dirty() && !gm.store.Save()) Toast(Tr(S::SaveFailed));
     if (gm.store.GetOwnBool("auto_backup", true)) {
         std::string err;
@@ -2343,6 +2363,19 @@ void BuildCard(Game& gm) {
     if (made && bs.stage != GameBuild::Stage::Failed && !gm.build_form) {
         ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::BuildDoneTitle));
         ImGui::TextDisabled("%s", U8(FindGame(gm)).c_str());
+        // the player's copy gone from where it was picked: picked again (the form's button runs the generator with
+        // nothing to redo, and it remakes the link)
+        if (CopyMissing(gm)) {
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::BuildCopyMissing));
+            ImGui::TextWrapped("%s", Tr(S::BuildCopyMissingHelp));
+            ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+            ImGui::BeginDisabled(g.proc != nullptr);
+            if (ImGui::Button(Tr(S::BuildRepick))) gm.build_form = true;
+            ImGui::EndDisabled();
+            ImGui::PopStyleColor();
+            return;
+        }
         // newer code of the port than the one the game was made with: made again, from the start
         if (!port.empty() && built != port) {
             ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", Tr(S::BuildNewCode));
@@ -2491,7 +2524,8 @@ void BuildCard(Game& gm) {
     bool press = test_build && tools_ok && inputs_ok && g.proc == nullptr;
     if (press) test_build = false;
     if (ImGui::Button(Tr(S::BuildStart), ImVec2(320 * g.scale, 0)) || press) {
-        BuildOrUnpack(gm, made);
+        // a made game whose copy only moved: nothing to redo, the generator just links the copy again
+        BuildOrUnpack(gm, made && !CopyMissing(gm));
         gm.build_form = false;
     }
     ImGui::EndDisabled();
@@ -3912,6 +3946,16 @@ void SubHeading(const char* text) {
 void PerfPage() {
     Game& gm = G();
     Heading(Tr(S::Perf));
+    // the game's own word on what weighs and where to start, before the numbers
+    if (!gm.prof.perf_note.Empty()) {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
+        Card("perfnote", 0, [] {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
+            ImGui::TextWrapped("%s", Tx(G().prof.perf_note));
+            ImGui::PopStyleColor();
+        });
+        ImGui::PopStyleVar();
+    }
     SubHeading(Tr(S::PerfThisPc));
     MachineLines();
 

@@ -16,11 +16,16 @@ saves = ["saves"]
 accent = [196, 150, 60]
 legal = { pt = "O port lê a sua própria cópia do jogo: nada do jogo vem com ele, o código é gerado no seu PC. God of War é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "The port reads your own copy of the game: none of the game ships with it, the code is made on your PC. God of War is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "El port lee tu propia copia del juego: nada del juego viene con él, el código se genera en tu PC. God of War es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
 
+# what the game's Performance page says first
+[performance]
+note = { pt = "O God of War: Ascension pesa muito mais no processador do que na placa de vídeo. O PS3 tinha um processador muito diferente do de um PC (o Cell, com núcleos SPU que faziam boa parte dos gráficos e da física), e o port ainda traduz e roda esse trabalho no seu processador. Por isso uma placa de vídeo forte não resolve sozinha, e subir a resolução para 4K num processador mais fraco só piora. Comece em 720p (Vídeo > Resolução), jogue um pouco, veja como o jogo se comporta e só então suba. O projeto está nos estágios iniciais: o desempenho vai melhorar com as próximas atualizações do port.", en = "God of War: Ascension weighs far more on the processor than on the graphics card. The PS3 had a processor very unlike a PC's (the Cell, whose SPU cores did much of the graphics and physics work), and the port still translates and runs that work on your processor. So a strong graphics card does not fix it alone, and raising the resolution to 4K on a weaker processor only makes it worse. Start at 720p (Video > Resolution), play a while, see how the game behaves and only then go higher. The project is at an early stage: performance will improve with the port's next updates.", es = "God of War: Ascension pesa mucho más en el procesador que en la tarjeta gráfica. La PS3 tenía un procesador muy distinto al de un PC (el Cell, con núcleos SPU que hacían buena parte de los gráficos y la física), y el port todavía traduce y ejecuta ese trabajo en tu procesador. Por eso una tarjeta gráfica potente no lo resuelve sola, y subir la resolución a 4K en un procesador más débil solo empeora. Empieza en 720p (Vídeo > Resolución), juega un rato, mira cómo se comporta el juego y solo entonces sube. El proyecto está en sus primeras etapas: el rendimiento mejorará con las próximas actualizaciones del port." }
+
 # made on this PC by the port's generator, steps marked in out\gerar
 [install]
 kind = "build"
 done = "out/gerar/7_jogar.ok"
 marks = "out/gerar"
+needs = "vfs/PS3_GAME/PARAM.SFO"  # through the generator's junction to the player's disc: missing, the disc moved
 command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Disco", "{disco}", "-Update", "{update}", "-Firmware", "{firmware}"]
 redo = ["-RefazerDe", "4"]  # new code of the port: the PPU, SPU and build steps again, not the disc nor the firmware
 version = { pt = "God of War: Ascension dos EUA (BCUS98232), o disco e o update 1.04", en = "God of War: Ascension, US (BCUS98232): the disc and the 1.04 update", es = "God of War: Ascension de EE. UU. (BCUS98232): el disco y el update 1.04" }
@@ -168,7 +173,7 @@ target = "env"
 type = "choice"
 default = "1"
 label = { pt = "Resolução", en = "Resolution", es = "Resolución" }
-help = { pt = "A resolução em que o jogo desenha, em múltiplos dos 720p do PS3; a imagem é ajustada ao tamanho da janela. Mais alto deixa a imagem mais nítida e pede mais da placa de vídeo, não do processador. Numa tela 1080p, 1440p funciona como supersampling: desenha maior e reduz, com bordas mais limpas.", en = "The resolution the game draws at, in multiples of the PS3's 720p; the picture is fitted to the window. Higher is sharper and asks more of the graphics card, not of the processor. On a 1080p screen, 1440p works as supersampling: it draws bigger and scales down, with cleaner edges.", es = "La resolución a la que el juego dibuja, en múltiplos de los 720p de PS3; la imagen se ajusta al tamaño de la ventana. Más alta es más nítida y exige más a la tarjeta gráfica, no al procesador. En una pantalla 1080p, 1440p funciona como supersampling: dibuja más grande y reduce, con bordes más limpios." }
+help = { pt = "A resolução em que o jogo desenha, em múltiplos dos 720p do PS3; a imagem é ajustada ao tamanho da janela. Mais alto deixa a imagem mais nítida e pede mais da placa de vídeo, não do processador. Numa tela 1080p, 1440p funciona como supersampling: desenha maior e reduz, com bordas mais limpas. Comece em 720p: quem limita este jogo é o processador (veja a página Desempenho), e só suba depois de ver como ele roda no seu PC.", en = "The resolution the game draws at, in multiples of the PS3's 720p; the picture is fitted to the window. Higher is sharper and asks more of the graphics card, not of the processor. On a 1080p screen, 1440p works as supersampling: it draws bigger and scales down, with cleaner edges. Start at 720p: what holds this game back is the processor (see the Performance page), and only go higher once you see how it runs on your PC.", es = "La resolución a la que el juego dibuja, en múltiplos de los 720p de PS3; la imagen se ajusta al tamaño de la ventana. Más alta es más nítida y exige más a la tarjeta gráfica, no al procesador. En una pantalla 1080p, 1440p funciona como supersampling: dibuja más grande y reduce, con bordes más limpios. Empieza en 720p: lo que limita este juego es el procesador (mira la página Rendimiento), y solo sube después de ver cómo corre en tu PC." }
 choices = [
   { value = "1", label = { pt = "720p (PS3, mais leve)", en = "720p (PS3, lightest)", es = "720p (PS3, más ligera)" } },
   { value = "2", label = { pt = "1440p (supersampling em telas 1080p)", en = "1440p (supersampling on 1080p screens)", es = "1440p (supersampling en pantallas 1080p)" } },
@@ -269,17 +274,17 @@ choices = [
 
 [[presets]]
 label = { pt = "Leve", en = "Light", es = "Ligero" }
-help = { pt = "720p, como no PS3. Para PCs mais modestos.", en = "720p, as on the PS3. For more modest PCs.", es = "720p, como en PS3. Para PCs más modestos." }
+help = { pt = "720p, como no PS3. Comece por aqui: o que pesa neste jogo é o processador.", en = "720p, as on the PS3. Start here: what weighs in this game is the processor.", es = "720p, como en PS3. Empieza por aquí: lo que pesa en este juego es el procesador." }
 values = { GOWA_RES_SCALE = "1" }
 
 [[presets]]
 label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "1440p: bem mais nítido, para placas de vídeo médias.", en = "1440p: much sharper, for mid-range graphics cards.", es = "1440p: mucho más nítido, para tarjetas gráficas medias." }
+help = { pt = "1440p: bem mais nítido. Só depois de ver o jogo rodar bem em 720p.", en = "1440p: much sharper. Only once the game runs well at 720p.", es = "1440p: mucho más nítido. Solo después de ver el juego correr bien en 720p." }
 values = { GOWA_RES_SCALE = "2" }
 
 [[presets]]
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
-help = { pt = "4K, para placas de vídeo fortes.", en = "4K, for strong graphics cards.", es = "4K, para tarjetas gráficas potentes." }
+help = { pt = "4K: pede processador e placa de vídeo fortes. Num processador mais fraco, só piora.", en = "4K: needs a strong processor and graphics card. On a weaker processor it only gets worse.", es = "4K: pide procesador y tarjeta gráfica potentes. En un procesador más débil solo empeora." }
 values = { GOWA_RES_SCALE = "3" }
 
 [[credits]]
