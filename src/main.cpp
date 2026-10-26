@@ -2595,6 +2595,51 @@ bool InputsSet(Game& gm) {
     return true;
 }
 
+// A port made on this PC, updated to a version whose only changes are notes (*.md: NOVIDADES.md, README.md): the game
+// made before has the same code, so it is taken as made with the new version -- no "make it again" and no question
+// on Play for a text change (the Silent Hill's NOVIDADES.md was a commit of its own on the branch the port follows).
+// GitHub's compare of the two versions, on a thread, once per pair. 0 = nothing to check, 1 = checking,
+// 2 = notes only (built_version moved to the port's now), 3 = code changed or unknown.
+int NotesOnlyUpdate(Game& gm) {
+    if (gm.prof.install.kind != "build" || gm.entry.repo.empty()) return 0;
+    const std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
+    if (port.empty() || built.empty() || built == port) return 0;
+    static std::mutex m;
+    static std::map<std::string, int> state;
+    const std::string key = gm.entry.repo + "|" + built + "|" + port;
+    int s;
+    {
+        std::lock_guard lock(m);
+        s = state[key];
+        if (!s) state[key] = 1;
+    }
+    if (!s) {
+        std::thread([key, repo = gm.entry.repo, built, port] {
+            HttpResult r = GitHubApi("repos/" + repo + "/compare/" + built + "..." + port);
+            int res = 3;
+            size_t files = r.Ok() ? r.body.find("\"files\":") : std::string::npos;
+            if (files != std::string::npos) {
+                int n = 0, notes = 0;
+                for (size_t at = r.body.find("\"filename\":", files); at != std::string::npos;
+                     at = r.body.find("\"filename\":", at + 11)) {
+                    std::string f = JsonString(r.body.substr(at, 600), "filename");
+                    n++;
+                    if (f.size() > 3 && f.compare(f.size() - 3, 3, ".md") == 0) notes++;
+                }
+                if (n > 0 && n == notes) res = 2;
+            }
+            std::lock_guard lock(m);
+            state[key] = res;
+        }).detach();
+        return 1;
+    }
+    if (s == 2) {
+        gm.store.SetOwn("built_version", port);
+        gm.store.Save();
+    }
+    return s;
+}
+
 // a finished build: the port's version it was made with kept, once (true then)
 bool NoteBuild(Game& gm) {
     if (gm.build.Get().stage != GameBuild::Stage::Done || gm.build_noted) return false;
@@ -2609,6 +2654,7 @@ void BuildCard(Game& gm) {
     GameBuild::Status bs = gm.build.Get();
     std::error_code ec;
     bool made = fs::is_regular_file(gm.entry.dir / FromU8(in.done), ec);
+    NotesOnlyUpdate(gm);
     std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
     {
         std::lock_guard lock(g_build_pick.m);
@@ -3105,7 +3151,7 @@ void HomePage() {
     // fixes, and a player who updated the port and pressed Play reported a bug the update had already fixed -- GoW,
     // report 26). The page's "make it again" line stays as it was.
     bool stale = false;
-    if (gm.prof.install.kind == "build") {
+    if (gm.prof.install.kind == "build" && NotesOnlyUpdate(gm) != 2) {
         std::error_code ec;
         const std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
         stale = fs::is_regular_file(gm.entry.dir / FromU8(gm.prof.install.done), ec) && !port.empty() && !built.empty() &&
@@ -3873,6 +3919,7 @@ void NewsPage(Game& gm) {
         return;
     }
     if (gm.prof.install.kind == "build") {
+        NotesOnlyUpdate(gm);
         const std::string built = gm.store.GetOwn("built_version");
         if (!port.empty() && !built.empty() && built != port) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
@@ -4037,6 +4084,8 @@ void BulkTick() {
         const InstallSpec& in = gm.prof.install;
         std::error_code ec;
         bool made = fs::is_regular_file(gm.entry.dir / FromU8(in.done), ec);
+        // an update of notes only needs no making: wait for GitHub's answer (one call), then go on
+        if (made && NotesOnlyUpdate(gm) == 1) return;
         std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
         if (made && built.empty()) built = port;  // as the game's page takes it
         bool inputs_set = InputsSet(gm);
