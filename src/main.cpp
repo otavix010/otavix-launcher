@@ -264,6 +264,7 @@ struct App {
     Call admin_call, admin_rank_call, admin_reports_call;
     std::vector<std::vector<std::string>> admin_ranking, admin_reports;  // console, key, name, votes, hidden, comments
     int admin_period = 2;
+    int admin_tab = 0;                      // the admin page's tab: 0 reports, 1 port requests
     bool admin_stale = true;
     std::string admin_msg, adm_console, adm_key;
     char adm_name[96] = "", admin_key[160] = "";
@@ -5554,56 +5555,8 @@ void AdminPost(const char* what, const std::string& json) {
     g.admin_call.Start("POST", Server() + "/v1/admin/" + what, ServerHeaders(true), json);
 }
 
-void AdminPage() {
-    if (Server().empty()) {
-        Dim(Tr(S::RequestsOff));
-        return;
-    }
-    HttpResult r;
-    if (g.admin_rank_call.Get(&r) == Call::State::Done) {
-        if (r.Ok()) g.admin_ranking = Lines(r.body), g.admin_msg.clear();
-        else g.admin_msg = r.error;
-        g.admin_rank_call.Reset();
-    }
-    if (g.admin_reports_call.Get(&r) == Call::State::Done) {
-        if (r.Ok()) g.admin_reports = Lines(r.body);
-        else g.admin_msg = r.error;
-        g.admin_reports_call.Reset();
-    }
-    if (g.admin_call.Get(&r) == Call::State::Done) {
-        if (!r.Ok()) g.admin_msg = r.error;
-        g.admin_stale = true;
-        g.admin_call.Reset();
-    }
-    // an attachment fetched: into the temporary folder and opened by its program
-    if (g.admin_file_call.Get(&r) == Call::State::Done) {
-        if (r.Ok()) {
-            std::error_code ec;
-            fs::path dir = fs::temp_directory_path(ec) / "otavix-anexos";
-            fs::create_directories(dir, ec);
-            fs::path file = dir / FromU8(g.admin_file_name);
-            std::ofstream(file, std::ios::binary) << r.body;
-            OpenPath(file);
-        } else {
-            g.admin_msg = r.error.empty() ? r.body : r.error;
-        }
-        g.admin_file_call.Reset();
-    }
-    if (g.admin_stale && g.admin_rank_call.Get() == Call::State::Idle) {
-        g.admin_rank_call.Start("GET", Server() + "/v1/admin/ranking?periodo=" + kPeriods[g.admin_period], ServerHeaders(true), "");
-        g.admin_reports_call.Start("GET", Server() + "/v1/admin/reports", ServerHeaders(true), "");
-        g.admin_stale = false;
-    }
-
-    if (g.focus_page) ImGui::SetKeyboardFocusHere();
-    if (ImGui::Button(Tr(S::Refresh))) g.admin_stale = true;
-    if (!g.admin_msg.empty()) {
-        ImGui::SameLine();
-        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", g.admin_msg.c_str());
-    }
-    ImGui::PushFont(g.bold, 22);
-    ImGui::TextUnformatted(Tr(S::Requests));
-    ImGui::PopFont();
+// the port requests: the ranking, with hide, rename, merge and remove
+void AdminRequests() {
     if (PeriodTabs("aperiods", g.admin_period)) g.admin_stale = true;
     if (g.admin_ranking.empty()) Dim(g.admin_rank_call.Get() == Call::State::Busy ? Tr(S::Loading) : Tr(S::NoRequests));
     bool open_rename = false, open_merge = false, open_remove = false;
@@ -5706,12 +5659,11 @@ void AdminPage() {
     }
     ImGui::PopStyleVar();
 
-    ImGui::Dummy(ImVec2(0, 10 * g.scale));
-    ImGui::Separator();
-    ImGui::PushFont(g.bold, 22);
-    ImGui::TextUnformatted(Tr(S::RecentReports));
-    ImGui::PopFont();
-    if (g.admin_reports.empty()) Dim(Tr(S::NoRequests));
+}
+
+// the recent reports, each with its number, its attachments and the answer
+void AdminReports() {
+    if (g.admin_reports.empty()) Dim(Tr(S::NoReports));
     bool open_reply = false;
     for (size_t i = 0; i < g.admin_reports.size(); i++) {
         // when, title, platform, kind, contact, description, mailed, id, answer, attachments, computer
@@ -5783,6 +5735,73 @@ void AdminPage() {
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar();
+}
+
+void AdminPage() {
+    if (Server().empty()) {
+        Dim(Tr(S::RequestsOff));
+        return;
+    }
+    HttpResult r;
+    if (g.admin_rank_call.Get(&r) == Call::State::Done) {
+        if (r.Ok()) g.admin_ranking = Lines(r.body), g.admin_msg.clear();
+        else g.admin_msg = r.error;
+        g.admin_rank_call.Reset();
+    }
+    if (g.admin_reports_call.Get(&r) == Call::State::Done) {
+        if (r.Ok()) g.admin_reports = Lines(r.body);
+        else g.admin_msg = r.error;
+        g.admin_reports_call.Reset();
+    }
+    if (g.admin_call.Get(&r) == Call::State::Done) {
+        if (!r.Ok()) g.admin_msg = r.error;
+        g.admin_stale = true;
+        g.admin_call.Reset();
+    }
+    // an attachment fetched: into the temporary folder and opened by its program
+    if (g.admin_file_call.Get(&r) == Call::State::Done) {
+        if (r.Ok()) {
+            std::error_code ec;
+            fs::path dir = fs::temp_directory_path(ec) / "otavix-anexos";
+            fs::create_directories(dir, ec);
+            fs::path file = dir / FromU8(g.admin_file_name);
+            std::ofstream(file, std::ios::binary) << r.body;
+            OpenPath(file);
+        } else {
+            g.admin_msg = r.error.empty() ? r.body : r.error;
+        }
+        g.admin_file_call.Reset();
+    }
+    if (g.admin_stale && g.admin_rank_call.Get() == Call::State::Idle) {
+        g.admin_rank_call.Start("GET", Server() + "/v1/admin/ranking?periodo=" + kPeriods[g.admin_period], ServerHeaders(true), "");
+        g.admin_reports_call.Start("GET", Server() + "/v1/admin/reports", ServerHeaders(true), "");
+        g.admin_stale = false;
+    }
+
+    if (g.focus_page) ImGui::SetKeyboardFocusHere();
+    if (ImGui::Button(Tr(S::Refresh))) g.admin_stale = true;
+    if (!g.admin_msg.empty()) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", g.admin_msg.c_str());
+    }
+    // the reports and the port requests on tabs of their own (the owner's request: the long requests list
+    // pushed the reports far down), each with how many it holds
+    char tab_reports[96], tab_requests[96];
+    std::snprintf(tab_reports, sizeof(tab_reports), "%s (%zu)###adm_reports", Tr(S::RecentReports), g.admin_reports.size());
+    std::snprintf(tab_requests, sizeof(tab_requests), "%s (%zu)###adm_requests", Tr(S::AdminRequestsTab), g.admin_ranking.size());
+    if (ImGui::BeginTabBar("admin_tabs")) {
+        if (ImGui::BeginTabItem(tab_reports)) {
+            g.admin_tab = 0;
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(tab_requests)) {
+            g.admin_tab = 1;
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+    if (g.admin_tab == 1) AdminRequests();
+    else AdminReports();
 }
 
 // ---------------------------------------------------------------------------------------------- mods
