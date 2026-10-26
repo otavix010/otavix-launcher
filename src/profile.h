@@ -156,6 +156,8 @@ struct Profile {
     bool exe_workdir = false;         // workdir = "exe": run in the executable's folder, not the port's
     std::vector<std::pair<std::string, std::string>> env;  // [game] env: variables for the game, {dir} replaced
     std::string log_file;             // the game's output is written there
+    std::vector<std::string> report_files;  // report_files = [...]: files a report carries besides the log (a * in
+                                            // the name: the newest that matches), joined into one text attachment
     std::string port_file;            // the file that tells the port's own files are there (default: exe)
     std::string settings = "settings.toml";
     std::string ini;  // [game] ini: an .ini file of the game's, beside the settings, for options with target = "ini"

@@ -7,7 +7,13 @@ subtitle = { pt = "Port nativo do PlayStation 1 · recompilação estática", en
 exe = "build-release/SilentHill.exe"
 workdir = "exe"
 port_file = "gerar.ps1"
+# the runtime writes only to its console: the launcher keeps it there, new each session (lines such as the gcc tier
+# in use and an overlay autocompile that failed, which reports need)
+log_file = "out/jogo.log"
 logs = "out"
+# what a report carries besides that log: the state every second, the last freeze dump, the
+# options and the mods turned on (the list the Silent Hill session asked for, 26/10)
+report_files = ["build-release/psx_freeze_heartbeat.json", "build-release/psx_freeze_dump_*.json", "build-release/game_options.toml", "mods/state.toml"]
 # the runtime reads its files beside the exe
 settings = "build-release/settings.toml"
 ini = "build-release/input.ini"

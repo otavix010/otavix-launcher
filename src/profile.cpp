@@ -95,6 +95,9 @@ bool Profile::Load(const fs::path& file, std::string& error) {
         for (auto& [k, v] : *e)
             if (auto s = v.value<std::string>()) env.push_back({std::string(k.str()), *s});
     log_file = g["log_file"].value_or(std::string());
+    if (const toml::array* a = g["report_files"].as_array())
+        for (auto& e : *a)
+            if (auto s = e.value<std::string>()) report_files.push_back(*s);
     port_file = g["port_file"].value_or(std::string());
     const toml::node_view<const toml::node> in = std::as_const(t)["install"];
     install.kind = in["kind"].value_or(std::string());

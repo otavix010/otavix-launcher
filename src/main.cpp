@@ -618,6 +618,21 @@ void PlayTheme() {
     }
 }
 
+// the executable that runs, relative to the port: the profile's exe (or the option that picks it), else the first
+// of exe = [...] that exists (one build per processor kind)
+std::string GameExe(Game& gm) {
+    std::string exe = gm.prof.exe;
+    if (const Option* o = gm.prof.exe_option.empty() ? nullptr : gm.prof.Find(gm.prof.exe_option))
+        exe = ToText(gm.store.Get(*o));
+    std::error_code ec;
+    for (const std::string& e : gm.prof.exes)
+        if (fs::is_regular_file(gm.entry.dir / FromU8(e), ec)) {
+            exe = e;
+            break;
+        }
+    return exe;
+}
+
 void Launch(int index) {
     if (g.proc) return;
     Game& gm = *g.games[size_t(index)];
@@ -633,15 +648,8 @@ void Launch(int index) {
         if (MakeBackup(gm.entry.dir, gm.prof, "auto", err)) PruneAutomatic(gm.entry.dir, 10);
         gm.backups_stale = true;
     }
-    std::string exe = gm.prof.exe;
-    if (const Option* o = gm.prof.exe_option.empty() ? nullptr : gm.prof.Find(gm.prof.exe_option))
-        exe = ToText(gm.store.Get(*o));
+    std::string exe = GameExe(gm);
     std::error_code ec;
-    for (const std::string& e : gm.prof.exes)
-        if (fs::is_regular_file(gm.entry.dir / FromU8(e), ec)) {
-            exe = e;
-            break;
-        }
     fs::path exe_path = (gm.entry.dir / FromU8(exe)).make_preferred();
     std::vector<std::string> args{U8(exe_path)};
     for (const std::string& a : gm.prof.args) {
@@ -1957,6 +1965,35 @@ fs::path GameLog(Game& gm) {
         if (best.empty() || t > when) best = e.path(), when = t;
     }
     return best;
+}
+
+// the profile's report_files that exist: a name with * in it is the newest file that matches (a port that writes no
+// text log, as Silent Hill's: its heartbeat and freeze dumps, its options and the mods turned on)
+std::vector<fs::path> ReportFiles(Game& gm) {
+    std::vector<fs::path> out;
+    std::error_code ec;
+    for (const std::string& f : gm.prof.report_files) {
+        fs::path p = gm.entry.dir / FromU8(f);
+        std::string name = U8(p.filename());
+        if (name.find('*') == std::string::npos) {
+            if (fs::is_regular_file(p, ec)) out.push_back(p);
+            continue;
+        }
+        size_t star = name.find('*');
+        std::string head = name.substr(0, star), tail = name.substr(star + 1);
+        fs::path best;
+        fs::file_time_type when{};
+        for (auto& e : fs::directory_iterator(p.parent_path(), ec)) {
+            std::string n = U8(e.path().filename());
+            if (!e.is_regular_file(ec) || n.size() < head.size() + tail.size() || n.compare(0, head.size(), head) != 0 ||
+                n.compare(n.size() - tail.size(), tail.size(), tail) != 0)
+                continue;
+            auto t = e.last_write_time(ec);
+            if (best.empty() || t > when) best = e.path(), when = t;
+        }
+        if (!best.empty()) out.push_back(best);
+    }
+    return out;
 }
 
 // a new issue on the port's repository (the launcher's for a game without one), filled in: what happened, the
@@ -4234,9 +4271,17 @@ std::string Stamp() {
 }
 
 std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std::string& config) {
+    std::string log_name = log.empty() ? std::string() : U8(log.filename());
     if (g.rep_attach) {
         if (!log.empty()) log_text = FileTail(log, 256 * 1024);
         config = FileTail(gm.entry.dir / FromU8(gm.prof.settings), 64 * 1024);
+        // the profile's other files go along in the same text, each under its own heading (the server keeps one log)
+        for (const fs::path& f : ReportFiles(gm)) {
+            if (log_text.size() > 700 * 1024) break;
+            log_text += (log_text.empty() ? "" : "\n") + std::string("===== ") + U8(f.lexically_relative(gm.entry.dir)) + " =====\n";
+            log_text += FileTail(f, 128 * 1024);
+            if (log_name.empty()) log_name = "arquivos-do-jogo.txt";
+        }
     }
     std::string last = gm.last_exit == INT_MIN ? std::string("-") : std::to_string(gm.last_exit);
     std::string j = "{";
@@ -4252,12 +4297,17 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     // the computer, and the port's own version and the executable that runs (a game made here has a build per
     // processor kind)
     std::vector<std::pair<std::string, std::string>> sys = g.sysinfo;
+    std::error_code ec_sys;
     if (std::string port = InstalledPortVersion(gm.entry.dir); !port.empty()) sys.push_back({"port", port});
-    if (fs::path exe = FindGame(gm); !exe.empty()) sys.push_back({"exe", U8(exe.lexically_relative(gm.entry.dir))});
+    // the executable that runs (FindGame is the game's copy: "." for a port made in its own folder)
+    if (std::string exe = GameExe(gm); !exe.empty() && fs::is_regular_file(gm.entry.dir / FromU8(exe), ec_sys))
+        sys.push_back({"exe", exe});
+    if (!gm.prof.game_file.empty())
+        if (fs::path game = FindGame(gm); !game.empty()) sys.push_back({"jogo", U8(game.lexically_relative(gm.entry.dir))});
     j += ",\"sistema\":{";
     for (size_t i = 0; i < sys.size(); i++) j += (i ? "," : "") + Json(sys[i].first) + ":" + Json(sys[i].second);
     j += "}";
-    if (!log_text.empty()) j += ",\"log_nome\":" + Json(U8(log.filename())) + ",\"log\":" + Json(log_text);
+    if (!log_text.empty()) j += ",\"log_nome\":" + Json(log_name) + ",\"log\":" + Json(log_text);
     if (!config.empty()) j += ",\"config\":" + Json(config);
     return j + "}";
 }
@@ -4581,6 +4631,8 @@ void ReportPage() {
         if (g.rep_attach) {
             std::error_code ec;
             if (!log.empty()) ImGui::BulletText("%s (%s)", U8(log.filename()).c_str(), Bytes(fs::file_size(log, ec)).c_str());
+            for (const fs::path& f : ReportFiles(gm))
+                ImGui::BulletText("%s (%s)", U8(f.lexically_relative(gm.entry.dir)).c_str(), Bytes(fs::file_size(f, ec)).c_str());
             ImGui::BulletText("%s", gm.prof.settings.c_str());
         }
         for (const Photo& p : g.rep_photos) ImGui::BulletText("%s (%s)", p.name.c_str(), Bytes(p.bytes.size()).c_str());
