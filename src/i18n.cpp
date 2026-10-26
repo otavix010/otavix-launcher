@@ -428,6 +428,11 @@ constexpr Row kRows[] = {
     {"Onde os jogos novos são instalados, uma pasta para cada jogo. Os já instalados continuam onde estão. O caminho não pode ter espaços nem acentos: os geradores dos jogos não aceitam.", "Where new games are installed, a folder for each game. The installed ones stay where they are. The path cannot have spaces or accents: the games' generators do not take them.", "Dónde se instalan los juegos nuevos, una carpeta para cada juego. Los ya instalados se quedan donde están. La ruta no puede tener espacios ni acentos: los generadores de los juegos no los aceptan."},
     {"Automática (a do hub)", "Automatic (the hub's)", "Automática (la del hub)"},
     {"Escolha uma pasta sem espaços nem acentos no caminho: os geradores dos jogos não aceitam.", "Pick a folder with no spaces or accents in its path: the games' generators do not take them.", "Elige una carpeta sin espacios ni acentos en la ruta: los generadores de los juegos no los aceptan."},
+    {"Pasta:", "Folder:", "Carpeta:"},
+    {"Mudar pasta...", "Change folder...", "Cambiar carpeta..."},
+    {"Esta pasta já tem parte do jogo gerada (ou um disco extraído): termine de gerar aqui, ou apague a pasta do jogo antes de mudar.", "This folder already holds part of the made game (or an unpacked disc): finish making it here, or delete the game's folder before changing it.", "Esta carpeta ya tiene parte del juego generado (o un disco extraído): termina de generarlo aquí, o borra la carpeta del juego antes de cambiarla."},
+    {"A pasta escolhida já tem uma pasta deste jogo com arquivos: escolha outra.", "The folder picked already has a folder of this game with files in it: pick another.", "La carpeta elegida ya tiene una carpeta de este juego con archivos: elige otra."},
+    {"Não deu para mover o port: ", "The port could not be moved: ", "No se pudo mover el port: "},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

@@ -33,6 +33,7 @@ enum class S {
     BuildCopyMissing, BuildCopyMissingHelp, BuildRepick,
     DiscsFolder, DiscsFolderHelp, DiscFoundThere, DiscFoundAt, UseFoundDisc,
     GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,
+    GameFolderAt, ChangeFolder, GameFolderBusy, GameFolderNotEmpty, GameFolderMoveFailed,
     Count
 };
 

@@ -1590,6 +1590,8 @@ bool PortPresent(const Game& gm) {
 }
 
 // the port's files: downloaded when missing, updated when a newer release is out; false while there is nothing to play
+void GameFolderLine(Game& gm, bool can_move);
+
 bool PortCard(Game& gm) {
     if (gm.entry.repo.empty() || !Playable(gm, g.here)) return true;
     PortFetcher::Status ps = gm.fetcher.Get();
@@ -1612,6 +1614,7 @@ bool PortCard(Game& gm) {
     if (!present) {
         ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::PortMissing));
         ImGui::TextWrapped("%s", Tr(S::PortMissingText));
+        GameFolderLine(gm, g.proc == nullptr && ps.stage != PortFetcher::Stage::Checking);
         ImGui::Spacing();
         char label[96];
         if (ps.size) std::snprintf(label, sizeof(label), Tr(S::DownloadPort), double(ps.size) / 1048576.0);
@@ -2167,6 +2170,101 @@ void PinInstalledGames() {
     }
 }
 
+// the player's own folder for one game, picked on its page before anything was made there: the game goes to
+// <picked>\<id>, pinned. A port already downloaded moves with it, but only a small one with nothing made, no link
+// inside (GoW's junction to the player's disc must never be followed by a copy or a delete) and an empty destination.
+bool MoveGameTo(Game& gm, const std::string& picked) {
+    if (!GoodGamesFolder(picked)) {
+        Toast(Tr(S::GamesFolderBad), 7000);
+        return false;
+    }
+    fs::path dest = (FromU8(picked) / FromU8(gm.entry.id)).make_preferred();
+    fs::path from = gm.entry.dir;
+    std::error_code ec;
+    if (dest == from) return true;
+    if (PortPresent(gm)) {
+        uintmax_t size = 0;
+        bool link = false;
+        for (auto it = fs::recursive_directory_iterator(from, ec); !ec && it != fs::recursive_directory_iterator();
+             it.increment(ec)) {
+            fs::file_type t = it->symlink_status(ec).type();
+            if (t == fs::file_type::symlink || t == fs::file_type::junction) {
+                link = true;
+                break;
+            }
+            if (t == fs::file_type::regular) size += it->file_size(ec);
+        }
+        bool made_some = false;
+        if (!gm.prof.install.marks.empty())
+            for (auto& e : fs::directory_iterator(from / FromU8(gm.prof.install.marks), ec))
+                made_some |= e.path().extension() == ".ok";
+        if (link || made_some || size > (uintmax_t(2) << 30)) {
+            Toast(Tr(S::GameFolderBusy), 8000);
+            return false;
+        }
+        if (fs::exists(dest, ec) && !fs::is_empty(dest, ec)) {
+            Toast(Tr(S::GameFolderNotEmpty), 7000);
+            return false;
+        }
+        fs::create_directories(dest.parent_path(), ec);
+        fs::remove(dest, ec);  // an empty one, for the rename
+        ec.clear();
+        fs::rename(from, dest, ec);
+        if (ec) {  // another drive: copied, and the old folder removed only once the copy is whole
+            ec.clear();
+            fs::copy(from, dest, fs::copy_options::recursive, ec);
+            if (ec) {
+                Toast(std::string(Tr(S::GameFolderMoveFailed)) + ec.message(), 8000);
+                fs::remove_all(dest, ec);
+                return false;
+            }
+            fs::remove_all(from, ec);
+        }
+    }
+    gm.entry.dir = dest;
+    g.state.Set(("game_dir_" + gm.entry.id).c_str(), U8(dest));
+    OpenGameFolder(gm);
+    gm.port_checked = false;  // its installed version read again, from the new folder
+    return true;
+}
+
+// the folder picked for a game: the dialog answers on its own thread
+std::mutex g_game_folder_m;
+std::string g_game_folder_pick, g_game_folder_id;
+
+void GameFolderPicked(void*, const char* const* files, int) {
+    if (!files || !files[0]) return;
+    std::lock_guard lock(g_game_folder_m);
+    g_game_folder_pick = files[0];
+}
+
+// where this game is installed, and, while nothing was made there (can_move), the player's own folder for it
+void GameFolderLine(Game& gm, bool can_move) {
+    std::string picked;
+    {
+        std::lock_guard lock(g_game_folder_m);
+        if (g_game_folder_id == gm.entry.id && !g_game_folder_pick.empty()) {
+            picked.swap(g_game_folder_pick);
+            g_game_folder_id.clear();
+        }
+    }
+    if (!picked.empty() && can_move) MoveGameTo(gm, picked);
+    std::string at = std::string(Tr(S::GameFolderAt)) + " " + U8(gm.entry.dir);
+    Dim(at.c_str());  // wrapped: a long path stays on the page
+    if (!can_move) return;
+    SameLineIfFits(Tr(S::ChangeFolder));
+    if (ImGui::SmallButton(Tr(S::ChangeFolder))) {
+        {
+            std::lock_guard lock(g_game_folder_m);
+            g_game_folder_id = gm.entry.id;
+            g_game_folder_pick.clear();
+        }
+        static std::string start;
+        start = U8(gm.entry.dir.parent_path());
+        SDL_ShowOpenFolderDialog(GameFolderPicked, nullptr, g.win, start.c_str(), false);
+    }
+}
+
 // the folder the player keeps the games' discs in (Settings > General): the disc pickers open there, and a game's disc
 // is looked for there by its name; empty when not set or gone
 fs::path DiscsFolder() {
@@ -2539,6 +2637,7 @@ void BuildCard(Game& gm) {
     ImGui::TextUnformatted(Tr(S::BuildTitle));
     ImGui::PopFont();
     ImGui::TextWrapped("%s", Tr(S::BuildIntro));
+    GameFolderLine(gm, g.proc == nullptr && bs.stage != GameBuild::Stage::Running);
     if (!in.time.Empty()) Dim(Tx(in.time));
     if (!in.version.Empty()) {
         ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
@@ -6123,6 +6222,8 @@ int main(int argc, char** argv) {
     if (SDL_getenv("LAUNCHER_AUTOPLAY") && g.cur >= 0) Launch(g.cur);
     // tests: LAUNCHER_FETCH=1 downloads the open game's port
     if (SDL_getenv("LAUNCHER_FETCH") && g.cur >= 0) G().fetcher.Install(G().entry.repo, G().entry.dir);
+    // tests: LAUNCHER_GAME_FOLDER=folder, the open game's own folder picked (as Change folder... on its page)
+    if (const char* f = SDL_getenv("LAUNCHER_GAME_FOLDER"); f && g.cur >= 0) MoveGameTo(G(), f);
     // tests: LAUNCHER_SHORTCUT=1 makes the open game's desktop shortcut
     if (SDL_getenv("LAUNCHER_SHORTCUT") && g.cur >= 0) MakeShortcut(G());
     // tests: LAUNCHER_INSTALL=file, installed into the open game as if picked in the dialog
