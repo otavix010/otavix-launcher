@@ -3099,11 +3099,55 @@ void HomePage() {
     std::string state = StateLabel(gm, g.view);
     if (state.empty() && !PortPresent(gm)) state = Tr(S::PortMissing);
     const char* label = !can ? state.c_str() : playing ? Tr(S::Playing) : Tr(S::Play);
-    if (ImGui::Button(label, ImVec2(std::min(ImGui::GetContentRegionAvail().x, 420 * g.scale), 84 * g.scale))) Launch(g.cur);
+    // a port made on this PC whose code changed since the game was made: Play asks first (the old executable lacks the
+    // fixes, and a player who updated the port and pressed Play reported a bug the update had already fixed -- GoW,
+    // report 26). The page's "make it again" line stays as it was.
+    bool stale = false;
+    if (gm.prof.install.kind == "build") {
+        std::error_code ec;
+        const std::string port = InstalledPortVersion(gm.entry.dir), built = gm.store.GetOwn("built_version");
+        stale = fs::is_regular_file(gm.entry.dir / FromU8(gm.prof.install.done), ec) && !port.empty() && !built.empty() &&
+                built != port && gm.build.Get().stage != GameBuild::Stage::Running;
+    }
+    // tests: LAUNCHER_PLAY_PRESS=1 presses Play once, as the button (LAUNCHER_AUTOPLAY launches without asking)
+    static bool test_press = SDL_getenv("LAUNCHER_PLAY_PRESS") != nullptr;
+    bool press = test_press && can && !playing;
+    if (press) test_press = false;
+    if (ImGui::Button(label, ImVec2(std::min(ImGui::GetContentRegionAvail().x, 420 * g.scale), 84 * g.scale)) || press) {
+        if (stale) ImGui::OpenPopup("stale_build");
+        else Launch(g.cur);
+    }
     ImGui::EndDisabled();
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(3);
     ImGui::PopFont();
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(std::min(ImGui::GetMainViewport()->Size.x - 40 * g.scale, 720 * g.scale), 0));
+    if (ImGui::BeginPopupModal("stale_build", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::StaleTitle));
+        ImGui::PopFont();
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", Tr(S::StaleText));
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        ImGui::SetItemDefaultFocus();
+        if (ImGui::Button(Tr(S::StaleBuildNow))) {
+            if (InputsSet(gm)) BuildOrUnpack(gm, true);
+            else { gm.build_form = true; gm.page = 0; }  // the folders first, as the page's own button
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::StalePlayOld))) {
+            ImGui::CloseCurrentPopup();
+            Launch(g.cur);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::Cancel)) || ImGui::IsKeyPressed(ImGuiKey_Escape) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight))
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
     if (playing) ImGui::TextDisabled("%s", Tr(S::Running));
     if (g.state.Bool("close_combo", true) && g.state.Str("on_play", "minimize") != "close") Dim(Tr(S::CloseHint));
     ImGui::Spacing();
@@ -4304,6 +4348,10 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
         sys.push_back({"exe", exe});
     if (!gm.prof.game_file.empty())
         if (fs::path game = FindGame(gm); !game.empty()) sys.push_back({"jogo", U8(game.lexically_relative(gm.entry.dir))});
+    // a port made on this PC: the port version the game was made with ("port" is the one downloaded; they differ when
+    // the port was updated and the game not made again)
+    if (gm.prof.install.kind == "build")
+        if (std::string built = gm.store.GetOwn("built_version"); !built.empty()) sys.push_back({"gerado", built});
     j += ",\"sistema\":{";
     for (size_t i = 0; i < sys.size(); i++) j += (i ? "," : "") + Json(sys[i].first) + ":" + Json(sys[i].second);
     j += "}";

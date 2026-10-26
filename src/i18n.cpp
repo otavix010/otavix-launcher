@@ -434,6 +434,10 @@ constexpr Row kRows[] = {
     {"A pasta escolhida já tem uma pasta deste jogo com arquivos: escolha outra.", "The folder picked already has a folder of this game with files in it: pick another.", "La carpeta elegida ya tiene una carpeta de este juego con archivos: elige otra."},
     {"Não deu para mover o port: ", "The port could not be moved: ", "No se pudo mover el port: "},
     {"Reportar ao launcher", "Report to the launcher", "Reportar al launcher"},
+    {"O port tem código novo", "The port has new code", "El port tiene código nuevo"},
+    {"A versão do port que você baixou traz correções que só entram no jogo depois de gerá-lo de novo. Só a compilação é refeita: leva alguns minutos, e o launcher avisa quando terminar.", "The port version you downloaded brings fixes that only reach the game once it is made again. Only the compiling is redone: it takes a few minutes, and the launcher tells you when it is done.", "La versión del port que descargaste trae correcciones que solo llegan al juego después de generarlo de nuevo. Solo se rehace la compilación: tarda unos minutos y el launcher avisa cuando termina."},
+    {"Gerar agora", "Make it now", "Generar ahora"},
+    {"Jogar a versão anterior", "Play the previous version", "Jugar la versión anterior"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
