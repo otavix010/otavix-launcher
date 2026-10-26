@@ -83,10 +83,11 @@ help = { pt = "Compila o jogo (uns 5 GB). Se o Build Tools já estiver instalado
 
 [[install.inputs]]
 key = "iso"
-pick = "file"
-filters = ["iso"]
-label = { pt = "A imagem do disco (.iso)", en = "The disc image (.iso)", es = "La imagen del disco (.iso)" }
-help = { pt = "O port lê a .iso direto, não copia os 8 GB: deixe o arquivo onde está.", en = "The port reads the .iso in place, it does not copy the 8 GB: leave the file where it is.", es = "El port lee la .iso directamente, no copia los 8 GB: deja el archivo donde está." }
+pick = "both"
+filters = ["7z", "zip", "rar", "iso"]
+unpack = "*.iso"
+label = { pt = "A imagem do disco (.iso, ou o .7z/.zip/.rar baixado)", en = "The disc image (.iso, or the downloaded .7z/.zip/.rar)", es = "La imagen del disco (.iso, o el .7z/.zip/.rar descargado)" }
+help = { pt = "O port lê a .iso direto, não copia os 8 GB: deixe o arquivo onde está. Um arquivo .7z, .zip ou .rar com a .iso dentro (ou a pasta onde ele está) também serve: o launcher extrai a .iso na pasta do port antes de gerar.", en = "The port reads the .iso in place, it does not copy the 8 GB: leave the file where it is. A .7z, .zip or .rar holding the .iso (or the folder it is in) works too: the launcher unpacks the .iso into the port's folder before making the game.", es = "El port lee la .iso directamente, no copia los 8 GB: deja el archivo donde está. Un archivo .7z, .zip o .rar con la .iso dentro (o la carpeta donde está) también sirve: el launcher extrae la .iso en la carpeta del port antes de generar." }
 
 [[install.steps]]
 id = "1_ferramentas"

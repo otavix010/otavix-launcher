@@ -55,10 +55,11 @@ help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado
 
 [[install.inputs]]
 key = "iso"
-pick = "file"
-filters = ["iso"]
-label = { pt = "A imagem do DVD (.iso)", en = "The DVD image (.iso)", es = "La imagen del DVD (.iso)" }
-help = { pt = "Tem que ser a versão europeia (SLES-53481). O gerador confere o executável do jogo e avisa se for outra versão. O jogo lê a ISO enquanto roda: deixe-a onde está.", en = "It must be the European release (SLES-53481). The generator checks the game's executable and says so when it is another version. The game reads the ISO while it runs: leave it where it is.", es = "Tiene que ser la versión europea (SLES-53481). El generador comprueba el ejecutable del juego y avisa si es otra versión. El juego lee la ISO mientras se ejecuta: déjala donde está." }
+pick = "both"
+filters = ["7z", "zip", "rar", "iso"]
+unpack = "*.iso"
+label = { pt = "A imagem do DVD (.iso, ou o .7z/.zip/.rar baixado)", en = "The DVD image (.iso, or the downloaded .7z/.zip/.rar)", es = "La imagen del DVD (.iso, o el .7z/.zip/.rar descargado)" }
+help = { pt = "Tem que ser a versão europeia (SLES-53481). O gerador confere o executável do jogo e avisa se for outra versão. O jogo lê a ISO enquanto roda: deixe-a onde está. Um arquivo .7z, .zip ou .rar com a .iso dentro (ou a pasta onde ele está) também serve: o launcher extrai a .iso na pasta do port antes de gerar.", en = "It must be the European release (SLES-53481). The generator checks the game's executable and says so when it is another version. The game reads the ISO while it runs: leave it where it is. A .7z, .zip or .rar holding the .iso (or the folder it is in) works too: the launcher unpacks the .iso into the port's folder before making the game.", es = "Tiene que ser la versión europea (SLES-53481). El generador comprueba el ejecutable del juego y avisa si es otra versión. El juego lee la ISO mientras se ejecuta: déjala donde está. Un archivo .7z, .zip o .rar con la .iso dentro (o la carpeta donde está) también sirve: el launcher extrae la .iso en la carpeta del port antes de generar." }
 [[install.steps]]
 id = "1_ferramentas"
 label = { pt = "ferramentas", en = "tools", es = "herramientas" }

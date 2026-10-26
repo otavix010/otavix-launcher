@@ -102,8 +102,11 @@ struct BuildInput {
     Text download_label;
     uint64_t download_size = 0;
     // a file that marks the input's folder (PS3_GAME/PARAM.SFO): an archive or a disc image picked instead, or found in
-    // the folder picked, is unpacked into the port's folder, and the folder holding the mark becomes the input
+    // the folder picked, is unpacked into the port's folder, and the folder holding the mark becomes the input.
+    // "*.iso": the generator wants the disc image itself (the 360 and PS2 ports read it while they run): an archive
+    // is unpacked and the image found in it becomes the input, an image is taken as it is
     std::string unpack;
+    bool UnpackKeepsImage() const { return unpack.rfind("*.", 0) == 0; }
 };
 // a step of the generator: <id>.ok in the marks folder once done, <id>.log while it runs
 struct BuildStep {

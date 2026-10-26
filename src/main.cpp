@@ -2573,6 +2573,24 @@ fs::path UnpackSource(Game& gm, const BuildInput& b) {
     std::error_code ec;
     fs::path v = FromU8(gm.store.GetOwn(b.key));
     if (b.unpack.empty() || v.empty()) return {};
+    // the disc image itself wanted: only an archive is unpacked; a folder with one image in it gives that image
+    if (b.UnpackKeepsImage()) {
+        if (fs::is_regular_file(v, ec)) return IsArchive(v) ? v : fs::path();
+        if (!fs::is_directory(v, ec)) return {};
+        fs::path image, archive;
+        int images = 0, archives = 0;
+        for (auto& e : fs::directory_iterator(v, ec)) {
+            if (!e.is_regular_file(ec)) continue;
+            if (IsDiscImage(e.path())) image = e.path(), images++;
+            else if (IsArchive(e.path())) archive = e.path(), archives++;
+        }
+        if (images == 1) {
+            gm.store.SetOwn(b.key, U8(image));
+            gm.store.Save();
+            return {};
+        }
+        return images == 0 && archives == 1 ? archive : fs::path();
+    }
     if (fs::is_regular_file(v, ec)) return IsArchive(v) || IsDiscImage(v) ? v : fs::path();
     if (!fs::is_directory(v, ec) || fs::is_regular_file(v / FromU8(b.unpack), ec)) return {};
     // the folder above the game's: the game's folder, two levels down at most
@@ -2599,8 +2617,8 @@ fs::path UnpackSource(Game& gm, const BuildInput& b) {
 
 void StartUnpack(Game& gm, const BuildInput& b, const fs::path& source) {
     InstallSpec spec;
-    spec.check = b.unpack;
-    spec.unpack_images = true;
+    spec.check = b.UnpackKeepsImage() ? std::string() : b.unpack;
+    spec.unpack_images = !b.UnpackKeepsImage();
     gm.unpack_key = b.key;
     gm.unpack_error.clear();
     gm.installer.Start(source, gm.entry.dir / FromU8(b.key), spec);
@@ -2640,8 +2658,8 @@ bool UnpackStep(Game& gm) {
         return false;
     }
     if (st.stage != Installer::Stage::Done) return false;
-    // a disc image inside the archive: its files in turn, the image itself not kept
-    if (fs::is_regular_file(st.game, ec) && IsDiscImage(st.game)) {
+    // a disc image inside the archive: its files in turn, the image itself not kept (unless the image is the input)
+    if (fs::is_regular_file(st.game, ec) && IsDiscImage(st.game) && !input->UnpackKeepsImage()) {
         gm.unpack_image = U8(st.game);
         StartUnpack(gm, *input, st.game);
         return true;
