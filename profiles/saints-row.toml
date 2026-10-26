@@ -64,6 +64,7 @@ user_language = 1
 kind = "build"
 done = "out/gerar/5_jogar.ok"
 marks = "out/gerar"
+needs = "{iso}"  # the game reads the player's .iso in place: missing, it was moved or deleted (picked again, in seconds)
 command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}"]
 redo = ["-RefazerDe", "3"]  # new code of the port: the translation and the build again, not the tools nor the .iso
 version = { pt = "Saints Row (World), a imagem .iso do disco do Xbox 360", en = "Saints Row (World), the Xbox 360 disc's .iso image", es = "Saints Row (World), la imagen .iso del disco de Xbox 360" }
