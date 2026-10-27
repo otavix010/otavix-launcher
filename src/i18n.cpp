@@ -452,6 +452,10 @@ constexpr Row kRows[] = {
     {"vem na atualização", "comes with the update", "llega con la actualización"},
     {"Este port ainda não tem novidades publicadas.", "This port has no notes published yet.", "Este port todavía no tiene novedades publicadas."},
     {"O jogo foi gerado com uma versão anterior do port: as novidades mais recentes só entram nele depois de gerar de novo.", "The game was made with an earlier version of the port: the newest changes only reach it once it is made again.", "El juego se generó con una versión anterior del port: las novedades más recientes solo llegan a él después de generarlo de nuevo."},
+    {"Portado", "Ported", "Portado"},
+    {"Marcar portado", "Mark ported", "Marcar portado"},
+    {"Desmarcar portado", "Unmark ported", "Desmarcar portado"},
+    {"Esse jogo já foi portado: procure-o na biblioteca do launcher.", "This game is already ported: look for it in the launcher's library.", "Este juego ya fue portado: búscalo en la biblioteca del launcher."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS jogos (
   nome TEXT NOT NULL,          -- as shown
   capa TEXT NOT NULL DEFAULT '', -- the catalog's box art
   oculto INTEGER NOT NULL DEFAULT 0,
+  portado INTEGER NOT NULL DEFAULT 0, -- when the owner marked it as ported (0 = not yet)
   alias_of TEXT,               -- merged into this key
   PRIMARY KEY (console, chave)
 );

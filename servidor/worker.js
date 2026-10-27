@@ -44,6 +44,7 @@ async function route(req, env) {
     if (req.method === 'POST' && p === '/v1/admin/juntar') return juntar(req, env);
     if (req.method === 'POST' && p === '/v1/admin/responder') return responder(req, env);
     if (req.method === 'POST' && p === '/v1/admin/remover') return remover(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/portado') return portado(req, env);
   }
   return text(404, 'não encontrado');
 }
@@ -458,18 +459,20 @@ async function pedir(req, env) {
   const res = await env.DB.prepare(
     'INSERT OR IGNORE INTO votos (install, console, chave, comentario, ip, quando) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, console, k, String(r.comentario || '').slice(0, 300), ip, t).run();
+  const feito = await env.DB.prepare('SELECT portado FROM jogos WHERE console = ? AND chave = ?').bind(console, k).first();
+  if (feito && feito.portado) return text(200, 'portado');
   return text(200, res.meta.changes ? 'ok' : 'ja');
 }
 
-// this launcher's own requests: console, key, name, when, comment, cover
+// this launcher's own requests: console, key, name, when, comment, cover, ported (when; 0 = not yet)
 async function meusPedidos(req, env) {
   const id = install(req);
   if (!id) return text(400, 'launcher sem identificação');
   const rows = await env.DB.prepare(
-    'SELECT v.console, v.chave, j.nome, v.quando, v.comentario, j.capa FROM votos v ' +
+    'SELECT v.console, v.chave, j.nome, v.quando, v.comentario, j.capa, j.portado FROM votos v ' +
       'JOIN jogos j ON j.console = v.console AND j.chave = v.chave WHERE v.install = ? ORDER BY v.quando DESC LIMIT 200'
   ).bind(id).all();
-  return text(200, rows.results.map((r) => [r.console, r.chave, r.nome, r.quando, r.comentario, r.capa].map(f).join('\t')).join('\n'));
+  return text(200, rows.results.map((r) => [r.console, r.chave, r.nome, r.quando, r.comentario, r.capa, r.portado].map(f).join('\t')).join('\n'));
 }
 
 // a player takes back their own request; a game nobody asks for any more leaves the list with it
@@ -503,7 +506,8 @@ async function remover(req, env) {
   return text(200, 'ok');
 }
 
-// console, key, name, votes, cover (for the owner: console, key, name, votes, hidden, comments, cover)
+// console, key, name, votes, cover, ported (for the owner: console, key, name, votes, hidden, comments, cover, ported);
+// ported = when the owner marked it (0 = not yet), last so that older launchers read the rest as before
 async function ranking(env, url, admin) {
   const since = PERIODS[url.searchParams.get('periodo')] ?? PERIODS.semana;
   const from = since ? now() - since : 0;
@@ -516,13 +520,14 @@ async function ranking(env, url, admin) {
   }
   if (!admin) where.push('j.oculto = 0');
   const rows = await env.DB.prepare(
-    `SELECT j.console, j.chave, j.nome, j.oculto, j.capa, COUNT(*) AS votos, SUM(v.comentario <> '') AS coments
+    `SELECT j.console, j.chave, j.nome, j.oculto, j.capa, j.portado, COUNT(*) AS votos, SUM(v.comentario <> '') AS coments
        FROM votos v JOIN jogos j ON j.console = v.console AND j.chave = v.chave
       WHERE ${where.join(' AND ')} AND j.alias_of IS NULL
       GROUP BY j.console, j.chave ORDER BY votos DESC, j.nome LIMIT ${admin ? 500 : 100}`
   ).bind(...args).all();
   return text(200, rows.results.map((r) =>
-    (admin ? [r.console, r.chave, r.nome, r.votos, r.oculto, r.coments, r.capa] : [r.console, r.chave, r.nome, r.votos, r.capa]).map(f).join('\t')).join('\n'));
+    (admin ? [r.console, r.chave, r.nome, r.votos, r.oculto, r.coments, r.capa, r.portado]
+           : [r.console, r.chave, r.nome, r.votos, r.capa, r.portado]).map(f).join('\t')).join('\n'));
 }
 
 async function comentarios(env, url) {
@@ -535,6 +540,13 @@ async function comentarios(env, url) {
 async function ocultar(req, env) {
   const r = await body(req, 4000);
   await env.DB.prepare('UPDATE jogos SET oculto = ? WHERE console = ? AND chave = ?').bind(r.oculto ? 1 : 0, r.console, r.chave).run();
+  return text(200, 'ok');
+}
+
+// the owner marks a requested game as ported (or takes the mark back); everyone sees it in the ranking
+async function portado(req, env) {
+  const r = await body(req, 4000);
+  await env.DB.prepare('UPDATE jogos SET portado = ? WHERE console = ? AND chave = ?').bind(r.portado ? now() : 0, r.console, r.chave).run();
   return text(200, 'ok');
 }
 

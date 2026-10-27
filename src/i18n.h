@@ -38,6 +38,7 @@ enum class S {
     ReportToLauncher, CrashIllegalInstruction, AdminRequestsTab, NoReports,
     StaleTitle, StaleText, StaleBuildNow, StalePlayOld,
     News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild,
+    Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
     Count
 };
 

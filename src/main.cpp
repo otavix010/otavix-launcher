@@ -5064,6 +5064,12 @@ void CoverBox(const std::string& console, const std::string& cover, float h) {
     ImGui::Dummy(ImVec2(w, h));
 }
 
+// beside a request's name: the owner marked the game as ported
+void PortedBadge() {
+    ImGui::SameLine();
+    ImGui::TextColored(ImVec4(80 / 255.f, 200 / 255.f, 110 / 255.f, 1), "%s", Tr(S::Ported));
+}
+
 void RequestsPage() {
     Heading(Tr(S::Requests));
     Dim(Tr(S::RequestsIntro));
@@ -5087,7 +5093,7 @@ void RequestsPage() {
     }
     if (g.vote_call.Get(&r) == Call::State::Done) {
         if (r.Ok()) {
-            g.req_msg = r.body == "ja" ? Tr(S::AlreadyRequested) : Tr(S::Requested);
+            g.req_msg = r.body == "portado" ? Tr(S::AlreadyPorted) : r.body == "ja" ? Tr(S::AlreadyRequested) : Tr(S::Requested);
             g.req_name[0] = g.req_comment[0] = 0;
             g.req_pick = nullptr;
             g.req_free = false;
@@ -5199,10 +5205,11 @@ void RequestsPage() {
     if (!g.mine.empty()) {
         SubHeading(Tr(S::MyRequests));
         for (size_t i = 0; i < g.mine.size(); i++) {
-            const auto& row = g.mine[i];  // console, key, name, when, comment, cover
+            const auto& row = g.mine[i];  // console, key, name, when, comment, cover, ported
             ImGui::PushID(int(i) + 2000);
             ImGui::AlignTextToFramePadding();
             ImGui::Text("%s", Str(row, 2).c_str());
+            if (Field(row, 6)) PortedBadge();
             ImGui::SameLine();
             ImGui::TextDisabled("%s · %s", ConsoleLabel(Str(row, 0)).c_str(), DateText(std::atoll(Str(row, 3).c_str())).c_str());
             ImGui::SameLine();
@@ -5248,7 +5255,8 @@ void RequestsPage() {
         ImGui::TableSetupColumn("votes", ImGuiTableColumnFlags_WidthStretch, 2);
         ImGui::TableSetupColumn("+1", ImGuiTableColumnFlags_WidthFixed, 60 * g.scale);
         for (size_t i = 0; i < g.ranking.size(); i++) {
-            const auto& row = g.ranking[i];  // console, key, name, votes, cover
+            const auto& row = g.ranking[i];  // console, key, name, votes, cover, ported
+            bool ported = Field(row, 5) != 0;
             ImGui::PushID(int(i));
             ImGui::TableNextRow(0, row_h);
             float mid = (row_h - ImGui::GetFrameHeight()) * 0.5f;
@@ -5262,6 +5270,7 @@ void RequestsPage() {
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(Str(row, 2).c_str());
+            if (ported) PortedBadge();
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
@@ -5275,8 +5284,9 @@ void RequestsPage() {
             ImGui::PopStyleColor();
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
+            // no +1 for a game already ported
             ImGui::BeginDisabled(busy);
-            if (ImGui::Button("+1")) Vote(Str(row, 0), Str(row, 2), Str(row, 4), "");
+            if (!ported && ImGui::Button("+1")) Vote(Str(row, 0), Str(row, 2), Str(row, 4), "");
             ImGui::EndDisabled();
             ImGui::PopID();
         }
@@ -5573,7 +5583,7 @@ void AdminPost(const char* what, const std::string& json) {
     g.admin_call.Start("POST", Server() + "/v1/admin/" + what, ServerHeaders(true), json);
 }
 
-// the port requests: the ranking, with hide, rename, merge and remove
+// the port requests: the ranking, with ported, hide, rename, merge and remove
 void AdminRequests() {
     if (PeriodTabs("aperiods", g.admin_period)) g.admin_stale = true;
     if (g.admin_ranking.empty()) Dim(g.admin_rank_call.Get() == Call::State::Busy ? Tr(S::Loading) : Tr(S::NoRequests));
@@ -5586,19 +5596,22 @@ void AdminRequests() {
         for (S b : {S::Hide, S::Rename, S::Merge, S::RemoveRequest})
             actions += ImGui::CalcTextSize(Tr(b)).x + style.FramePadding.x * 2 + style.ItemSpacing.x;
         actions = std::max(actions, actions - ImGui::CalcTextSize(Tr(S::Hide)).x + ImGui::CalcTextSize(Tr(S::Show)).x);
+        actions += std::max(ImGui::CalcTextSize(Tr(S::MarkPorted)).x, ImGui::CalcTextSize(Tr(S::UnmarkPorted)).x) +
+                   style.FramePadding.x * 2 + style.ItemSpacing.x;
         ImGui::TableSetupColumn("name", ImGuiTableColumnFlags_WidthStretch, 3);
         ImGui::TableSetupColumn("votes", ImGuiTableColumnFlags_WidthStretch, 0.5f);
         ImGui::TableSetupColumn("comments", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableSetupColumn("actions", ImGuiTableColumnFlags_WidthFixed, actions);
         for (size_t i = 0; i < g.admin_ranking.size(); i++) {
             const auto& row = g.admin_ranking[i];
-            bool hidden = Field(row, 4) != 0;
+            bool hidden = Field(row, 4) != 0, ported = Field(row, 7) != 0;
             ImGui::PushID(int(i));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
             if (hidden) ImGui::TextDisabled("%s (%s)", Str(row, 2).c_str(), Tr(S::Hidden));
             else ImGui::TextUnformatted(Str(row, 2).c_str());
+            if (ported) PortedBadge();
             ImGui::TextDisabled("%s", ConsoleLabel(Str(row, 0)).c_str());
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
@@ -5607,6 +5620,10 @@ void AdminRequests() {
             ImGui::AlignTextToFramePadding();
             ImGui::TextDisabled("%d %s", Field(row, 5), Tr(S::Comments));
             ImGui::TableNextColumn();
+            if (ImGui::SmallButton(ported ? Tr(S::UnmarkPorted) : Tr(S::MarkPorted)))
+                AdminPost("portado", "{\"console\":" + Json(Str(row, 0)) + ",\"chave\":" + Json(Str(row, 1)) +
+                                         ",\"portado\":" + (ported ? "false" : "true") + "}");
+            ImGui::SameLine();
             if (ImGui::SmallButton(hidden ? Tr(S::Show) : Tr(S::Hide)))
                 AdminPost("ocultar", "{\"console\":" + Json(Str(row, 0)) + ",\"chave\":" + Json(Str(row, 1)) +
                                          ",\"oculto\":" + (hidden ? "false" : "true") + "}");
