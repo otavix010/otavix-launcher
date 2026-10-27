@@ -5180,6 +5180,40 @@ void PortedBadge() {
     ImGui::TextColored(ImVec4(80 / 255.f, 200 / 255.f, 110 / 255.f, 1), "%s", Tr(S::Ported));
 }
 
+// a request for a game this hub already has a port of, made from another console's version: that console, or empty
+std::string PortedOnOther(const std::string& console, const std::string& name) {
+    auto key = [](const std::string& s) {
+        std::string k;
+        for (unsigned char ch : s)
+            if (std::isalnum(ch)) k += char(std::tolower(ch));
+        return k;
+    };
+    // the name as asked, and without its subtitle ("Dante's Inferno - Gates of Hell", "...: Shinkyoku Jigoku-hen")
+    const std::string want = key(name);
+    std::string base = want;
+    size_t cut = std::min(name.find(':'), name.find(" - "));
+    if (cut != std::string::npos && cut > 0) base = key(name.substr(0, cut));
+    for (const auto& gp : g.games) {
+        const Game& gm = *gp;
+        if (!gm.ok || gm.entry.library == console) continue;
+        auto playable = [](const std::string& st) { return st == "ok" || st == "beta"; };
+        if (!playable(gm.entry.on_windows) && !playable(gm.entry.on_linux)) continue;
+        for (Lang l : {Lang::En, Lang::Pt}) {
+            const std::string title = key(gm.prof.title.Get(l));
+            if (title == want || title == base) return gm.entry.library;
+        }
+    }
+    return {};
+}
+
+// on the left of a request's name: the game is ported already, from another console's version
+void PortedOnBadge(const std::string& console) {
+    char b[128];
+    std::snprintf(b, sizeof(b), Tr(S::PortedOn), ConsoleLabel(console).c_str());
+    ImGui::TextColored(ImVec4(80 / 255.f, 200 / 255.f, 110 / 255.f, 1), "%s", b);
+    ImGui::SameLine();
+}
+
 void RequestsPage() {
     Heading(Tr(S::Requests));
     Dim(Tr(S::RequestsIntro));
@@ -5379,6 +5413,10 @@ void RequestsPage() {
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
+            if (!ported) {
+                std::string other = PortedOnOther(Str(row, 0), Str(row, 2));
+                if (!other.empty()) PortedOnBadge(other);
+            }
             ImGui::TextUnformatted(Str(row, 2).c_str());
             if (ported) PortedBadge();
             ImGui::TableNextColumn();

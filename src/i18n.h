@@ -40,6 +40,7 @@ enum class S {
     News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild, NewsHours,
     Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
     DropHere, DropOpenGame, DropNotForGame, DropHint,
+    PortedOn,
     Count
 };
 
