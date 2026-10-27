@@ -21,3 +21,8 @@ web = [
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/Drakengard%202%20%28USA%29.png",
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/Drakengard%202%20%28USA%29.png",
 ]
+
+# the window's and the shortcut's icon: the public box art
+[icon]
+kind = "image"
+web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Drakengard%202%20%28USA%29.png"]

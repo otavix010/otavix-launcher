@@ -78,3 +78,8 @@ label = { pt = "compilando", en = "compiling", es = "compilando" }
 [[install.steps]]
 id = "6_jogar"
 label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
+
+# the window's and the shortcut's icon: the public box art
+[icon]
+kind = "image"
+web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/10.000%20Bullets%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png"]

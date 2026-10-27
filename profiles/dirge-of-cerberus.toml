@@ -21,3 +21,8 @@ web = [
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png",
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png",
 ]
+
+# the window's and the shortcut's icon: the public box art
+[icon]
+kind = "image"
+web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Dirge%20of%20Cerberus%20-%20Final%20Fantasy%20VII%20%28USA%29.png"]
