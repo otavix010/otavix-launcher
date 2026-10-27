@@ -126,6 +126,27 @@ id = "controls"
 advanced = true
 label = { pt = "Controles", en = "Controls", es = "Controles" }
 
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+[[options]]
+page = "game"
+key = "PS3_IDIOMA"
+target = "env"
+type = "choice"
+default = "auto"
+label = { pt = "Idioma", en = "Language", es = "Idioma" }
+help = { pt = "O idioma do console, que o jogo segue nos textos e nas vozes. O disco das Américas (BCUS98232) tem inglês, francês, espanhol e português. Automático usa o idioma do Windows quando o disco tem, senão inglês. Vale depois de gerar o jogo com a versão de 27/10 ou mais nova.", en = "The console's language, which the game follows for text and voices. The Americas disc (BCUS98232) has English, French, Spanish and Portuguese. Automatic uses the Windows language when the disc has it, otherwise English. Takes effect once the game is generated with the 10/27 version or newer.", es = "El idioma de la consola, que el juego sigue en textos y voces. El disco de América (BCUS98232) tiene inglés, francés, español y portugués. Automático usa el idioma de Windows cuando el disco lo tiene; si no, inglés. Vale después de generar el juego con la versión del 27/10 o más nueva." }
+choices = [
+  { value = "auto", label = { pt = "Automático (idioma do Windows)", en = "Automatic (Windows language)", es = "Automático (idioma de Windows)" } },
+  { value = "en", label = "English" },
+  { value = "fr", label = "Français" },
+  { value = "es", label = "Español" },
+  { value = "pt-br", label = "Português (Brasil)" },
+]
+
 [[options]]
 page = "audio"
 key = "GOWA_AUDIO_BUFFER_MS"
