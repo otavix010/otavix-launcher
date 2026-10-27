@@ -5375,17 +5375,35 @@ HubMatch MatchInHub(const std::string& console, const std::string& name) {
     return wip;
 }
 
-// on the left of a request's name: the game is ported already, from another console's version (green), or this
-// console's port is being made (the library's "in development" yellow)
-void HubMatchBadge(const HubMatch& m) {
-    if (m.kind == "ported") {
-        char b[128];
-        std::snprintf(b, sizeof(b), Tr(S::PortedOn), ConsoleLabel(m.library).c_str());
-        ImGui::TextColored(ImVec4(80 / 255.f, 200 / 255.f, 110 / 255.f, 1), "%s", b);
-    } else {
-        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "%s", Tr(S::Wip));
+// a request's name, then what this hub has of it: ported already from another console's version (green), or this
+// console's port being made (the library's "in development" yellow); on the line below when both do not fit
+void NameWithMatch(const std::string& name, const HubMatch& m) {
+    if (m.kind.empty()) {
+        ImGui::TextUnformatted(name.c_str());
+        return;
     }
-    ImGui::SameLine();
+    char status[128];
+    ImVec4 color;
+    if (m.kind == "ported") {
+        std::snprintf(status, sizeof(status), Tr(S::PortedOn), ConsoleLabel(m.library).c_str());
+        color = ImVec4(80 / 255.f, 200 / 255.f, 110 / 255.f, 1);
+    } else {
+        std::snprintf(status, sizeof(status), "%s", Tr(S::Wip));
+        color = ImGui::ColorConvertU32ToFloat4(StateColor("wip"));
+    }
+    float need = ImGui::CalcTextSize(name.c_str()).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::CalcTextSize(status).x;
+    if (need <= ImGui::GetContentRegionAvail().x) {
+        ImGui::TextUnformatted(name.c_str());
+        ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x * 2);
+        ImGui::TextColored(color, "%s", status);
+        return;
+    }
+    // two lines close together, still about the row's middle (the name's line is a frame high, for the vote button)
+    const ImGuiStyle& st = ImGui::GetStyle();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() * 0.5f);
+    ImGui::TextUnformatted(name.c_str());
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - st.FramePadding.y * 2 - st.ItemSpacing.y * 0.5f);
+    ImGui::TextColored(color, "%s", status);
 }
 
 void RequestsPage() {
@@ -5588,12 +5606,12 @@ void RequestsPage() {
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
-            if (!ported) {
-                HubMatch m = MatchInHub(Str(row, 0), Str(row, 2));
-                if (!m.kind.empty()) HubMatchBadge(m);
+            if (ported) {
+                ImGui::TextUnformatted(Str(row, 2).c_str());
+                PortedBadge();
+            } else {
+                NameWithMatch(Str(row, 2), MatchInHub(Str(row, 0), Str(row, 2)));
             }
-            ImGui::TextUnformatted(Str(row, 2).c_str());
-            if (ported) PortedBadge();
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
