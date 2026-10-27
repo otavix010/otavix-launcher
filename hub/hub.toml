@@ -382,3 +382,19 @@ repo = "otavix010/blade-2-pc"
 branch = "main"
 
 platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "shadow-of-the-colossus"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/shadow-of-the-colossus"
+
+profile = "perfis/shadow-of-the-colossus.toml"
+
+repo = "otavix010/shadow-of-the-colossus-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
