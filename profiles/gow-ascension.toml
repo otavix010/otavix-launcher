@@ -312,19 +312,14 @@ help = { pt = "720p, como no PS3. Comece por aqui: o que pesa neste jogo é o pr
 values = { GOWA_RES_SCALE = "1" }
 
 [[presets]]
-label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "1440p: bem mais nítido. Só depois de ver o jogo rodar bem em 720p.", en = "1440p: much sharper. Only once the game runs well at 720p.", es = "1440p: mucho más nítido. Solo después de ver el juego correr bien en 720p." }
-values = { GOWA_RES_SCALE = "2" }
+label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+help = { pt = "Desenha em 1440p: num monitor 1440p fica nativo e num 1080p é reduzido (supersampling), 60 fps reais, sem quadros intermediários. Só depois de ver o jogo rodar bem em 720p. Os 60 pedem um processador forte; se não segurar, use o Leve.", en = "Draws at 1440p: native on a 1440p monitor, brought down on a 1080p one (supersampling), real 60 fps, no in-between frames. Only once the game runs well at 720p. 60 needs a strong processor; if it doesn't hold, use Light.", es = "Dibuja a 1440p: nativo en un monitor 1440p y reducido en uno 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Solo después de ver el juego ir bien a 720p. Los 60 piden un procesador potente; si no aguanta, usa Ligero." }
+values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0" }
 
 [[presets]]
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
 help = { pt = "4K: pede processador e placa de vídeo fortes. Num processador mais fraco, só piora.", en = "4K: needs a strong processor and graphics card. On a weaker processor it only gets worse.", es = "4K: pide procesador y tarjeta gráfica potentes. En un procesador más débil solo empeora." }
 values = { GOWA_RES_SCALE = "3" }
-
-[[presets]]
-label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
-help = { pt = "Para monitor 1080p: desenha em 1440p e reduz para 1080p (supersampling), 60 fps reais, sem quadros intermediários. Os 60 pedem um processador forte; se não segurar, use o Leve.", en = "For a 1080p monitor: draws at 1440p and brings it down to 1080p (supersampling), real 60 fps, no in-between frames. 60 needs a strong processor; if it doesn't hold, use Light.", es = "Para monitor 1080p: dibuja a 1440p y lo reduce a 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Los 60 piden un procesador potente; si no aguanta, usa Ligero." }
-values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0" }
 
 [[credits]]
 name = "ps3recomp"
