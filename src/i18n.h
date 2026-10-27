@@ -37,7 +37,7 @@ enum class S {
     OpenOldFolder,
     ReportToLauncher, CrashIllegalInstruction, AdminRequestsTab, NoReports,
     StaleTitle, StaleText, StaleBuildNow, StalePlayOld,
-    News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild,
+    News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild, NewsHours,
     Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
     DropHere, DropOpenGame, DropNotForGame, DropHint,
     Count

@@ -4112,9 +4112,44 @@ std::string NewsBody(const std::string& body, Lang lang) {
 // the game's "What's new": a port that follows a branch (made of commits, no release per fix) keeps its notes for the
 // players in NOVIDADES.md -- the one in the port folder is what the player has, the one on GitHub what the update
 // brings; a port with releases shows their notes, as the settings do
+// The ports' updates go out at fixed hours of Brasília (UTC-3): 0, 4, 8, 12, 16 and 20 -- shown in the player's own
+// clock, with the next one, so a player knows when a fix can arrive
+std::string UpdateHours(std::string* next) {
+    const time_t now = time(nullptr);
+    tm loc{};
+    localtime_s(&loc, &now);
+    const int east = int(_mkgmtime(&loc) - now) / 60;   // the player's offset from UTC, in minutes
+    const int cur = loc.tm_hour * 60 + loc.tm_min;
+    std::vector<int> mins;
+    for (int h = 0; h < 24; h += 4) mins.push_back((((h + 3) * 60 + east) % 1440 + 1440) % 1440);
+    std::sort(mins.begin(), mins.end());
+    auto fmt = [](int m) {
+        char b[16];
+        if (m % 60) snprintf(b, sizeof b, "%dh%02d", m / 60, m % 60);
+        else snprintf(b, sizeof b, "%dh", m / 60);
+        return std::string(b);
+    };
+    std::string list;
+    int nx = -1;
+    for (int m : mins) {
+        list += (list.empty() ? "" : ", ") + fmt(m);
+        if (m > cur && nx < 0) nx = m;
+    }
+    *next = fmt(nx < 0 ? mins[0] : nx);   // past the day's last one: tomorrow's first
+    return list;
+}
+
 void NewsPage(Game& gm) {
     Heading(Tr(S::News));
     Dim(Tr(S::NewsIntro));
+    {
+        std::string next;
+        const std::string hours = UpdateHours(&next);
+        char b[512];
+        std::snprintf(b, sizeof(b), Tr(S::NewsHours), hours.c_str(), next.c_str());
+        ImGui::Spacing();
+        Dim(b);
+    }
     ImGui::Spacing();
     const std::string port = InstalledPortVersion(gm.entry.dir);
     if (gm.entry.branch.empty()) {

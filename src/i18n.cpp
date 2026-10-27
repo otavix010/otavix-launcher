@@ -452,6 +452,7 @@ constexpr Row kRows[] = {
     {"vem na atualização", "comes with the update", "llega con la actualización"},
     {"Este port ainda não tem novidades publicadas.", "This port has no notes published yet.", "Este port todavía no tiene novedades publicadas."},
     {"O jogo foi gerado com uma versão anterior do port: as novidades mais recentes só entram nele depois de gerar de novo.", "The game was made with an earlier version of the port: the newest changes only reach it once it is made again.", "El juego se generó con una versión anterior del port: las novedades más recientes solo llegan a él después de generarlo de nuevo."},
+    {"Os ports recebem atualizações todos os dias em horários fixos: %s (no seu horário). A próxima é às %s.", "The ports get updates every day at fixed times: %s (your time). The next one is at %s.", "Los ports reciben actualizaciones todos los días a horas fijas: %s (tu hora). La próxima es a las %s."},
     {"Portado", "Ported", "Portado"},
     {"Marcar portado", "Mark ported", "Marcar portado"},
     {"Desmarcar portado", "Unmark ported", "Desmarcar portado"},
