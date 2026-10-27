@@ -212,7 +212,9 @@ page = "video"
 key = "GOWA_VRR"
 target = "env"
 type = "toggle"
-default = true
+# off by default again (27/10, reports 90/93/103: a black screen with sound in the opening video on 120-180 Hz
+# monitors since VRR came on by default); a player who wants it turns it on
+default = false
 label = { pt = "VRR (G-SYNC / FreeSync)", en = "VRR (G-SYNC / FreeSync)", es = "VRR (G-SYNC / FreeSync)" }
 help = { pt = "Ligado, cada quadro vai para a tela assim que fica pronto: num monitor com G-SYNC ou FreeSync, uma queda de fps passa suave, sem engasgo. Num monitor sem VRR a imagem pode rasgar (tearing) em movimento; aí desligue, e o jogo espera a tela (vsync). Vale depois de gerar o jogo com a versão de 27/10 ou mais nova.", en = "On, each frame goes to the screen as soon as it is ready: on a G-SYNC or FreeSync monitor, a drop in fps stays smooth, without stutter. On a monitor without VRR the picture may tear in motion; then turn it off, and the game waits for the screen (vsync). Takes effect once the game is generated with the 10/27 version or newer.", es = "Activado, cada fotograma va a la pantalla en cuanto está listo: en un monitor con G-SYNC o FreeSync, una caída de fps se ve suave, sin tirones. En un monitor sin VRR la imagen puede cortarse (tearing) en movimiento; entonces desactívalo y el juego espera a la pantalla (vsync). Vale después de generar el juego con la versión del 27/10 o más nueva." }
 
