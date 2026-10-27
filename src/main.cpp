@@ -194,6 +194,7 @@ struct App {
     ReleaseNotes notes;  // the launcher's and the ports' release notes, looked up when first shown
     Uint64 art_t0 = 0;
     bool quit = false;
+    bool dragging = false;  // a file from Explorer held over the window
 #ifdef _WIN32
     Platform here = Platform::Windows;
 #else
@@ -2019,7 +2020,7 @@ Issue MakeIssue(Game& gm, const std::string& kind, const std::string& what, size
     if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
     std::string repo = gm.entry.repo.empty() ? g.hub.update_repo : gm.entry.repo;
     std::string port = InstalledPortVersion(gm.entry.dir);
-    std::string head = "**" + kind + "**\n\n" + what + "\n\n| | |\n|---|---|\n";
+    std::string head = "\n\n| | |\n|---|---|\n";  // what happened goes before it, in build()
     head += "| Jogo | " + gm.prof.title.Get(Lang::Pt) + " (`" + gm.entry.id + "`) |\n";
     head += "| Versão do port | " + (port.empty() ? std::string("-") : port) + " |\n";
     head += "| Launcher | " + g.hub.version + " · " + PlatformName(g.here) + " |\n";
@@ -2033,18 +2034,38 @@ Issue MakeIssue(Game& gm, const std::string& kind, const std::string& what, size
     fs::path log = GameLog(gm);
     std::string tail = log.empty() ? std::string() : FileTail(log, 64 * 1024);
     Issue is{repo, gm.prof.title.Get(Lang::Pt) + ": " + kind};
+    std::string said = what;
     auto build = [&](const std::string& logpart) {
-        is.body = head;
+        is.body = "**" + kind + "**\n\n" + said + head;
         if (!config.empty()) is.body += "\n<details><summary>Configurações</summary>\n\n```toml\n" + config + "\n```\n</details>\n";
         if (!logpart.empty())
             is.body += "\n<details><summary>Final do log (" + U8(log.filename()) + ")</summary>\n\n```\n" + logpart + "\n```\n</details>\n";
         is.body += "\nSe houver arquivos na pasta `CrashDumps` do port, compacte e arraste para cá.";
         is.url = "https://github.com/" + repo + "/issues/new?title=" + PercentEncode(is.title) + "&body=" + PercentEncode(is.body);
     };
-    build(tail);
-    while (is.url.size() > limit && !tail.empty()) {
-        size_t cut = tail.find('\n', tail.size() / 4);
-        tail = cut == std::string::npos ? std::string() : tail.substr(cut + 1);
+    // under the limit: the log shortened from its start; then without the settings, the log shortened again; at last
+    // what happened cut short (a generator's error can be long)
+    const std::string whole_tail = tail;
+    auto fit = [&] {
+        build(tail);
+        while (is.url.size() > limit && !tail.empty()) {
+            size_t cut = tail.find('\n', tail.size() / 4);
+            tail = cut == std::string::npos ? std::string() : tail.substr(cut + 1);
+            build(tail);
+        }
+    };
+    fit();
+    if (is.url.size() > limit && !config.empty()) {
+        config.clear();
+        tail = whole_tail;
+        fit();
+    }
+    while (is.url.size() > limit && said.size() > 300) {
+        said = said.substr(0, said.size() * 3 / 4) + " (...)";
+        // a code block cut open would swallow the table after it
+        size_t fences = 0;
+        for (size_t at = said.find("```"); at != std::string::npos; at = said.find("```", at + 3)) fences++;
+        if (fences % 2) said += "\n```";
         build(tail);
     }
     return is;
@@ -2063,20 +2084,22 @@ constexpr size_t kShortIssue = 2000;
 // paste it. When the system does not open the browser, the player is told, with the address (or the report) copied.
 void OpenIssue(Game& gm, const std::string& kind, const std::string& what) {
     Issue is = MakeIssue(gm, kind, what, kLongIssue);
-    // tests: LAUNCHER_ISSUE_FILE=path keeps the address there instead of opening the browser
-    if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) {
-        std::ofstream(f) << is.url;
-        return;
-    }
     std::string url = is.url;
     bool pasted = false;
     if (url.size() > kShortIssue) {
         // GitHub takes a body of up to 65 536 characters: the log can be longer this way
         Issue full = MakeIssue(gm, kind, what, 120000);
         pasted = SDL_SetClipboardText(full.body.c_str());
+        // the page opens with a short report already in it (the GoW issues 4-7 and 12 came empty: the player did not
+        // paste), and a line asking for the whole one under it
         if (pasted)
-            url = "https://github.com/" + is.repo + "/issues/new?title=" + PercentEncode(is.title) + "&body=" +
-                  PercentEncode("O launcher copiou o relatório completo: apague esta linha e cole aqui (Ctrl+V).");
+            url = MakeIssue(gm, kind, what, kShortIssue - 200).url +
+                  PercentEncode("\n\n**O launcher copiou o relatório completo: cole aqui embaixo (Ctrl+V) para mandar o log inteiro.**\n\n");
+    }
+    // tests: LAUNCHER_ISSUE_FILE=path keeps the address that would open there instead of opening the browser
+    if (const char* f = SDL_getenv("LAUNCHER_ISSUE_FILE")) {
+        std::ofstream(f) << url;
+        return;
     }
     if (SDL_OpenURL(url.c_str())) {
         if (pasted) Toast(Tr(S::IssueCopied), 9000);
@@ -2357,6 +2380,11 @@ bool MoveGameTo(Game& gm, const std::string& picked) {
                 fs::create_directories(BackupRoot(dest), ec);
                 fs::copy(BackupRoot(from), BackupRoot(dest), fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
             }
+            // the shader cache too (GoW's GOWA_CACHE_DIR), so the first session there does not compile them all again
+            if (fs::symlink_status(from / "cache", ec).type() == fs::file_type::directory) {
+                fs::create_directories(dest / "cache", ec);
+                fs::copy(from / "cache", dest / "cache", fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+            }
             gm.store.SetOwn("built_version", "");  // made again there
             gm.store.Save();
             g_folder_note[gm.entry.id] = {S::GameFolderStartOver, U8(from)};
@@ -2517,6 +2545,52 @@ void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
     } else {
         SDL_ShowOpenFolderDialog(BuildPicked, nullptr, g.win, start.empty() ? nullptr : start.c_str(), false);
     }
+}
+
+// a file or folder dragged onto the window (the player's idea, 27/10): it goes where the buttons would put it. A
+// generator's game: the first input that takes it (a folder; a file of its extensions, or an archive where the input
+// unpacks), as if picked, with the folders form open. An installer's game not installed yet: installed as if picked.
+void DroppedFile(const char* drop) {
+    if (!drop || !*drop || g.proc) return;
+    if (g.cur < 0 || g.screen != Screen::Game) {
+        Toast(Tr(S::DropOpenGame));
+        return;
+    }
+    Game& gm = G();
+    const InstallSpec& in = gm.prof.install;
+    const fs::path p = FromU8(drop);
+    std::error_code ec;
+    const bool dir = fs::is_directory(p, ec);
+    std::string ext = U8(p.extension());
+    if (!ext.empty()) ext.erase(0, 1);
+    for (char& c : ext) c = char(std::tolower(static_cast<unsigned char>(c)));
+    if (in.kind == "build") {
+        for (const BuildInput& b : in.inputs) {
+            bool takes = dir ? b.folder
+                             : b.file && (std::find(b.filters.begin(), b.filters.end(), ext) != b.filters.end() ||
+                                          (!b.unpack.empty() && (IsArchive(p) || IsDiscImage(p))));
+            if (!takes) continue;
+            {
+                std::lock_guard lock(g_build_pick.m);
+                g_build_pick.game = g.cur;
+                g_build_pick.key = b.key;
+                g_build_pick.path = drop;
+                g_build_pick.ready = true;
+            }
+            gm.build_form = true;
+            gm.page = 0;  // the game's home, where the form is
+            Toast(std::string(Tx(b.label)) + ": " + U8(p.filename()));
+            return;
+        }
+    } else if ((!in.check.empty() || !in.files.empty()) && FindGame(gm).empty()) {
+        std::lock_guard lock(g.dlg_m);
+        g.inst_path = drop;
+        g.inst_ready = true;
+        g.inst_game = g.cur;
+        gm.page = 0;
+        return;
+    }
+    Toast(Tr(S::DropNotForGame));
 }
 
 // the tools the generator needs, checked on a thread
@@ -2930,6 +3004,7 @@ void BuildCard(Game& gm) {
     bool inputs_ok = true;
     ImGui::TextUnformatted(Tr(S::BuildInputs));
     ImGui::Indent();
+    Dim(Tr(S::DropHint));
     for (const BuildInput& b : in.inputs) {
         ImGui::PushID(b.key.c_str());
         bool optional = !b.auto_text.Empty();
@@ -6690,6 +6765,14 @@ int main(int argc, char** argv) {
     if (const char* f = SDL_getenv("LAUNCHER_GAME_FOLDER"); f && g.cur >= 0) MoveGameTo(G(), f);
     // tests: LAUNCHER_SHORTCUT=1 makes the open game's desktop shortcut
     if (SDL_getenv("LAUNCHER_SHORTCUT") && g.cur >= 0) MakeShortcut(G());
+    // tests: LAUNCHER_ISSUE_LONG=n presses "Send to GitHub" with an n-character report (with LAUNCHER_ISSUE_FILE)
+    if (const char* n = SDL_getenv("LAUNCHER_ISSUE_LONG"); n && g.cur >= 0)
+        OpenIssue(G(), "Geração", "A geração parou (código 1):\n\n```\n" + std::string(size_t(std::atoi(n)), 'x') + "\n```");
+    // tests: LAUNCHER_DROP=file or folder, as if dragged onto the open game's page
+    if (const char* d = SDL_getenv("LAUNCHER_DROP"); d && g.cur >= 0) {
+        g.screen = Screen::Game;
+        DroppedFile(d);
+    }
     // tests: LAUNCHER_INSTALL=file, installed into the open game as if picked in the dialog
     if (const char* f = SDL_getenv("LAUNCHER_INSTALL"); f && g.cur >= 0) {
         std::lock_guard lock(g.dlg_m);
@@ -6722,6 +6805,10 @@ int main(int argc, char** argv) {
                 g.state.Set("window_mode", std::string(full ? "fullscreen" : "window"));
             }
             if (e.type == SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED || e.type == SDL_EVENT_DISPLAY_ADDED) ModesOfPrimary();
+            // a file or folder dragged from Explorer: a notice over the window while it is held, taken when dropped
+            if (e.type == SDL_EVENT_DROP_BEGIN) g.dragging = true;
+            if (e.type == SDL_EVENT_DROP_COMPLETE) g.dragging = false;
+            if (e.type == SDL_EVENT_DROP_FILE) DroppedFile(e.drop.data);
         }
         PollGame();
         PeriodicChecks();
@@ -6761,6 +6848,19 @@ int main(int argc, char** argv) {
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         Frame();
+        // a file being dragged over the window: where it goes
+        if (g.dragging) {
+            ImDrawList* fg = ImGui::GetForegroundDrawList();
+            const ImVec2 size = ImGui::GetIO().DisplaySize;
+            const float pad = 24 * g.scale;
+            fg->AddRectFilled(ImVec2(0, 0), size, IM_COL32(0, 0, 0, 170));
+            fg->AddRect(ImVec2(pad, pad), ImVec2(size.x - pad, size.y - pad), ImGui::GetColorU32(Accent(0.9f)), 16 * g.scale, 0,
+                        4 * g.scale);
+            const char* t = Tr(g.cur >= 0 && g.screen == Screen::Game ? S::DropHere : S::DropOpenGame);
+            const float px = 30 * g.scale;
+            const ImVec2 ts = g.bold->CalcTextSizeA(px, FLT_MAX, 0, t);
+            fg->AddText(g.bold, px, ImVec2((size.x - ts.x) / 2, (size.y - ts.y) / 2), IM_COL32_WHITE, t);
+        }
         ImGui::Render();
         SDL_SetRenderScale(g.ren, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         SDL_SetRenderDrawColor(g.ren, 15, 15, 18, 255);

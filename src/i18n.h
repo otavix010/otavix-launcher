@@ -39,6 +39,7 @@ enum class S {
     StaleTitle, StaleText, StaleBuildNow, StalePlayOld,
     News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild,
     Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
+    DropHere, DropOpenGame, DropNotForGame, DropHint,
     Count
 };
 

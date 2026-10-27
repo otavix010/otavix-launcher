@@ -456,6 +456,10 @@ constexpr Row kRows[] = {
     {"Marcar portado", "Mark ported", "Marcar portado"},
     {"Desmarcar portado", "Unmark ported", "Desmarcar portado"},
     {"Esse jogo já foi portado: procure-o na biblioteca do launcher.", "This game is already ported: look for it in the launcher's library.", "Este juego ya fue portado: búscalo en la biblioteca del launcher."},
+    {"Solte aqui o arquivo ou a pasta do jogo", "Drop the game's file or folder here", "Suelta aquí el archivo o la carpeta del juego"},
+    {"Abra a página do jogo e solte o arquivo nela.", "Open the game's page and drop the file on it.", "Abre la página del juego y suelta el archivo en ella."},
+    {"Esse arquivo não serve para este jogo.", "That file is not for this game.", "Ese archivo no sirve para este juego."},
+    {"Dica: você também pode arrastar o arquivo baixado (.zip, .7z, .rar), a imagem do disco (.iso) ou a pasta do jogo para esta janela.", "Tip: you can also drag the downloaded file (.zip, .7z, .rar), the disc image (.iso) or the game's folder onto this window.", "Consejo: también puedes arrastrar el archivo descargado (.zip, .7z, .rar), la imagen del disco (.iso) o la carpeta del juego a esta ventana."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

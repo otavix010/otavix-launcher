@@ -9,7 +9,7 @@ workdir = "exe"
 port_file = "gerar.ps1"
 game_file = "jogo/GOWA.elf"
 args = ["{dir}/jogo/GOWA.elf"]
-env = { PS3_VFS_ROOT = "{dir}/vfs", PS3_LIBSRE_IMAGE = "{dir}/fw/lle/libsre_image.bin", PS3_SAVE_ROOT = "{dir}/saves" }
+env = { PS3_VFS_ROOT = "{dir}/vfs", PS3_LIBSRE_IMAGE = "{dir}/fw/lle/libsre_image.bin", PS3_SAVE_ROOT = "{dir}/saves", GOWA_CACHE_DIR = "{dir}/cache" }
 log_file = "out/jogo.log"
 logs = "out"
 saves = ["saves"]
