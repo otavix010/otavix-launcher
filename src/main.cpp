@@ -265,7 +265,8 @@ struct App {
     Call admin_call, admin_rank_call, admin_reports_call;
     std::vector<std::vector<std::string>> admin_ranking, admin_reports;  // console, key, name, votes, hidden, comments
     int admin_period = 2;
-    int admin_tab = 0;                      // the admin page's tab: 0 reports, 1 port requests
+    int admin_tab = 0;                      // the admin page's tab: 0 reports, 1 port requests, 2 notice
+    int admin_tab_pick = -1;                // a tab to open on (tests)
     bool admin_stale = true;
     std::string admin_msg, adm_console, adm_key;
     char adm_name[96] = "", admin_key[160] = "";
@@ -280,6 +281,13 @@ struct App {
     Call answers_call;
     std::vector<std::vector<std::string>> answers;
     std::vector<size_t> answers_new;
+    // the owner's notice to everyone: looked up on start and every 30 minutes; one newer than the last seen pops up
+    Call notice_call;
+    Uint64 notice_checked = 0;
+    int64_t notice_id = 0, notice_when = 0;
+    std::string notice_text;
+    bool notice_new = false;
+    char adm_notice[2048] = "";  // the notice being written on the admin page
     // a mod .zip picked in the file dialog
     std::string zip_path;
     bool zip_ready = false;
@@ -1732,6 +1740,25 @@ void Notices() {
         }
         g.answers_call.Reset();
     }
+    // the owner's notice: a line "id<TAB>when", then its text; nothing when there is none
+    Uint64 ticks = SDL_GetTicks();
+    if (!Server().empty() && g.notice_call.Get() == Call::State::Idle &&
+        (g.notice_checked == 0 || ticks - g.notice_checked >= 30ull * 60 * 1000)) {
+        g.notice_checked = ticks;
+        g.notice_call.Start("GET", Server() + "/v1/recado", ServerHeaders(), "");
+    }
+    if (g.notice_call.Get(&ar) == Call::State::Done) {
+        if (ar.Ok()) {
+            size_t nl = ar.body.find('\n');
+            std::string head = ar.body.substr(0, nl);
+            g.notice_id = std::strtoll(head.c_str(), nullptr, 10);
+            size_t tab = head.find('\t');
+            g.notice_when = tab == std::string::npos ? 0 : std::strtoll(head.c_str() + tab + 1, nullptr, 10);
+            g.notice_text = nl == std::string::npos ? std::string() : ar.body.substr(nl + 1);
+            g.notice_new = g.notice_id > g.state.Int("notice_seen", 0) && !g.notice_text.empty();
+        }
+        g.notice_call.Reset();
+    }
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
     float width = std::min(io.DisplaySize.x * 0.85f, 780 * g.scale);
@@ -1907,6 +1934,30 @@ void Notices() {
             for (const auto& row : g.answers) seen += (seen.empty() ? "" : ",") + AnswerMark(row);
             g.state.Set("answers_seen", seen);
             g.answers_new.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor();
+        ImGui::EndPopup();
+    }
+
+    // the owner's notice to everyone, once
+    if (g.notice_new && !any_open) {
+        ImGui::OpenPopup("notice");
+        any_open = true;
+    }
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(width, 0));
+    if (ImGui::BeginPopupModal("notice", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushFont(g.bold, 24);
+        ImGui::TextUnformatted(Tr(S::NoticeTitle));
+        ImGui::PopFont();
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", g.notice_text.c_str());
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+        if (ImGui::Button(Tr(S::NoticeOk))) {
+            g.state.Set("notice_seen", g.notice_id);
+            g.notice_new = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::PopStyleColor();
@@ -5920,6 +5971,48 @@ void AdminReports() {
     ImGui::PopStyleVar();
 }
 
+// the notice to everyone: the one up now, a new one written and sent after a confirmation, or the current taken down
+void AdminNotice() {
+    ImGui::Spacing();
+    Dim(Tr(S::NoticeHelp));
+    ImGui::Spacing();
+    if (g.notice_id > 0 && !g.notice_text.empty()) {
+        char b[160];
+        std::snprintf(b, sizeof(b), Tr(S::NoticeCurrent), DateText(g.notice_when).c_str());
+        ImGui::TextColored(Accent(1.3f), "%s", b);
+        ImGui::TextWrapped("%s", g.notice_text.c_str());
+        if (ImGui::SmallButton(Tr(S::NoticeWithdraw))) AdminPost("recado", "{\"texto\":\"\"}");
+    } else {
+        Dim(Tr(S::NoticeNone));
+    }
+    ImGui::Spacing();
+    ImGui::InputTextMultiline("##notice", g.adm_notice, sizeof(g.adm_notice), ImVec2(-1, 160 * g.scale));
+    bool empty = std::string_view(g.adm_notice).find_first_not_of(" \t\r\n") == std::string_view::npos;
+    ImGui::BeginDisabled(empty || g.admin_call.Get() == Call::State::Busy);
+    ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+    if (ImGui::Button(Tr(S::NoticeSend))) ImGui::OpenPopup("notice_confirm");
+    ImGui::PopStyleColor();
+    ImGui::EndDisabled();
+    if (empty) {
+        ImGui::SameLine();
+        Dim(Tr(S::NoticeEmpty));
+    }
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16 * g.scale, 14 * g.scale));
+    if (ImGui::BeginPopup("notice_confirm")) {
+        ImGui::TextUnformatted(Tr(S::NoticeConfirm));
+        ImGui::Spacing();
+        if (ImGui::Button(Tr(S::Yes))) {
+            AdminPost("recado", "{\"texto\":" + Json(g.adm_notice) + "}");
+            g.adm_notice[0] = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Tr(S::Cancel))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar();
+}
+
 void AdminPage() {
     if (Server().empty()) {
         Dim(Tr(S::RequestsOff));
@@ -5937,8 +6030,9 @@ void AdminPage() {
         g.admin_reports_call.Reset();
     }
     if (g.admin_call.Get(&r) == Call::State::Done) {
-        if (!r.Ok()) g.admin_msg = r.error;
+        if (!r.Ok()) g.admin_msg = r.error.empty() ? r.body : r.error;
         g.admin_stale = true;
+        g.notice_checked = 0;  // a notice sent or taken down: looked up again at once
         g.admin_call.Reset();
     }
     // an attachment fetched: into the temporary folder and opened by its program
@@ -5973,17 +6067,24 @@ void AdminPage() {
     std::snprintf(tab_reports, sizeof(tab_reports), "%s (%zu)###adm_reports", Tr(S::RecentReports), g.admin_reports.size());
     std::snprintf(tab_requests, sizeof(tab_requests), "%s (%zu)###adm_requests", Tr(S::AdminRequestsTab), g.admin_ranking.size());
     if (ImGui::BeginTabBar("admin_tabs")) {
-        if (ImGui::BeginTabItem(tab_reports)) {
+        auto pick = [](int tab) { return g.admin_tab_pick == tab ? ImGuiTabItemFlags_SetSelected : 0; };
+        if (ImGui::BeginTabItem(tab_reports, nullptr, pick(0))) {
             g.admin_tab = 0;
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem(tab_requests)) {
+        if (ImGui::BeginTabItem(tab_requests, nullptr, pick(1))) {
             g.admin_tab = 1;
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(Tr(S::AdminNoticeTab), nullptr, pick(2))) {
+            g.admin_tab = 2;
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
     }
-    if (g.admin_tab == 1) AdminRequests();
+    g.admin_tab_pick = -1;
+    if (g.admin_tab == 2) AdminNotice();
+    else if (g.admin_tab == 1) AdminRequests();
     else AdminReports();
 }
 
@@ -6831,6 +6932,8 @@ int main(int argc, char** argv) {
         g.settings_tab = std::atoi(t);
         g.focus_tab = true;
     }
+    // tests: LAUNCHER_ADMIN_TAB=n, the admin page opens on that tab (0 reports, 1 port requests, 2 notice)
+    if (const char* t = SDL_getenv("LAUNCHER_ADMIN_TAB")) g.admin_tab_pick = std::atoi(t);
     if (SDL_getenv("LAUNCHER_AUTOPLAY") && g.cur >= 0) Launch(g.cur);
     // tests: LAUNCHER_FETCH=1 downloads the open game's port
     if (SDL_getenv("LAUNCHER_FETCH") && g.cur >= 0) G().fetcher.Install(G().entry.repo, G().entry.dir);

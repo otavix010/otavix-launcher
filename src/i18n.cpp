@@ -462,6 +462,16 @@ constexpr Row kRows[] = {
     {"Esse arquivo não serve para este jogo.", "That file is not for this game.", "Ese archivo no sirve para este juego."},
     {"Dica: você também pode arrastar o arquivo baixado (.zip, .7z, .rar), a imagem do disco (.iso) ou a pasta do jogo para esta janela.", "Tip: you can also drag the downloaded file (.zip, .7z, .rar), the disc image (.iso) or the game's folder onto this window.", "Consejo: también puedes arrastrar el archivo descargado (.zip, .7z, .rar), la imagen del disco (.iso) o la carpeta del juego a esta ventana."},
     {"Já portado para %s", "Already ported to %s", "Ya portado a %s"},
+    {"Recado do Otavix", "A note from Otavix", "Mensaje de Otavix"},
+    {"Entendi", "Got it", "Entendido"},
+    {"Recado", "Notice", "Mensaje"},
+    {"Um recado para todos os jogadores: aparece uma vez, num pop-up, em cada launcher (ao abrir e, com ele aberto, em até 30 minutos). Um recado novo substitui o anterior.", "A notice for every player: it shows once, in a pop-up, in each launcher (on start and, while it is open, within 30 minutes). A new notice replaces the one before.", "Un mensaje para todos los jugadores: aparece una vez, en una ventana, en cada launcher (al abrirlo y, con él abierto, en hasta 30 minutos). Un mensaje nuevo sustituye al anterior."},
+    {"Recado no ar desde %s:", "Notice up since %s:", "Mensaje publicado desde %s:"},
+    {"Nenhum recado no ar.", "No notice up.", "No hay ningún mensaje publicado."},
+    {"Enviar para todos", "Send to everyone", "Enviar a todos"},
+    {"Enviar este recado para todos os jogadores?", "Send this notice to every player?", "¿Enviar este mensaje a todos los jugadores?"},
+    {"Retirar o recado", "Take the notice down", "Retirar el mensaje"},
+    {"Escreva o recado primeiro.", "Write the notice first.", "Escribe el mensaje primero."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

@@ -32,6 +32,7 @@ async function route(req, env) {
   if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
+  if (req.method === 'GET' && p === '/v1/recado') return recado(env);
   if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
@@ -45,6 +46,7 @@ async function route(req, env) {
     if (req.method === 'POST' && p === '/v1/admin/responder') return responder(req, env);
     if (req.method === 'POST' && p === '/v1/admin/remover') return remover(req, env);
     if (req.method === 'POST' && p === '/v1/admin/portado') return portado(req, env);
+    if (req.method === 'POST' && p === '/v1/admin/recado') return novoRecado(req, env);
   }
   return text(404, 'não encontrado');
 }
@@ -359,6 +361,25 @@ async function respostas(req, env) {
   ).bind(id).all();
   return text(200, rows.results.map((r) =>
     [r.id, r.jogo, r.titulo, r.categoria, r.descricao.slice(0, 200), r.resposta, r.respondido].map(f).join('\t')).join('\n'));
+}
+
+// ------------------------------------------------------------------------------------------------ notice
+
+// the owner's notice to everyone, the newest active one: a line "id<TAB>when", then its text as written (line breaks
+// kept); nothing when there is none
+async function recado(env) {
+  const r = await env.DB.prepare('SELECT id, texto, criado FROM recados WHERE ativo = 1 ORDER BY id DESC LIMIT 1').first();
+  return text(200, r ? r.id + '\t' + r.criado + '\n' + r.texto : '');
+}
+
+// a new notice for every launcher (the ones before it stop showing); an empty text takes the current one back
+async function novoRecado(req, env) {
+  const r = await body(req, 8000);
+  const texto = String(r.texto || '').replace(/\r\n/g, '\n').trim().slice(0, 2000);
+  await env.DB.prepare('UPDATE recados SET ativo = 0 WHERE ativo = 1').run();
+  if (!texto) return text(200, '0');
+  const row = await env.DB.prepare('INSERT INTO recados (texto, criado) VALUES (?, ?) RETURNING id').bind(texto, now()).first();
+  return text(200, String(row.id));
 }
 
 // ------------------------------------------------------------------------------------------------ performance

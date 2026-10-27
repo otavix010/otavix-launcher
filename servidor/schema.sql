@@ -98,3 +98,11 @@ CREATE TABLE IF NOT EXISTS limite (
   n INTEGER NOT NULL,
   PRIMARY KEY (ip, hora)
 );
+
+-- the owner's notice to every launcher (the newest active one), shown once as a pop-up
+CREATE TABLE IF NOT EXISTS recados (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  texto TEXT NOT NULL,
+  criado INTEGER NOT NULL,
+  ativo INTEGER NOT NULL DEFAULT 1
+);

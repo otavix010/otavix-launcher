@@ -41,6 +41,8 @@ enum class S {
     Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
     DropHere, DropOpenGame, DropNotForGame, DropHint,
     PortedOn,
+    NoticeTitle, NoticeOk, AdminNoticeTab, NoticeHelp, NoticeCurrent, NoticeNone, NoticeSend, NoticeConfirm,
+    NoticeWithdraw, NoticeEmpty,
     Count
 };
 
