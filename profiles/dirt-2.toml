@@ -350,6 +350,11 @@ help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores forte
 values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[presets]]
+label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+help = { pt = "Para monitor 1080p: 720p do Xbox 360 ampliado para 1080p com FSR 1 e FXAA, 60 fps. Neste jogo o 2x só segura 60 em GPUs fortes.", en = "For a 1080p monitor: the Xbox 360's 720p brought up to 1080p with FSR 1 and FXAA, 60 fps. In this game 2x only holds 60 on strong GPUs.", es = "Para monitor 1080p: los 720p de Xbox 360 ampliados a 1080p con FSR 1 y FXAA, 60 fps. En este juego el 2x solo aguanta 60 en GPUs potentes." }
+values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 70, swap_post_effect = "fxaa", anisotropic_override = 5 }
+
+[[presets]]
 label = { pt = "4K (60 fps)", en = "4K (60 fps)", es = "4K (60 fps)" }
 help = { pt = "Para monitor 4K: 1440p (2x) com FSR 1, 60 fps. O 4K nativo não segura 60 numa RTX 5080.", en = "For a 4K monitor: 1440p (2x) with FSR 1, 60 fps. Native 4K misses 60 on an RTX 5080.", es = "Para monitor 4K: 1440p (2x) con FSR 1, 60 fps. El 4K nativo no aguanta 60 en una RTX 5080." }
 values = { fps = 60, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }

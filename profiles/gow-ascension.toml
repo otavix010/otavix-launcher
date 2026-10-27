@@ -321,6 +321,11 @@ label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
 help = { pt = "4K: pede processador e placa de vídeo fortes. Num processador mais fraco, só piora.", en = "4K: needs a strong processor and graphics card. On a weaker processor it only gets worse.", es = "4K: pide procesador y tarjeta gráfica potentes. En un procesador más débil solo empeora." }
 values = { GOWA_RES_SCALE = "3" }
 
+[[presets]]
+label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+help = { pt = "Para monitor 1080p: desenha em 1440p e reduz para 1080p (supersampling), 60 fps reais, sem quadros intermediários. Os 60 pedem um processador forte; se não segurar, use o Leve.", en = "For a 1080p monitor: draws at 1440p and brings it down to 1080p (supersampling), real 60 fps, no in-between frames. 60 needs a strong processor; if it doesn't hold, use Light.", es = "Para monitor 1080p: dibuja a 1440p y lo reduce a 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Los 60 piden un procesador potente; si no aguanta, usa Ligero." }
+values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0" }
+
 [[credits]]
 name = "ps3recomp"
 what = { pt = "recompilador estático do PS3", en = "PS3 static recompiler", es = "recompilador estático de PS3" }

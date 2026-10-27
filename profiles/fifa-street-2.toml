@@ -48,6 +48,9 @@ upscaler = "off"
 upscaler_mode = "native"
 render_percent = 100
 anisotropic_filtering = 0
+# 0 x 0 = the monitor's own size (the 1080p preset sets 1920 x 1080)
+width = 0
+height = 0
 vsync = true
 vrr = false
 
@@ -280,6 +283,11 @@ values = { render_percent = 50, fps_cap = 60, frame_interpolation = false, aniso
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
 help = { pt = "Supersampling de 150% (imagem mais lisa), 120 fps e filtro 16x. Para GPUs fortes.", en = "150% supersampling (smoother image), 120 fps and 16x filtering. For strong GPUs.", es = "Supersampling de 150% (imagen más suave), 120 fps y filtro 16x. Para GPUs potentes." }
 values = { render_percent = 150, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, upscaler = "off" }
+
+[[presets]]
+label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+help = { pt = "Desenha em 1080p (1920x1080) com os 60 fps originais e filtro 16x. Num monitor maior, a imagem é ampliada para a tela.", en = "Draws at 1080p (1920x1080) with the original 60 fps and 16x filtering. On a bigger monitor, the picture is scaled up to the screen.", es = "Dibuja a 1080p (1920x1080) con los 60 fps originales y filtro 16x. En un monitor más grande, la imagen se amplía a la pantalla." }
+values = { width = 1920, height = 1080, render_percent = 100, fps_cap = 60, frame_interpolation = false, anisotropic_filtering = 16, upscaler = "off" }
 
 [[credits]]
 name = "Xbox XBE Recomp (TGP482)"

@@ -347,6 +347,11 @@ help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores forte
 values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[presets]]
+label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+help = { pt = "Para monitor 1080p: desenha em 1440p (2x) e reduz para 1080p com CAS, 60 fps. Mais nítido que 1080p nativo; pede uma GPU média (RTX 3060 Ti ou parecida).", en = "For a 1080p monitor: draws at 1440p (2x) and brings it down to 1080p with CAS, 60 fps. Sharper than native 1080p; needs a mid-range GPU (RTX 3060 Ti or similar).", es = "Para monitor 1080p: dibuja a 1440p (2x) y lo reduce a 1080p con CAS, 60 fps. Más nítido que 1080p nativo; pide una GPU media (RTX 3060 Ti o parecida)." }
+values = { fps = 60, resolution_scale = 2, filtro = "cas", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
+
+[[presets]]
 label = { pt = "4K (60 fps)", en = "4K (60 fps)", es = "4K (60 fps)" }
 help = { pt = "Para monitor 4K: 4K nativo (3x), 60 fps. Cravado numa RTX 5080.", en = "For a 4K monitor: native 4K (3x), 60 fps. Steady on an RTX 5080.", es = "Para monitor 4K: 4K nativo (3x), 60 fps. Constante en una RTX 5080." }
 values = { fps = 60, resolution_scale = 3, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
