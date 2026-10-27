@@ -123,6 +123,14 @@ web = [
 # the window's and the desktop shortcut's: the game's tile in the Xbox 360 store
 web = ["http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802434d0819/1033/tile.png"]
 
+# the shaders the community met: the game's shareable cache (<title id>.xsh and .rtv/.rov.d3d12.xpso) is sent when it
+# grows and, before playing, joined with the pack of the port repo's "shaders" release (only into a file whose header
+# is the same, the game closed)
+[shaders]
+kind = "xenia"
+folder = "cache/shaders/shareable"
+files = ["*.xsh", "*.xpso"]
+
 # ------------------------------------------------------------------------------------------------ video
 
 [[options]]
