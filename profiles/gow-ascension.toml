@@ -33,7 +33,8 @@ time = { pt = "Leva de 4 a 20 minutos, conforme o processador, e só uma vez. Pr
 
 [[install.prereqs]]
 name = "Python 3"
-check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\""
+# python, or the py launcher (report 92: Python installed without "Add to PATH"; the generator takes py -3 first)
+check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\" || py -3 -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\""
 install = "(where winget >nul 2>&1 && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements) || (echo Sem o winget: baixando o instalador oficial do python.org... && curl -L --fail -o \"%TEMP%\\python-3.12.10-amd64.exe\" https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe && \"%TEMP%\\python-3.12.10-amd64.exe\" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1)"
 help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
 
@@ -302,3 +303,9 @@ values = { GOWA_RES_SCALE = "3" }
 [[credits]]
 name = "ps3recomp"
 what = { pt = "recompilador estático do PS3", en = "PS3 static recompiler", es = "recompilador estático de PS3" }
+
+# the shader cache, for the community's packs (the release "shaders" of the port's repository)
+[shaders]
+kind = "gowa"
+folder = "cache/rsx_shader_cache_v2"
+files = ["*.bin"]
