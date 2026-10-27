@@ -122,6 +122,15 @@ choices = [
   { value = "--no-ambient", label = { pt = "Pretas", en = "Black", es = "Negras" } },
 ]
 
+[[options]]
+page = "video"
+key = "GOWB_VRR"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "VRR (G-SYNC / FreeSync)", en = "VRR (G-SYNC / FreeSync)", es = "VRR (G-SYNC / FreeSync)" }
+help = { pt = "Ligado, cada quadro do jogo vai para a tela assim que fica pronto: num monitor com G-SYNC ou FreeSync os 25 fps do original passam lisos, sem tremer. Num monitor sem VRR o movimento pode tremer um pouco; aí desligue, e a imagem acompanha a tela (vsync).", en = "On, each of the game's frames goes to the screen as soon as it is ready: on a G-SYNC or FreeSync monitor the original's 25 fps look smooth, without judder. On a monitor without VRR motion may judder a little; then turn it off, and the picture follows the screen (vsync).", es = "Activado, cada fotograma del juego va a la pantalla en cuanto está listo: en un monitor con G-SYNC o FreeSync los 25 fps del original se ven fluidos, sin temblores. En un monitor sin VRR el movimiento puede temblar un poco; entonces desactívalo y la imagen sigue a la pantalla (vsync)." }
+
 # ------------------------------------------------------------------------------------------------ audio
 
 [[options]]

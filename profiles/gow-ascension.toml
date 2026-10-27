@@ -209,16 +209,12 @@ choices = [
 
 [[options]]
 page = "video"
-key = "GOWA_PRESENT_SYNC"
+key = "GOWA_VRR"
 target = "env"
-type = "choice"
-default = "1"
-label = { pt = "V-sync", en = "V-sync", es = "V-sync" }
-help = { pt = "Ligado, cada quadro espera a atualização da tela: sem rasgos, mas quando o jogo fica abaixo da taxa da tela (por exemplo, 20-30 fps numa tela de 75 Hz) os quadros duram tempos desiguais e o movimento dá travadinhas. Desligado, o quadro aparece assim que fica pronto: mais fluido nesses casos, mas a imagem pode rasgar.", en = "On, every frame waits for the screen's refresh: no tearing, but when the game runs below the screen's rate (say 20-30 fps on a 75 Hz screen) frames last uneven times and motion stutters. Off, the frame shows as soon as it is ready: smoother in those cases, but the picture can tear.", es = "Activado, cada fotograma espera la actualización de la pantalla: sin cortes, pero cuando el juego va por debajo de la tasa de la pantalla (por ejemplo, 20-30 fps en una pantalla de 75 Hz) los fotogramas duran tiempos desiguales y el movimiento da tirones. Desactivado, el fotograma aparece en cuanto está listo: más fluido en esos casos, pero la imagen puede cortarse." }
-choices = [
-  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
-  { value = "0", label = { pt = "Desligado (menos travadinhas abaixo da taxa da tela)", en = "Off (less stutter below the screen's rate)", es = "Desactivado (menos tirones por debajo de la tasa de la pantalla)" } },
-]
+type = "toggle"
+default = true
+label = { pt = "VRR (G-SYNC / FreeSync)", en = "VRR (G-SYNC / FreeSync)", es = "VRR (G-SYNC / FreeSync)" }
+help = { pt = "Ligado, cada quadro vai para a tela assim que fica pronto: num monitor com G-SYNC ou FreeSync, uma queda de fps passa suave, sem engasgo. Num monitor sem VRR a imagem pode rasgar (tearing) em movimento; aí desligue, e o jogo espera a tela (vsync). Vale depois de gerar o jogo com a versão de 27/10 ou mais nova.", en = "On, each frame goes to the screen as soon as it is ready: on a G-SYNC or FreeSync monitor, a drop in fps stays smooth, without stutter. On a monitor without VRR the picture may tear in motion; then turn it off, and the game waits for the screen (vsync). Takes effect once the game is generated with the 10/27 version or newer.", es = "Activado, cada fotograma va a la pantalla en cuanto está listo: en un monitor con G-SYNC o FreeSync, una caída de fps se ve suave, sin tirones. En un monitor sin VRR la imagen puede cortarse (tearing) en movimiento; entonces desactívalo y el juego espera a la pantalla (vsync). Vale después de generar el juego con la versión del 27/10 o más nueva." }
 
 [[options]]
 page = "video"

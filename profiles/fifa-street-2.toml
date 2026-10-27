@@ -49,6 +49,7 @@ upscaler_mode = "native"
 render_percent = 100
 anisotropic_filtering = 0
 vsync = true
+vrr = true
 
 # the menus' backgrounds, decoded from the player's own fe.viv
 [art]
@@ -165,11 +166,11 @@ choices = [
 
 [[options]]
 page = "video"
-key = "vsync"
+key = "vrr"
 type = "toggle"
 default = true
-label = { pt = "Sincronização vertical", en = "V-Sync", es = "Sincronización vertical" }
-help = { pt = "Evita o rasgo da imagem. Recomendado ligado.", en = "Prevents screen tearing. Recommended on.", es = "Evita el desgarro de la imagen. Recomendado activado." }
+label = { pt = "VRR (G-SYNC / FreeSync)", en = "VRR (G-SYNC / FreeSync)", es = "VRR (G-SYNC / FreeSync)" }
+help = { pt = "Ligado, cada quadro vai para a tela assim que fica pronto: num monitor com G-SYNC ou FreeSync, uma queda de fps passa suave, sem engasgo. Num monitor sem VRR a imagem pode rasgar (tearing) em movimento; aí desligue, e o jogo espera a tela (vsync).", en = "On, each frame goes to the screen as soon as it is ready: on a G-SYNC or FreeSync monitor, a drop in fps stays smooth, without stutter. On a monitor without VRR the picture may tear in motion; then turn it off, and the game waits for the screen (vsync).", es = "Activado, cada fotograma va a la pantalla en cuanto está listo: en un monitor con G-SYNC o FreeSync, una caída de fps se ve suave, sin tirones. En un monitor sin VRR la imagen puede cortarse (tearing) en movimiento; entonces desactívalo y el juego espera a la pantalla (vsync)." }
 
 [[options]]
 page = "graphics"
@@ -267,17 +268,17 @@ help = { pt = "A pasta com o default.xbe e a pasta data, ou a imagem .iso do dis
 [[presets]]
 label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
 help = { pt = "Recomendado. Resolução nativa do monitor, 120 fps com quadros intermediários e filtro 16x.", en = "Recommended. The monitor's native resolution, 120 fps with in-between frames and 16x filtering.", es = "Recomendado. Resolución nativa del monitor, 120 fps con fotogramas intermedios y filtro 16x." }
-values = { render_percent = 100, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, vsync = true, upscaler = "off" }
+values = { render_percent = 100, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, upscaler = "off" }
 
 [[presets]]
 label = { pt = "Leve", en = "Light", es = "Ligero" }
 help = { pt = "Para GPUs de entrada e notebooks: metade da resolução interna e 60 fps originais.", en = "For entry GPUs and laptops: half the internal resolution and the original 60 fps.", es = "Para GPUs de entrada y portátiles: mitad de la resolución interna y los 60 fps originales." }
-values = { render_percent = 50, fps_cap = 60, frame_interpolation = false, anisotropic_filtering = 4, vsync = true, upscaler = "off" }
+values = { render_percent = 50, fps_cap = 60, frame_interpolation = false, anisotropic_filtering = 4, upscaler = "off" }
 
 [[presets]]
 label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
 help = { pt = "Supersampling de 150% (imagem mais lisa), 120 fps e filtro 16x. Para GPUs fortes.", en = "150% supersampling (smoother image), 120 fps and 16x filtering. For strong GPUs.", es = "Supersampling de 150% (imagen más suave), 120 fps y filtro 16x. Para GPUs potentes." }
-values = { render_percent = 150, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, vsync = true, upscaler = "off" }
+values = { render_percent = 150, fps_cap = 60, frame_interpolation = true, anisotropic_filtering = 16, upscaler = "off" }
 
 [[credits]]
 name = "Xbox XBE Recomp (TGP482)"
