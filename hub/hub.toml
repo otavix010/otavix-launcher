@@ -302,3 +302,83 @@ repo = "otavix010/onimusha-3-pc"
 branch = "main"
 
 platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "god-of-war"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/god-of-war"
+
+profile = "perfis/god-of-war.toml"
+
+repo = "otavix010/god-of-war-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "god-of-war-2"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/god-of-war-2"
+
+profile = "perfis/god-of-war-2.toml"
+
+repo = "otavix010/god-of-war-2-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "castlevania-lament-of-innocence"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/castlevania-lament-of-innocence"
+
+profile = "perfis/castlevania-lament-of-innocence.toml"
+
+repo = "otavix010/castlevania-lament-of-innocence-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "castlevania-curse-of-darkness"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/castlevania-curse-of-darkness"
+
+profile = "perfis/castlevania-curse-of-darkness.toml"
+
+repo = "otavix010/castlevania-curse-of-darkness-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+
+id = "blade-2"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/blade-2"
+
+profile = "perfis/blade-2.toml"
+
+repo = "otavix010/blade-2-pc"
+
+branch = "main"
+
+platforms = { windows = "wip", linux = "soon" }
