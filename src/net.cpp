@@ -150,6 +150,40 @@ HttpResult GitHubApi(const std::string& path) {
     return HttpRequest("GET", "https://api.github.com/" + path, accept, "");
 }
 
+std::vector<std::string> PictureMirrors(const std::string& url) {
+    const std::string kLibretro = "https://thumbnails.libretro.com/";
+    if (url.rfind(kLibretro, 0) != 0) return {url};
+    // "<System>/<kind>/<name>.png": the system's repository is its name with "_" for the spaces
+    std::string rest = url.substr(kLibretro.size());
+    size_t slash = rest.find('/');
+    if (slash == std::string::npos) return {url};
+    std::string repo;
+    for (size_t i = 0; i < slash; i++) {
+        if (rest.compare(i, 3, "%20") == 0) repo += '_', i += 2;
+        else repo += rest[i] == ' ' ? '_' : rest[i];
+    }
+    return {"https://raw.githubusercontent.com/libretro-thumbnails/" + repo + "/master" + rest.substr(slash), url};
+}
+
+bool DownloadPicture(const std::string& url, const fs::path& file, int* status) {
+    for (const std::string& u : PictureMirrors(url)) {
+        HttpResult r = HttpRequest("GET", u, {}, "");
+        if (status) *status = r.status;
+        if (!r.Ok() || r.body.empty()) continue;
+        fs::path part = file;
+        part += ".part";
+        {
+            std::ofstream out(part, std::ios::binary);
+            out.write(r.body.data(), std::streamsize(r.body.size()));
+            if (!out) continue;
+        }
+        std::error_code ec;
+        fs::rename(part, file, ec);
+        if (!ec) return true;
+    }
+    return false;
+}
+
 std::string Json(const std::string& s) {
     std::string o = "\"";
     for (unsigned char c : s) {

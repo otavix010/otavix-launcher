@@ -389,19 +389,7 @@ std::vector<ArtImage> LoadWebArt(const ArtSpec& spec, const fs::path& cache) {
         const std::string& url = spec.web[i];
         std::string ext = Lower(url.substr(url.size() > 4 ? url.size() - 4 : 0));
         fs::path file = cache / ("web" + std::to_string(i) + (ext == ".png" ? ".png" : ".jpg"));
-        if (!fs::is_regular_file(file, ec)) {
-            std::atomic<bool> cancel = false;
-            uint64_t done = 0;
-            std::mutex m;
-            std::string sha, error;
-            fs::path part = file;
-            part += ".part";
-            if (!DownloadFile(url, part, cancel, done, m, sha, error)) {
-                fs::remove(part, ec);
-                continue;
-            }
-            fs::rename(part, file, ec);
-        }
+        if (!fs::is_regular_file(file, ec) && !DownloadPicture(url, file)) continue;
         ArtImage img;
         if (ReadImageFile(file, img)) out.push_back(std::move(img));
     }

@@ -5282,6 +5282,50 @@ void CoverBox(const std::string& console, const std::string& cover, float h) {
     ImGui::Dummy(ImVec2(w, h));
 }
 
+// a game's box art, as console and cover reference: its own; when it has none (a name typed in) or no source has it,
+// the catalog's game of that name (spaces aside: "10000BULLETS" is "10.000 Bullets") or of that name without its
+// subtitle ("Dante's Inferno - Gates of Hell", a demo GameTDB has no cover for, is "Dante's Inferno"); last, the same
+// name's box art on another console (PS3's "Castlevania Chronicles", a PSN classic, shows the PlayStation one)
+struct CoverRef {
+    std::string console, cover;
+};
+
+CoverRef BestCover(const std::string& console, const std::string& name, const std::string& cover) {
+    if (!cover.empty() && !g.covers.Failed(console, cover)) return {console, cover};
+    static std::map<std::string, CoverRef> found;  // console/name/cover → what stands in, cover empty when nothing
+    const std::string id = console + "/" + name + "/" + cover;
+    if (auto it = found.find(id); it != found.end()) return it->second.cover.empty() ? CoverRef{console, cover} : it->second;
+    auto bare = [](std::string k) {
+        k.erase(std::remove(k.begin(), k.end(), ' '), k.end());
+        return k;
+    };
+    const std::string want = bare(SearchKey(name));
+    std::string base = want;
+    size_t cut = std::min(name.find(':'), name.find(" - "));
+    if (cut != std::string::npos && cut > 0) base = bare(SearchKey(name.substr(0, cut)));
+    CoverRef pick;
+    for (const CatalogGame& cg : g.catalogs.Of(console)) {
+        if (cg.cover.empty() || cg.cover == cover || g.covers.Failed(console, cg.cover)) continue;
+        const std::string k = bare(cg.key);
+        if (k == want) {
+            pick = {console, cg.cover};
+            break;
+        }
+        if (pick.cover.empty() && k == base) pick = {console, cg.cover};
+    }
+    for (const ConsoleName& c : Consoles()) {
+        if (!pick.cover.empty()) break;
+        if (c.id == console) continue;
+        for (const CatalogGame& cg : g.catalogs.Of(c.id))
+            if (!cg.cover.empty() && bare(cg.key) == want && !g.covers.Failed(c.id, cg.cover)) {
+                pick = {c.id, cg.cover};
+                break;
+            }
+    }
+    found[id] = pick;
+    return pick.cover.empty() ? CoverRef{console, cover} : pick;
+}
+
 // beside a request's name: the owner marked the game as ported
 void PortedBadge() {
     ImGui::SameLine();
@@ -5539,7 +5583,8 @@ void RequestsPage() {
             ImGui::AlignTextToFramePadding();
             ImGui::TextDisabled("%zu", i + 1);
             ImGui::TableNextColumn();
-            CoverBox(Str(row, 0), Str(row, 4), row_h);
+            CoverRef cr = BestCover(Str(row, 0), Str(row, 2), Str(row, 4));
+            CoverBox(cr.console, cr.cover, row_h);
             ImGui::TableNextColumn();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + mid);
             ImGui::AlignTextToFramePadding();
@@ -5743,7 +5788,8 @@ void CatalogTile(const std::string& console, const CatalogGame& cg, ImVec2 size,
     dl->AddRectFilled(at, a1, IM_COL32(32, 32, 38, 235), r);
     float aspect = 0.72f;
     // greyed and a little dark; in colour, still a little dark under the request, when lit
-    if (SDL_Texture* t = g.covers.Get(console, cg.cover, &aspect, !hot)) {
+    CoverRef cr = BestCover(console, cg.name, cg.cover);
+    if (SDL_Texture* t = g.covers.Get(cr.console, cr.cover, &aspect, !hot)) {
         float iw = size.x, ih = size.x / aspect;
         if (ih > art_h) ih = art_h, iw = art_h * aspect;
         ImVec2 o(at.x + (size.x - iw) * 0.5f, at.y + (art_h - ih) * 0.5f), o1(o.x + iw, o.y + ih);

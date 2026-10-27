@@ -50,6 +50,12 @@ std::string Json(const std::string& s);
 bool DownloadFile(const std::string& url, const std::filesystem::path& file, std::atomic<bool>& cancel, uint64_t& done,
                   std::mutex& m, std::string& sha256, std::string& error);
 
+// a public picture's addresses, the fastest first: libretro's thumbnails also come from their repositories on GitHub,
+// whose CDN answers several times sooner (0.3 s against 2 s a box art, measured 27/10/2026); the address given last
+std::vector<std::string> PictureMirrors(const std::string& url);
+// a public picture downloaded into a file, trying its mirrors in turn; status: the last answer's (404: none has it)
+bool DownloadPicture(const std::string& url, const std::filesystem::path& file, int* status = nullptr);
+
 // a file's SHA-1 (hex); empty when it cannot be read
 std::string FileSha1(const std::filesystem::path& file);
 

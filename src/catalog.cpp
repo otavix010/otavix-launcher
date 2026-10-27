@@ -51,11 +51,22 @@ std::string UrlPart(const std::string& s) {
     return o;
 }
 
-std::string CoverUrl(const std::string& console, const std::string& cover) {
-    if (cover.rfind("gametdb:", 0) == 0) return "https://art.gametdb.com/ps3/coverM/" + cover.substr(8) + ".jpg";
+// a box art's addresses, in turn: GameTDB's under the expected language, then under the others (it keeps a cover under
+// its language only); libretro's from their GitHub mirror, then from their own server
+std::vector<std::string> CoverUrls(const std::string& console, const std::string& cover) {
+    if (cover.rfind("gametdb:", 0) == 0) {
+        std::string ref = cover.substr(8);  // "<region>/<id>"
+        size_t slash = ref.find('/');
+        if (slash == std::string::npos) return {};
+        std::vector<std::string> urls{"https://art.gametdb.com/ps3/coverM/" + ref + ".jpg"};
+        for (const char* reg : {"US", "EN", "JA", "DE", "FR", "ES", "IT", "KO"})
+            if (ref.compare(0, slash, reg) != 0)
+                urls.push_back(std::string("https://art.gametdb.com/ps3/coverM/") + reg + ref.substr(slash) + ".jpg");
+        return urls;
+    }
     auto it = LibretroSystems().find(console);
     if (it == LibretroSystems().end()) return {};
-    return "https://thumbnails.libretro.com/" + UrlPart(it->second) + "/Named_Boxarts/" + UrlPart(cover) + ".png";
+    return PictureMirrors("https://thumbnails.libretro.com/" + UrlPart(it->second) + "/Named_Boxarts/" + UrlPart(cover) + ".png");
 }
 
 std::string FileId(const std::string& id) {
@@ -163,12 +174,17 @@ SDL_Texture* Covers::Get(const std::string& console, const std::string& cover, f
         return gray ? it->second.gray : it->second.color;
     }
     std::lock_guard lock(m_);
+    if (failed_.count(id)) return nullptr;
+    if (auto r = retry_.find(id); r != retry_.end() && SDL_GetTicks() < r->second.second) return nullptr;
     if (!asked_.insert(id).second) return nullptr;
-    std::string url = CoverUrl(console, cover);
-    if (url.empty()) return nullptr;
-    queue_.push_back({id, url});
-    // four at a time
-    if (workers_ < 4) {
+    std::vector<std::string> urls = CoverUrls(console, cover);
+    if (urls.empty()) {
+        failed_.insert(id);
+        return nullptr;
+    }
+    queue_.push_back({id, std::move(urls)});
+    // eight at a time
+    if (workers_ < 8) {
         workers_++;
         std::thread([this] { Worker(); }).detach();
     }
@@ -177,7 +193,7 @@ SDL_Texture* Covers::Get(const std::string& console, const std::string& cover, f
 
 void Covers::Worker() {
     for (;;) {
-        std::pair<std::string, std::string> job;
+        Job job;
         {
             std::lock_guard lock(m_);
             if (queue_.empty() || closing_) {
@@ -185,33 +201,49 @@ void Covers::Worker() {
                 return;
             }
             // the newest first: what the player just typed
-            job = queue_.back();
+            job = std::move(queue_.back());
             queue_.pop_back();
         }
-        fs::path file = cache_ / FileId(job.first);
+        // a fetch that did not come: none of the sources has it (each answered 404), or else it is tried again in
+        // 15, 30 s; three times, then given up for this run
+        auto fail = [&](bool missing) {
+            std::lock_guard lock(m_);
+            asked_.erase(job.id);
+            auto& r = retry_[job.id];
+            if (missing || ++r.first >= 3) failed_.insert(job.id);
+            else r.second = SDL_GetTicks() + 15000ull * uint64_t(r.first);
+        };
+        fs::path file = cache_ / FileId(job.id);
         std::vector<uint8_t> bytes;
         std::error_code ec;
         if (fs::is_regular_file(file, ec)) {
             std::ifstream in(file, std::ios::binary);
             bytes.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
         } else {
-            HttpResult r = HttpRequest("GET", job.second, {}, "");
-            // GameTDB keeps a cover under its language: the others when the expected one has none
-            size_t at = job.second.find("/coverM/");
-            for (const char* reg : {"US", "EN", "JA", "DE", "FR", "ES", "IT", "KO"}) {
-                if (r.Ok() || at == std::string::npos) break;
-                std::string alt = job.second.substr(0, at + 8) + reg + job.second.substr(job.second.find('/', at + 8));
-                if (alt != job.second) r = HttpRequest("GET", alt, {}, "");
+            bool missing = true;
+            for (const std::string& url : job.urls) {
+                HttpResult r = HttpRequest("GET", url, {}, "");
+                if (r.Ok() && !r.body.empty()) {
+                    bytes.assign(r.body.begin(), r.body.end());
+                    break;
+                }
+                if (r.status != 404) missing = false;
             }
-            if (!r.Ok() || r.body.empty()) continue;
-            bytes.assign(r.body.begin(), r.body.end());
-            std::ofstream(file, std::ios::binary).write(r.body.data(), std::streamsize(r.body.size()));
+            if (bytes.empty()) {
+                fail(missing);
+                continue;
+            }
+            std::ofstream(file, std::ios::binary).write(reinterpret_cast<const char*>(bytes.data()), std::streamsize(bytes.size()));
         }
         int w, h, n;
         uint8_t* px = stbi_load_from_memory(bytes.data(), int(bytes.size()), &w, &h, &n, 4);
-        if (!px) continue;
+        if (!px) {
+            fs::remove(file, ec);  // a broken file kept from before, or a page that is no picture: fetched again later
+            fail(false);
+            continue;
+        }
         Decoded d;
-        d.id = job.first;
+        d.id = job.id;
         d.w = w;
         d.h = h;
         d.rgba.assign(px, px + size_t(w) * size_t(h) * 4);
@@ -232,6 +264,11 @@ void Covers::Worker() {
         std::lock_guard lock(m_);
         done_.push_back(std::move(d));
     }
+}
+
+bool Covers::Failed(const std::string& console, const std::string& cover) {
+    std::lock_guard lock(m_);
+    return failed_.count(console + "/" + cover) != 0;
 }
 
 void Covers::Take() {

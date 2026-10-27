@@ -293,19 +293,7 @@ void GameIcon::Load(const IconSpec& spec, const fs::path& game, const std::vecto
             std::error_code ec;
             fs::create_directories(cache, ec);
             fs::path file = cache / ("icone-web" + std::to_string(i) + ".img");
-            if (!fs::is_regular_file(file, ec)) {
-                std::atomic<bool> cancel = false;
-                uint64_t done = 0;
-                std::mutex m;
-                std::string sha, error;
-                fs::path part = file;
-                part += ".part";
-                if (!DownloadFile(spec.web[i], part, cancel, done, m, sha, error)) {
-                    fs::remove(part, ec);
-                    continue;
-                }
-                fs::rename(part, file, ec);
-            }
+            if (!fs::is_regular_file(file, ec) && !DownloadPicture(spec.web[i], file)) continue;
             got = ReadImageFile(file, img);
         }
         if (!got || img.w <= 0 || img.h <= 0) return;

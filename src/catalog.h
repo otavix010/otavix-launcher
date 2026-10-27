@@ -37,11 +37,13 @@ private:
 };
 
 // box art by console and cover reference: a texture once fetched and decoded, else nullptr (and the fetch starts);
-// gray, the same box art in shades of grey
+// gray, the same box art in shades of grey. A fetch that fails on the way is tried again a little later, three times
 class Covers {
 public:
     void Open(SDL_Renderer* ren, const fs::path& cache);
     SDL_Texture* Get(const std::string& console, const std::string& cover, float* aspect = nullptr, bool gray = false);
+    // no source has that box art (or it never came in three tries): the caller may try another reference
+    bool Failed(const std::string& console, const std::string& cover);
     void Take();  // decoded pictures into textures; on the main thread, once a frame
     void Close();
 
@@ -62,9 +64,14 @@ private:
     SDL_Renderer* ren_ = nullptr;
     fs::path cache_;
     std::mutex m_;
-    std::vector<std::pair<std::string, std::string>> queue_;  // id, url
+    struct Job {
+        std::string id;
+        std::vector<std::string> urls;  // in turn, until one answers
+    };
+    std::vector<Job> queue_;
     std::vector<Decoded> done_;
-    std::set<std::string> asked_;
+    std::set<std::string> asked_, failed_;
+    std::map<std::string, std::pair<int, uint64_t>> retry_;  // a fetch that failed on the way: tries, when to try again
     std::map<std::string, Textures> tex_;
     int workers_ = 0;
     bool closing_ = false;
