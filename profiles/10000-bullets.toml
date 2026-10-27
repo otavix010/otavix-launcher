@@ -43,14 +43,14 @@ time = { pt = "Leva de alguns minutos a meia hora, conforme o processador, e só
 [[install.prereqs]]
 name = "Python 3.11"
 check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)\""
-install = "winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements"
+install = "(where winget >nul 2>&1 && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements) || (echo Sem o winget: baixando o instalador oficial do python.org... && curl -L --fail -o \"%TEMP%\\python-3.12.10-amd64.exe\" https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe && \"%TEMP%\\python-3.12.10-amd64.exe\" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1)"
 help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
 
 [[install.prereqs]]
 name = "Visual Studio Build Tools (C++ e CMake)"
 check = "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 Microsoft.VisualStudio.Component.VC.CMake.Project -property installationPath"
 output = true
-install = "winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\""
+install = "(where winget >nul 2>&1 && winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\") || (echo Sem o winget: baixando o instalador oficial da Microsoft... && curl -L --fail -o \"%TEMP%\\vs_BuildTools.exe\" https://aka.ms/vs/17/release/vs_BuildTools.exe && \"%TEMP%\\vs_BuildTools.exe\" --passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended)"
 help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado sem o CMake: abra o Visual Studio Installer, clique em Modificar e marque \"C++ CMake tools\".", en = "It compiles the game (about 6 GB). If Build Tools is installed without CMake: open the Visual Studio Installer, click Modify and tick \"C++ CMake tools\".", es = "Compila el juego (unos 6 GB). Si Build Tools ya está instalado sin CMake: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ CMake tools\"." }
 
 [[install.inputs]]

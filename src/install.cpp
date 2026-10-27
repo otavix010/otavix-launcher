@@ -114,6 +114,73 @@ std::string Tar() {
 #endif
 }
 
+// a program's output with its errors in it, and how it ended (-1: it did not start)
+std::string RunOutput(const std::vector<std::string>& args, int& code) {
+    std::vector<const char*> argv;
+    for (const std::string& a : args) argv.push_back(a.c_str());
+    argv.push_back(nullptr);
+    SDL_PropertiesID props = SDL_CreateProperties();
+    SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
+    SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_APP);
+    SDL_SetBooleanProperty(props, SDL_PROP_PROCESS_CREATE_STDERR_TO_STDOUT_BOOLEAN, true);
+    SDL_Process* p = SDL_CreateProcessWithProperties(props);
+    SDL_DestroyProperties(props);
+    code = -1;
+    if (!p) return {};
+    size_t got = 0;
+    char* out = static_cast<char*>(SDL_ReadProcess(p, &got, &code));
+    SDL_DestroyProcess(p);
+    std::string text = out ? std::string(out, got) : std::string();
+    SDL_free(out);
+    return text;
+}
+
+// the last line with something in it
+std::string LastLine(const std::string& text) {
+    std::string last, line;
+    std::istringstream in(text);
+    while (std::getline(in, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        if (!line.empty()) last = line;
+    }
+    return last;
+}
+
+#ifdef _WIN32
+// a PowerShell single-quoted string
+std::string PsQuote(const std::string& s) {
+    std::string o = "'";
+    for (char c : s) o += c == '\'' ? std::string("''") : std::string(1, c);
+    return o + "'";
+}
+
+std::string PowerShell() {
+    const char* root = SDL_getenv("SystemRoot");
+    return std::string(root ? root : "C:\\Windows") + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+}
+
+// a disc image mounted by Windows itself, read-only (it reads ISO 9660 and UDF images that tar does not): its root,
+// such as "E:\", empty when it does not mount. An image the player had mounted already is used as it is
+std::string MountImage(const fs::path& image, bool& ours) {
+    std::string img = PsQuote(U8(image));
+    std::string script = "$ErrorActionPreference='Stop'; $i=Get-DiskImage -ImagePath " + img + "; $ours=$false; " +
+                         "if (-not $i.Attached) { $i=Mount-DiskImage -ImagePath " + img + " -Access ReadOnly -PassThru; $ours=$true }; " +
+                         "$l=$null; for ($n=0; $n -lt 40 -and -not $l; $n++) { $l=($i | Get-Volume).DriveLetter; " +
+                         "if (-not $l) { Start-Sleep -Milliseconds 250 } }; if ($l) { $l + ':' + $ours }";
+    int code = 0;
+    std::string out = LastLine(RunOutput({PowerShell(), "-NoProfile", "-NonInteractive", "-Command", script}, code));
+    ours = out.size() > 2 && out.substr(2) == "True";
+    if (code != 0 || out.size() < 2 || out[1] != ':' || !std::isalpha(static_cast<unsigned char>(out[0]))) return {};
+    return out.substr(0, 1) + ":\\";
+}
+
+void UnmountImage(const fs::path& image) {
+    int code = 0;
+    RunOutput({PowerShell(), "-NoProfile", "-NonInteractive", "-Command",
+               "Dismount-DiskImage -ImagePath " + PsQuote(U8(image)) + " | Out-Null"}, code);
+}
+#endif
+
 // disc images and game folders under a folder: an image, else a folder holding the profile's file
 std::vector<fs::path> Candidates(const fs::path& dir, const InstallSpec& spec) {
     std::vector<fs::path> out;
@@ -194,12 +261,12 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         std::string tar = Tar();
         std::string src = U8(source);
         const char* list_args[] = {tar.c_str(), "-tvf", src.c_str(), nullptr};
-        SDL_Process* p = SDL_CreateProcess(list_args, true);
-        if (!p) return fail("tar");
+        SDL_Process* lp = SDL_CreateProcess(list_args, true);
+        if (!lp) return fail("tar");
         size_t got = 0;
         int code = -1;
-        char* out = static_cast<char*>(SDL_ReadProcess(p, &got, &code));
-        SDL_DestroyProcess(p);
+        char* out = static_cast<char*>(SDL_ReadProcess(lp, &got, &code));
+        SDL_DestroyProcess(lp);
         uint64_t total = 0;
         if (out) {
             std::istringstream lines(std::string(out, got));
@@ -212,10 +279,37 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
                 if (!mode.empty() && mode[0] == '-') total += std::strtoull(size.c_str(), nullptr, 10);
             }
         }
-        if (code != 0 || !total) return fail("arquivo compactado ilegível");
+        // a disc image tar does not read (report 84: a PS3 .iso): Windows mounts it and its files are copied out;
+        // else tar's own words go in the message
+        std::string mounted;
+        bool mounted_here = false;
+        // tests: LAUNCHER_ISO_MOUNT=1, a disc image goes the mounted way even when tar reads it
+        bool force_mount = SDL_getenv("LAUNCHER_ISO_MOUNT") && IsDiscImage(source);
+        if (code != 0 || !total || force_mount) {
+#ifdef _WIN32
+            if (IsDiscImage(source)) mounted = MountImage(source, mounted_here);
+#endif
+            if (mounted.empty()) {
+                // tar's own words, from listing it again with its errors kept
+                int again = 0;
+                std::string why = code != 0 ? LastLine(RunOutput({tar, "-tvf", src}, again)) : std::string();
+                return fail(why.empty() ? std::string("arquivo compactado ilegível") : "arquivo compactado ilegível (" + why + ")");
+            }
+            total = FolderBytes(FromU8(mounted));
+        }
+        auto unmount = [&] {
+#ifdef _WIN32
+            if (mounted_here) UnmountImage(source);
+#endif
+        };
+        if (!total) {
+            unmount();
+            return fail("a imagem do disco está vazia");
+        }
         fs::create_directories(dest, ec);
         auto space = fs::space(dest, ec);
         if (!ec && space.available < total + (512ull << 20)) {
+            unmount();
             char b[96];
             std::snprintf(b, sizeof(b), "espaço: precisa de %.1f GB livres", double(total + (512ull << 20)) / (1u << 30));
             return fail(b);
@@ -231,15 +325,23 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         fs::remove_all(work, ec);
         fs::create_directories(work, ec);
         std::string to = U8(work);
+        // robocopy's codes below 8 are success (1: files copied)
+        std::string robocopy = std::string(SDL_getenv("SystemRoot") ? SDL_getenv("SystemRoot") : "C:\\Windows") + "\\System32\\robocopy.exe";
         const char* x_args[] = {tar.c_str(), "-xf", src.c_str(), "-C", to.c_str(), nullptr};
-        p = SDL_CreateProcess(x_args, false);
-        if (!p) return fail("tar");
+        const char* copy_args[] = {robocopy.c_str(), mounted.c_str(), to.c_str(), "/E", "/R:1", "/W:1", "/NFL", "/NDL",
+                                   "/NJH", "/NJS", "/NP", nullptr};
+        SDL_Process* p = SDL_CreateProcess(mounted.empty() ? x_args : copy_args, false);
+        if (!p) {
+            unmount();
+            return fail(mounted.empty() ? "tar" : "robocopy");
+        }
         // the progress is what has landed so far
         while (!SDL_WaitProcess(p, false, &code)) {
             if (cancel_) {
                 SDL_KillProcess(p, true);
                 SDL_WaitProcess(p, true, &code);
                 SDL_DestroyProcess(p);
+                unmount();
                 fs::remove_all(work, ec);
                 return fail("cancelado");
             }
@@ -249,9 +351,12 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
             st_.progress = std::min(done, 0.999f);
         }
         SDL_DestroyProcess(p);
+        unmount();
+        if (!mounted.empty()) code = code < 8 ? 0 : code;
         if (code != 0) {
             fs::remove_all(work, ec);
-            return fail("falha ao descompactar (tar " + std::to_string(code) + ")");
+            return fail((mounted.empty() ? "falha ao descompactar (tar " : "falha ao copiar a imagem montada (robocopy ") +
+                        std::to_string(code) + ")");
         }
         search = work;
     }

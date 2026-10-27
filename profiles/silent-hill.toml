@@ -89,7 +89,7 @@ time = { pt = "Leva de 2 a 10 minutos, conforme o processador, e só uma vez. Ba
 [[install.prereqs]]
 name = "Python 3"
 check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)\""
-install = "winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements"
+install = "(where winget >nul 2>&1 && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements) || (echo Sem o winget: baixando o instalador oficial do python.org... && curl -L --fail -o \"%TEMP%\\python-3.12.10-amd64.exe\" https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe && \"%TEMP%\\python-3.12.10-amd64.exe\" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1)"
 help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
 
 [[install.inputs]]
