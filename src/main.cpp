@@ -10,9 +10,11 @@
 #include <cstring>
 #include <cwctype>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <random>
 #include <set>
 #include <string>
@@ -4834,6 +4836,33 @@ void SubHeading(const char* text) {
 }
 
 // a game's performance: this computer, its sessions here, and how it ran for those who share theirs
+// a sortable table's rows in the order its header asks: a click sorts up, the next down, the third goes back to the
+// original order. cmp(a, b, column) < 0 puts row a first going up
+std::vector<size_t> TableOrder(size_t n, const std::function<int(size_t, size_t, int)>& cmp) {
+    std::vector<size_t> order(n);
+    std::iota(order.begin(), order.end(), size_t(0));
+    const ImGuiTableSortSpecs* specs = ImGui::TableGetSortSpecs();
+    if (specs && specs->SpecsCount > 0 && specs->Specs[0].SortDirection != ImGuiSortDirection_None) {
+        const ImGuiTableColumnSortSpecs& sp = specs->Specs[0];
+        bool up = sp.SortDirection == ImGuiSortDirection_Ascending;
+        std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+            int c = cmp(a, b, sp.ColumnIndex);
+            return up ? c < 0 : c > 0;
+        });
+    }
+    return order;
+}
+
+int CompareNum(double a, double b) { return a < b ? -1 : a > b ? 1 : 0; }
+
+int CompareText(const std::string& a, const std::string& b) {
+    auto lower = [](std::string s) {
+        for (char& ch : s) ch = char(std::tolower(static_cast<unsigned char>(ch)));
+        return s;
+    };
+    return lower(a).compare(lower(b));
+}
+
 void PerfPage() {
     Game& gm = G();
     Heading(Tr(S::Perf));
@@ -4859,15 +4888,30 @@ void PerfPage() {
         mine_game = gm.entry.id;
         mine_at = SDL_GetTicks();
     }
-    ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+    // a header clicked sorts by it (up, down, back to the original order); the order is not kept between runs
+    ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX |
+                            ImGuiTableFlags_Sortable | ImGuiTableFlags_SortTristate | ImGuiTableFlags_NoSavedSettings;
     if (mine.empty()) {
         Dim(Tr(S::PerfNone));
     } else if (ImGui::BeginTable("mine", 6, flags)) {
         for (S h : {S::PerfDate, S::Minutes, S::PerfAvg, S::PerfLow, S::PerfMin, S::PerfOptions})
             ImGui::TableSetupColumn(Tr(h));
         ImGui::TableHeadersRow();
-        for (size_t k = 0; k < mine.size() && k < 20; k++) {
-            const Session& s = mine[mine.size() - 1 - k];
+        // the newest 20, newest first
+        auto at = [&](size_t k) -> const Session& { return mine[mine.size() - 1 - k]; };
+        auto order = TableOrder(std::min<size_t>(mine.size(), 20), [&](size_t a, size_t b, int col) {
+            const Session &x = at(a), &y = at(b);
+            switch (col) {
+                case 0: return CompareNum(double(x.when), double(y.when));
+                case 1: return CompareNum(x.minutes, y.minutes);
+                case 2: return CompareNum(x.fps_avg, y.fps_avg);
+                case 3: return CompareNum(x.fps_p1, y.fps_p1);
+                case 4: return CompareNum(x.fps_min, y.fps_min);
+                default: return CompareText(SummaryText(gm, SummaryOf(x.options)), SummaryText(gm, SummaryOf(y.options)));
+            }
+        });
+        for (size_t k : order) {
+            const Session& s = at(k);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(DateText(s.when).c_str());
@@ -4911,7 +4955,20 @@ void PerfPage() {
         for (S h : {S::PerfGpu, S::PerfCpu, S::PerfOptions, S::PerfSessions, S::PerfAvg, S::PerfLow, S::PerfMin})
             ImGui::TableSetupColumn(Tr(h));
         ImGui::TableHeadersRow();
-        for (const auto& row : g.perf_rows) {  // gpu, cpu, summary, sessions, computers, fps avg, 1%, min
+        // gpu, cpu, summary, sessions, computers, fps avg, 1%, min; the columns show 0-3 and 5-7
+        auto num = [](const std::vector<std::string>& row, size_t i) { return std::strtod(Str(row, i).c_str(), nullptr); };
+        auto order = TableOrder(g.perf_rows.size(), [&](size_t a, size_t b, int col) {
+            const auto &x = g.perf_rows[a], &y = g.perf_rows[b];
+            switch (col) {
+                case 0: return CompareText(Str(x, 0), Str(y, 0));
+                case 1: return CompareText(Str(x, 1), Str(y, 1));
+                case 2: return CompareText(SummaryText(gm, Str(x, 2)), SummaryText(gm, Str(y, 2)));
+                case 3: return CompareNum(num(x, 3), num(y, 3));
+                default: return CompareNum(num(x, size_t(col) + 1), num(y, size_t(col) + 1));
+            }
+        });
+        for (size_t i : order) {
+            const auto& row = g.perf_rows[i];
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(Str(row, 0).c_str());
