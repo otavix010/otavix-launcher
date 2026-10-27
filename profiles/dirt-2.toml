@@ -194,7 +194,7 @@ key = "resolution_scale"
 type = "choice"
 default = 2
 label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
-help = { pt = "O Xbox 360 desenha o jogo em 720p. Aqui ele pode desenhar em 2x ou 3x isso: a imagem fica bem mais nítida e pede mais da placa de vídeo.", en = "The Xbox 360 draws the game at 720p. Here it can draw at 2x or 3x that: a much sharper picture that asks more of the graphics card.", es = "La Xbox 360 dibuja el juego a 720p. Aquí puede dibujarlo a 2x o 3x eso: la imagen queda mucho más nítida y exige más a la tarjeta gráfica." }
+help = { pt = "O Xbox 360 desenha o jogo em 720p. Aqui ele pode desenhar em 2x ou 3x isso: a imagem fica bem mais nítida e pede mais da placa de vídeo. Não existe 1080p interno (só múltiplos de 720p); num monitor 1080p, 720p é ampliado para 1080p pelo filtro da tela e 1440p é reduzido para 1080p (supersampling, mais nítido).", en = "The Xbox 360 draws the game at 720p. Here it can draw at 2x or 3x that: a much sharper picture that asks more of the graphics card. There is no internal 1080p (only multiples of 720p); on a 1080p monitor, 720p is scaled up to 1080p by the screen filter and 1440p is brought down to 1080p (supersampling, sharper).", es = "La Xbox 360 dibuja el juego a 720p. Aquí puede dibujarlo a 2x o 3x eso: la imagen queda mucho más nítida y exige más a la tarjeta gráfica. No existe 1080p interno (solo múltiplos de 720p); en un monitor 1080p, 720p se amplía a 1080p con el filtro de pantalla y 1440p se reduce a 1080p (supersampling, más nítido)." }
 choices = [
   { value = 1, label = "720p (Xbox 360)" },
   { value = 2, label = "1440p (2x)" },
