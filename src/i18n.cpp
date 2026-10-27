@@ -472,6 +472,13 @@ constexpr Row kRows[] = {
     {"Enviar este recado para todos os jogadores?", "Send this notice to every player?", "¿Enviar este mensaje a todos los jugadores?"},
     {"Retirar o recado", "Take the notice down", "Retirar el mensaje"},
     {"Escreva o recado primeiro.", "Write the notice first.", "Escribe el mensaje primero."},
+    {"Shaders da comunidade", "Community shaders", "Shaders de la comunidad"},
+    {"Compartilhar os shaders que o meu PC compilar", "Share the shaders my PC compiles", "Compartir los shaders que compile mi PC"},
+    {"Os jogos montam seus efeitos visuais (shaders) para a sua placa na primeira vez que cada um aparece, e isso faz o jogo engasgar ao entrar numa área nova. Os shaders que os jogadores compartilham viram um pacote, conferido antes de ir ao ar, que o launcher instala em todos os jogadores: quanto mais gente compartilha, menos engasgos para todos. Vai só o cache de shaders do jogo, nada que identifique você. Vale para todos os jogos que montam shaders.", "Games build their visual effects (shaders) for your graphics card the first time each one appears, and that makes the game stutter when entering a new area. The shaders players share become a pack, checked before it goes up, that the launcher installs for every player: the more people share, the fewer stutters for everyone. Only the game's shader cache goes, nothing that identifies you. It applies to every game that builds shaders.", "Los juegos preparan sus efectos visuales (shaders) para tu tarjeta la primera vez que aparece cada uno, y eso hace que el juego dé tirones al entrar en una zona nueva. Los shaders que comparten los jugadores se convierten en un paquete, revisado antes de publicarse, que el launcher instala a todos: cuantos más compartan, menos tirones para todos. Solo se envía la caché de shaders del juego, nada que te identifique. Vale para todos los juegos que preparan shaders."},
+    {"Pacote da comunidade instalado: %d shaders (%s).", "Community pack installed: %d shaders (%s).", "Paquete de la comunidad instalado: %d shaders (%s)."},
+    {"Este jogo ainda não tem pacote da comunidade: os shaders são montados na primeira vez em cada área.", "This game has no community pack yet: shaders are built the first time in each area.", "Este juego aún no tiene paquete de la comunidad: los shaders se preparan la primera vez en cada zona."},
+    {"Arquivos de shader enviados deste PC: %d.", "Shader files sent from this PC: %d.", "Archivos de shader enviados desde este PC: %d."},
+    {"Atualizando os shaders...", "Updating the shaders...", "Actualizando los shaders..."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 

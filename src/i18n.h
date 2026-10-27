@@ -43,6 +43,7 @@ enum class S {
     PortedOn,
     NoticeTitle, NoticeOk, AdminNoticeTab, NoticeHelp, NoticeCurrent, NoticeNone, NoticeSend, NoticeConfirm,
     NoticeWithdraw, NoticeEmpty,
+    ShadersTitle, ShadersShare, ShadersHelp, ShadersPack, ShadersNoPack, ShadersSent, ShadersWorking,
     Count
 };
 

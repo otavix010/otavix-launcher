@@ -50,6 +50,10 @@ public:
     void SetOwn(const std::string& key, const std::string& v);
     bool GetOwnBool(const std::string& key, bool def) const;
     void SetOwnBool(const std::string& key, bool v);
+    // before the game starts: the default of each option kept in the game's own files (settings, .ini) and of each
+    // [defaults] key that is not there yet, so that what the launcher shows is what the game uses. Left out, the
+    // port's own default ruled: VRR showed off in the launcher and the 360 games and FIFA ran with it on (27/10)
+    void FillDefaults(const Profile& p);
     // the environment the game starts with: options whose target is env
     std::map<std::string, std::string> Environment(const Profile& p) const;
 

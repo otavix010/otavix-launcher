@@ -303,6 +303,21 @@ void Store::SetKey(const std::string& key, const Value& v) {
     dirty_ = true;
 }
 
+void Store::FillDefaults(const Profile& p) {
+    for (const Option& o : p.options) {
+        if (o.type != OptType::Choice && o.type != OptType::Toggle && o.type != OptType::Slider) continue;
+        if (o.target == Target::Ini) {
+            std::string section, key;
+            SectionKey(o.key, section, key);
+            if (!ini_.Get(section, key)) Set(o, o.def);
+        } else if (o.target == Target::Settings) {
+            if (!game_.at_path(o.key).node()) Set(o, o.def);
+        }
+    }
+    for (auto& [key, v] : p.defaults)
+        if (!p.Find(key) && !game_.at_path(key).node()) SetKey(key, v);
+}
+
 int64_t Store::GetInt(const std::string& key, int64_t def) const { return game_[key].value_or(def); }
 void Store::SetInt(const std::string& key, int64_t v) {
     game_.insert_or_assign(key, v);

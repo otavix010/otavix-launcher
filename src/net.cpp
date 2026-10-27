@@ -64,8 +64,12 @@ HttpResult HttpRequest(const std::string& method, const std::string& url, const 
                                          WINHTTP_DEFAULT_ACCEPT_TYPES, u.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
                     : nullptr;
     std::wstring hs;
-    for (auto& [k, v] : headers) hs += Wide(k) + L": " + Wide(v) + L"\r\n";
-    if (!body.empty()) hs += L"Content-Type: application/json; charset=utf-8\r\n";
+    bool typed = false;  // the caller's own Content-Type (a binary upload), else JSON
+    for (auto& [k, v] : headers) {
+        hs += Wide(k) + L": " + Wide(v) + L"\r\n";
+        if (_stricmp(k.c_str(), "Content-Type") == 0) typed = true;
+    }
+    if (!body.empty() && !typed) hs += L"Content-Type: application/json; charset=utf-8\r\n";
     bool ok = q &&
               WinHttpSendRequest(q, hs.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : hs.c_str(), DWORD(-1),
                                  body.empty() ? WINHTTP_NO_REQUEST_DATA : const_cast<char*>(body.data()), DWORD(body.size()),

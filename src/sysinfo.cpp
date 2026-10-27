@@ -135,4 +135,18 @@ std::string FileTail(const fs::path& file, size_t max_bytes) {
     return s;
 }
 
+std::string FileHeadTail(const fs::path& file, size_t head, size_t tail) {
+    std::ifstream in(file, std::ios::binary | std::ios::ate);
+    if (!in) return {};
+    auto size = size_t(in.tellg());
+    if (size <= head + tail) return FileTail(file, size);
+    in.seekg(0);
+    std::string start(head, '\0');
+    in.read(start.data(), std::streamsize(head));
+    size_t nl = start.rfind('\n');
+    if (nl != std::string::npos) start.erase(nl + 1);
+    std::string end = FileTail(file, tail);
+    return start + "\n[... " + std::to_string(size - start.size() - end.size()) + " bytes do meio do log cortados ...]\n\n" + end;
+}
+
 }  // namespace launcher

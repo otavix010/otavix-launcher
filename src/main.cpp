@@ -45,6 +45,7 @@
 #include "photo.h"
 #include "profile.h"
 #include "psxmods.h"
+#include "shaders.h"
 #include "saves.h"
 #include "secret.h"
 #include "shortcut.h"
@@ -79,6 +80,8 @@ struct Game {
     std::vector<Backup> backups;
     bool backups_stale = true;
     PsxMods psx_mods;  // [mods] kind = "psxrecomp": the packages and the player's choices
+    ShaderSpec shader_spec;  // [shaders]: its shader cache, for the community's packs
+    ShaderShare shaders;
     int confirm_restore = -1;
     bool crashed = false;  // the last session ended with an error, not yet reported or dismissed
     Installer installer;
@@ -658,12 +661,14 @@ void Launch(int index) {
         Toast(Tr(S::BuildCopyMissing), 6000);
         return;
     }
+    gm.store.FillDefaults(gm.prof);
     if (gm.store.Dirty() && !gm.store.Save()) Toast(Tr(S::SaveFailed));
     if (gm.store.GetOwnBool("auto_backup", true)) {
         std::string err;
         if (MakeBackup(gm.entry.dir, gm.prof, "auto", err)) PruneAutomatic(gm.entry.dir, 10);
         gm.backups_stale = true;
     }
+    if (!gm.shader_spec.Empty()) gm.shaders.Wait();
     std::string exe = GameExe(gm);
     std::error_code ec;
     fs::path exe_path = (gm.entry.dir / FromU8(exe)).make_preferred();
@@ -868,6 +873,9 @@ void PollGame() {
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
         RecordSession(gm);
+        if (!gm.shader_spec.Empty() && g.state.Bool("share_shaders", false))
+            gm.shaders.Send(Server(), ServerHeaders(), gm.entry.id, gm.shader_spec, gm.entry.dir,
+                            g.hub_dir / "dados" / FromU8(gm.entry.id));
         gm.icon.Release();
         // closed with an error: its page shows it, with the report ready. 0xC000013A (STATUS_CONTROL_C_EXIT) is the
         // game ended from outside (Task Manager, the console closed, Windows shutting down), not a fault of its own:
@@ -1718,6 +1726,8 @@ void PeriodicChecks() {
         if (gm.entry.repo.empty() || !gm.ok || !Playable(gm, g.here) || !PortPresent(gm) || gm.fetcher.Busy()) continue;
         gm.port_checked = true;
         gm.fetcher.Check(gm.entry.Source(), InstalledPortVersion(gm.entry.dir));
+        if (!gm.shader_spec.Empty() && !g.proc)
+            gm.shaders.Apply(gm.entry.repo, gm.shader_spec, gm.entry.dir, g.hub_dir / "dados" / FromU8(gm.entry.id));
     }
     g.ports_shown = false;
 }
@@ -2055,6 +2065,20 @@ std::vector<fs::path> ReportFiles(Game& gm) {
             if (!e.is_regular_file(ec) || n.size() < head.size() + tail.size() || n.compare(0, head.size(), head) != 0 ||
                 n.compare(n.size() - tail.size(), tail.size(), tail) != 0)
                 continue;
+            auto t = e.last_write_time(ec);
+            if (best.empty() || t > when) best = e.path(), when = t;
+        }
+        if (!best.empty()) out.push_back(best);
+    }
+    // a generation that has not finished: the log of the step it stopped in, besides the generator's own (reports 88
+    // and 105 came with only the generator's last lines; the compiler's or cmake's own error is in the step's log)
+    if (gm.prof.install.kind == "build" && !gm.prof.install.marks.empty() &&
+        !fs::is_regular_file(gm.entry.dir / FromU8(gm.prof.install.done), ec)) {
+        fs::path best;
+        fs::file_time_type when{};
+        for (auto& e : fs::directory_iterator(gm.entry.dir / FromU8(gm.prof.install.marks), ec)) {
+            std::string n = U8(e.path().filename());
+            if (!e.is_regular_file(ec) || e.path().extension() != ".log" || n == "launcher.log") continue;
             auto t = e.last_write_time(ec);
             if (best.empty() || t > when) best = e.path(), when = t;
         }
@@ -3183,6 +3207,38 @@ void SettingsPerf();
 void Notices();
 void PeriodicChecks();
 
+// the community's shaders on a game's start page (a game that builds shaders): its pack, and the option to share,
+// the same as in the launcher's performance settings
+void ShadersCard(Game& gm) {
+    if (gm.shader_spec.Empty()) return;
+    ImGui::Dummy(ImVec2(0, 12 * g.scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
+    // the card takes a plain function: the page is the open game's
+    Card("shaders", 0, [] {
+        Game& gm = G();
+        ShaderShare::Status st = gm.shaders.Get();
+        ImGui::PushFont(g.bold, 20);
+        ImGui::TextUnformatted(Tr(S::ShadersTitle));
+        ImGui::PopFont();
+        char b[160];
+        if (st.busy) Dim(Tr(S::ShadersWorking));
+        else if (st.pack_count >= 0) {
+            std::snprintf(b, sizeof(b), Tr(S::ShadersPack), st.pack_count, st.pack_day.c_str());
+            ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("ok")), "%s", b);
+        } else Dim(Tr(S::ShadersNoPack));
+        bool share = g.state.Bool("share_shaders", false);
+        if (ImGui::Checkbox(Tr(S::ShadersShare), &share)) g.state.Set("share_shaders", share);
+        if (share && st.sent > 0) {
+            std::snprintf(b, sizeof(b), Tr(S::ShadersSent), st.sent);
+            Dim(b);
+        }
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
+        ImGui::TextWrapped("%s", Tr(S::ShadersHelp));
+        ImGui::PopStyleColor();
+    });
+    ImGui::PopStyleVar();
+}
+
 void HomePage() {
     Game& gm = G();
     ImGui::PushFont(g.title, 64);
@@ -3455,6 +3511,7 @@ void HomePage() {
     if (g.state.Bool("close_combo", true) && g.state.Str("on_play", "minimize") != "close") Dim(Tr(S::CloseHint));
     ImGui::Spacing();
     if (ImGui::SmallButton(Tr(S::DesktopShortcut))) MakeShortcut(gm);
+    ShadersCard(gm);
 }
 
 void OptionsPage(const Page& p, bool heading = true) {
@@ -4748,7 +4805,8 @@ std::string Stamp() {
 std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std::string& config) {
     std::string log_name = log.empty() ? std::string() : U8(log.filename());
     if (g.rep_attach) {
-        if (!log.empty()) log_text = FileTail(log, 256 * 1024);
+        // the start and the end (reports 93 and 103 came with only the end: the opening, where it went black, was gone)
+        if (!log.empty()) log_text = FileHeadTail(log, 64 * 1024, 192 * 1024);
         config = FileTail(gm.entry.dir / FromU8(gm.prof.settings), 64 * 1024);
         // the profile's other files go along in the same text, each under its own heading (the server keeps one log)
         for (const fs::path& f : ReportFiles(gm)) {
@@ -5009,6 +5067,13 @@ void SettingsPerf() {
     if (ImGui::Checkbox("##osd", &osd)) g.state.Set("osd", osd);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
     ImGui::TextWrapped("%s", Tr(S::PerfOsdHelp));
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+    bool shaders = g.state.Bool("share_shaders", false);
+    RowLabel(Tr(S::ShadersTitle));
+    if (ImGui::Checkbox(Tr(S::ShadersShare), &shaders)) g.state.Set("share_shaders", shaders);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
+    ImGui::TextWrapped("%s", Tr(S::ShadersHelp));
     ImGui::PopStyleColor();
 
     SubHeading(Tr(S::PerfThisPc));
@@ -6916,6 +6981,8 @@ void LoadGames() {
         gm->art_spec = ReadArtSpec(e.profile);
         gm->theme_spec = ReadThemeSpec(e.profile);
         gm->icon_spec = ReadIconSpec(e.profile);
+        gm->shader_spec = ReadShaderSpec(e.profile);
+        gm->shaders.Load(g.hub_dir / "dados" / FromU8(e.id));
         StartArt(*gm);
         g.games.push_back(std::move(gm));
     }
@@ -7074,6 +7141,14 @@ int main(int argc, char** argv) {
     if (const char* t = SDL_getenv("LAUNCHER_SETTINGS_TAB")) {
         g.settings_tab = std::atoi(t);
         g.focus_tab = true;
+    }
+    // tests: LAUNCHER_SHADERS_APPLY=1 merges the open game's shader pack now, LAUNCHER_SHADERS_SEND=1 sends its cache's
+    // new shaders now (as when a session ends with sharing on)
+    if (g.cur >= 0 && !G().shader_spec.Empty()) {
+        fs::path data = g.hub_dir / "dados" / FromU8(G().entry.id);
+        if (SDL_getenv("LAUNCHER_SHADERS_APPLY")) G().shaders.Apply(G().entry.repo, G().shader_spec, G().entry.dir, data);
+        else if (SDL_getenv("LAUNCHER_SHADERS_SEND"))
+            G().shaders.Send(Server(), ServerHeaders(), G().entry.id, G().shader_spec, G().entry.dir, data);
     }
     // tests: LAUNCHER_ADMIN_TAB=n, the admin page opens on that tab (0 reports, 1 port requests, 2 notice)
     if (const char* t = SDL_getenv("LAUNCHER_ADMIN_TAB")) g.admin_tab_pick = std::atoi(t);

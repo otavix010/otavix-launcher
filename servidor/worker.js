@@ -33,6 +33,7 @@ async function route(req, env) {
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
   if (req.method === 'GET' && p === '/v1/recado') return recado(env);
+  if (req.method === 'POST' && p === '/v1/shaders') return shaderEnviar(req, env, url);
   if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
@@ -47,6 +48,8 @@ async function route(req, env) {
     if (req.method === 'POST' && p === '/v1/admin/remover') return remover(req, env);
     if (req.method === 'POST' && p === '/v1/admin/portado') return portado(req, env);
     if (req.method === 'POST' && p === '/v1/admin/recado') return novoRecado(req, env);
+    if (req.method === 'GET' && p === '/v1/admin/shaders') return shadersLista(env, url);
+    if (req.method === 'GET' && p === '/v1/admin/shader') return shaderBaixar(env, url);
   }
   return text(404, 'não encontrado');
 }
@@ -380,6 +383,49 @@ async function novoRecado(req, env) {
   if (!texto) return text(200, '0');
   const row = await env.DB.prepare('INSERT INTO recados (texto, criado) VALUES (?, ?) RETURNING id').bind(texto, now()).first();
   return text(200, String(row.id));
+}
+
+// ------------------------------------------------------------------------------------------------ shaders
+
+// a cache file a player's launcher shares (opted in): one shader of a game, or a batch of the records it made for a
+// shader storage file; kept as sent, checked and merged into the game's pack on the owner's PC before anyone gets it
+async function shaderEnviar(req, env, url) {
+  const inst = install(req);
+  if (!inst) return text(400, 'sem identificador');
+  const jogo = String(url.searchParams.get('jogo') || '');
+  const arquivo = String(url.searchParams.get('arquivo') || '');
+  if (!/^[a-z0-9-]{1,48}$/.test(jogo) || !/^[A-Za-z0-9_.-]{1,96}$/.test(arquivo)) return text(400, 'jogo ou arquivo inválido');
+  const len = Number(req.headers.get('Content-Length') || 0);
+  if (len > 1_900_000) return text(413, 'grande demais');
+  const bytes = new Uint8Array(await req.arrayBuffer());
+  if (!bytes.length || bytes.length > 1_900_000) return text(413, 'vazio ou grande demais');
+  // a launcher sends at most 3 000 files or 40 MB an hour
+  const desde = now() - 3600;
+  const uso = await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(tamanho), 0) AS b FROM shaders WHERE install = ? AND quando > ?')
+    .bind(inst, desde).first();
+  if (uso.n >= 3000 || uso.b + bytes.length > 40_000_000) return text(429, 'muitos envios nesta hora');
+  await env.DB.prepare('INSERT OR IGNORE INTO shaders (jogo, arquivo, install, ip, tamanho, quando, dados) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(jogo, arquivo, inst, await ipHash(req), bytes.length, now(), bytes).run();
+  return text(200, 'ok');
+}
+
+// what was shared, after an id: id, game, file, sender, size, when (oldest first, a page of 500)
+async function shadersLista(env, url) {
+  const desde = Number(url.searchParams.get('desde') || 0);
+  const jogo = String(url.searchParams.get('jogo') || '');
+  const rows = jogo
+    ? await env.DB.prepare('SELECT id, jogo, arquivo, install, tamanho, quando FROM shaders WHERE jogo = ? AND id > ? ORDER BY id LIMIT 500').bind(jogo, desde).all()
+    : await env.DB.prepare('SELECT id, jogo, arquivo, install, tamanho, quando FROM shaders WHERE id > ? ORDER BY id LIMIT 500').bind(desde).all();
+  return text(200, rows.results.map((r) => [r.id, r.jogo, r.arquivo, r.install, r.tamanho, r.quando].map(f).join('\t')).join('\n'));
+}
+
+async function shaderBaixar(env, url) {
+  const id = Number(url.searchParams.get('id'));
+  if (!Number.isInteger(id) || id <= 0) return text(400, 'qual shader?');
+  const r = await env.DB.prepare('SELECT dados FROM shaders WHERE id = ?').bind(id).first();
+  if (!r) return text(404, 'não encontrado');
+  const dados = r.dados instanceof ArrayBuffer ? r.dados : new Uint8Array(r.dados);
+  return new Response(dados, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
 }
 
 // ------------------------------------------------------------------------------------------------ performance
