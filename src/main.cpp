@@ -5410,15 +5410,19 @@ HubMatch MatchInHub(const std::string& console, const std::string& name) {
             if (std::isalnum(ch)) k += char(std::tolower(ch));
         return k;
     };
-    // the name as asked, and without its subtitle ("Dante's Inferno - Gates of Hell", "...: Shinkyoku Jigoku-hen")
-    const std::string want = key(name);
-    std::string base = want;
-    size_t cut = std::min(name.find(':'), name.find(" - "));
-    if (cut != std::string::npos && cut > 0) base = key(name.substr(0, cut));
-    auto same = [&](const Game& gm) {
+    // a name without its subtitle ("Dante's Inferno - Gates of Hell", "Onimusha 3: Demon Siege")
+    auto base_of = [&](const std::string& s) {
+        size_t cut = std::min(s.find(':'), s.find(" - "));
+        return cut != std::string::npos && cut > 0 ? key(s.substr(0, cut)) : key(s);
+    };
+    const std::string want = key(name), base = base_of(name);
+    // the same game: the whole titles, or the request's without its subtitle ("Dante's Inferno - Gates of Hell" is
+    // the 360's "Dante's Inferno"); loose also takes the port's without its subtitle ("Onimusha 3" is "Onimusha 3:
+    // Demon Siege"), only on the same console, so that the PS2's "God of War" is not the PS3's "God of War: Ascension"
+    auto same = [&](const Game& gm, bool loose) {
         for (Lang l : {Lang::En, Lang::Pt}) {
-            const std::string title = key(gm.prof.title.Get(l));
-            if (title == want || title == base) return true;
+            const std::string t = gm.prof.title.Get(l), title = key(t);
+            if (title == want || title == base || (loose && base_of(t) == want)) return true;
         }
         return false;
     };
@@ -5433,9 +5437,10 @@ HubMatch MatchInHub(const std::string& console, const std::string& name) {
     HubMatch wip;
     for (const auto& gp : g.games) {
         const Game& gm = *gp;
-        if (!gm.ok || !same(gm)) continue;
-        if (gm.entry.library != console && any(gm, {"ok", "beta"})) return {"ported", gm.entry.library};
-        if (gm.entry.library == console && any(gm, {"wip"})) wip = {"wip", gm.entry.library};
+        if (!gm.ok) continue;
+        if (gm.entry.library != console && any(gm, {"ok", "beta"}) && same(gm, false)) return {"ported", gm.entry.library};
+        // beta is "in development" too (made and played, not finished), as on the library's own cards
+        if (gm.entry.library == console && any(gm, {"wip", "beta"}) && same(gm, true)) wip = {"wip", gm.entry.library};
     }
     return wip;
 }
