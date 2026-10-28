@@ -107,7 +107,9 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
         }
         st_.latest = docs_only ? installed : sha.substr(0, 12);
         st_.size = 0;
-        url = "https://codeload.github.com/" + repo + "/zip/" + sha;
+        // the server's copy of the commit (its "zip_url"), else GitHub's own zip
+        url = Field(r.body, "zip_url");
+        if (url.empty()) url = "https://codeload.github.com/" + repo + "/zip/" + sha;
         digest.clear();
         return true;
     }

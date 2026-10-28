@@ -28,6 +28,10 @@ HttpResult HttpRequest(const std::string& method, const std::string& url, const 
 // an address hit), else, or when the server cannot answer, straight from GitHub
 void SetGitHubProxy(const std::string& server);
 HttpResult GitHubApi(const std::string& path);
+// a file the launcher's server keeps (/v1/arquivos/<key>; 28/10: the GitHub account was suspended), "" with no server
+std::string ServerFile(const std::string& key);
+// GET the server's copy first, then the GitHub address
+HttpResult GetMirrored(const std::string& key, const std::string& github_url);
 
 // one request at a time, in the background
 class Call {

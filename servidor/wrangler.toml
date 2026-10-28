@@ -7,3 +7,8 @@ binding = "DB"
 database_name = "otavix-launcher"
 # created 25/10/2026 by "wrangler d1 create otavix-launcher --location enam" (see LEIA-ME.md)
 database_id = "a07a785a-6175-4b33-b616-f9cb02f0c4d3"
+
+# 28/10/2026: the launcher's files while the GitHub account is suspended (see "arquivo" and "github" in worker.js)
+[[r2_buckets]]
+binding = "ARQ"
+bucket_name = "otavix-arquivos"

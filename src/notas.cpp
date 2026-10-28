@@ -84,7 +84,8 @@ void ReleaseNotes::FetchFile(const std::string& repo, const std::string& branch,
     }
     std::thread([this, key, repo, branch, path] {
         // raw.githubusercontent.com is GitHub's file server, not its API: no 60-an-hour limit per address
-        HttpResult r = HttpRequest("GET", "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path, {}, "");
+        HttpResult r = GetMirrored("ports/" + repo + "/" + branch + "/" + path,
+                                   "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path);
         std::lock_guard lock(m_);
         files_[key] = r.Ok() ? r.body : std::string();
         file_state_[key] = r.Ok() ? State::Ready : State::Failed;

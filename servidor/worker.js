@@ -40,6 +40,7 @@ async function route(req, env) {
     return shaderEnviar(req, env, url);
   }
   if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
+  if ((req.method === 'GET' || req.method === 'HEAD') && p.startsWith('/v1/arquivos/')) return arquivo(req, env, url);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
     if (req.method === 'GET' && p === '/v1/admin/ranking') return ranking(env, url, true);
@@ -182,9 +183,31 @@ async function githubReleasePage(repo) {
   }
 }
 
+// 28/10: the GitHub account was suspended and its repositories hidden. The launcher's files (its installer, each
+// port's code as GitHub's zip, the shader packs, the NOVIDADES) are kept in R2 (binding ARQ) and served here; the
+// answers the launcher reads from GitHub's API come first from R2's "espelho/<path>.json" (written by
+// scripts/espelho.py with GitHub's own shape, pointing to these files). No ARQ, or no copy there: GitHub as before.
+const TIPOS = { exe: 'application/vnd.microsoft.portable-executable', zip: 'application/zip', json: 'application/json',
+  md: 'text/markdown; charset=utf-8', sha256: 'text/plain; charset=utf-8', txt: 'text/plain; charset=utf-8' };
+async function arquivo(req, env, url) {
+  if (!env.ARQ) return text(404, 'sem arquivos');
+  const key = decodeURIComponent(url.pathname.slice('/v1/arquivos/'.length));
+  if (!key || key.includes('..') || key.startsWith('espelho/')) return text(404, 'não encontrado');
+  const obj = req.method === 'HEAD' ? await env.ARQ.head(key) : await env.ARQ.get(key);
+  if (!obj) return text(404, 'não encontrado');
+  const ext = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
+  const headers = { 'Content-Type': TIPOS[ext] || 'application/octet-stream', 'Content-Length': String(obj.size),
+    'Cache-Control': 'public, max-age=300', ETag: obj.httpEtag };
+  return new Response(req.method === 'HEAD' ? null : obj.body, { status: 200, headers });
+}
+
 async function github(env, url) {
   const path = url.pathname.slice('/v1/github/'.length);
   if (url.search && !/^\?per_page=\d{1,3}$/.test(url.search)) return text(400, 'consulta não permitida');
+  if (env.ARQ && /^[A-Za-z0-9._/-]+$/.test(path) && !path.includes('..')) {
+    const esp = await env.ARQ.get('espelho/' + path + (url.search ? '.lista' : '') + '.json');
+    if (esp) return jsonResponse(200, await esp.text());
+  }
   const rule = GH_RULES.find((r) => r.re.test(path));
   const m = rule ? path.match(rule.re) : null;
   if (!m || !GH_OWNERS.includes(m[2].toLowerCase())) return text(403, 'fora do projeto');

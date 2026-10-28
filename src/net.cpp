@@ -154,6 +154,20 @@ HttpResult GitHubApi(const std::string& path) {
     return HttpRequest("GET", "https://api.github.com/" + path, accept, "");
 }
 
+std::string ServerFile(const std::string& key) {
+    std::lock_guard lock(g_github_m);
+    return g_github_proxy.empty() ? std::string() : g_github_proxy + "/v1/arquivos/" + key;
+}
+
+HttpResult GetMirrored(const std::string& key, const std::string& github_url) {
+    const std::string mirror = ServerFile(key);
+    if (!mirror.empty()) {
+        HttpResult r = HttpRequest("GET", mirror, {}, "");
+        if (r.Ok()) return r;
+    }
+    return HttpRequest("GET", github_url, {}, "");
+}
+
 std::vector<std::string> PictureMirrors(const std::string& url) {
     const std::string kLibretro = "https://thumbnails.libretro.com/";
     if (url.rfind(kLibretro, 0) != 0) return {url};

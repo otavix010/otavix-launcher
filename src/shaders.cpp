@@ -207,8 +207,15 @@ void ShaderShare::Apply(const std::string& repo, const ShaderSpec& spec, const f
         std::error_code ec;
         // tests: LAUNCHER_SHADERS_BASE=<address ending in />, the pack from there instead of the repository's release
         const char* test_base = SDL_getenv("LAUNCHER_SHADERS_BASE");
-        const std::string base = test_base ? std::string(test_base) : "https://github.com/" + repo + "/releases/download/shaders/";
-        HttpResult r = HttpRequest("GET", base + "shaders.zip.sha256", {}, "");
+        std::string base = test_base ? std::string(test_base) : "https://github.com/" + repo + "/releases/download/shaders/";
+        HttpResult r;
+        // the server's copy first (28/10: the GitHub account was suspended), both files from the same place
+        const std::string mirror = test_base ? std::string() : ServerFile("shaders/" + repo + "/");
+        if (!mirror.empty()) {
+            r = HttpRequest("GET", mirror + "shaders.zip.sha256", {}, "");
+            if (r.Ok()) base = mirror;
+        }
+        if (base != mirror) r = HttpRequest("GET", base + "shaders.zip.sha256", {}, "");
         std::string want = r.Ok() ? r.body.substr(0, std::min<size_t>(r.body.size(), 64)) : std::string();
         for (char& c : want) c = char(std::tolower(static_cast<unsigned char>(c)));
         if (want.size() != 64 || want.find_first_not_of("0123456789abcdef") != std::string::npos) return done();
