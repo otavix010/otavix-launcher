@@ -33,7 +33,13 @@ async function route(req, env) {
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
   if (req.method === 'GET' && p === '/v1/recado') return recado(env);
-  if (req.method === 'POST' && p === '/v1/shaders') return shaderEnviar(req, env, url);
+  // 28/10: o envio era de um shader por pedido (até 3000 por jogador) e estourou o limite diário do D1. Até o
+  // envio em lote, o servidor responde 429 sem tocar no banco: o launcher para no primeiro 429 e tenta outro dia,
+  // então cada jogador gasta um pedido por sessão. SHADERS_ABERTO = '1' (variável do worker) reabre.
+  if (req.method === 'POST' && p === '/v1/shaders') {
+    if (env.SHADERS_ABERTO !== '1') return new Response('envio de shaders pausado', { status: 429 });
+    return shaderEnviar(req, env, url);
+  }
   if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
   if (p.startsWith('/v1/admin/')) {
     if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return text(401, 'chave inválida');
