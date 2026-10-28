@@ -4921,9 +4921,21 @@ int CompareText(const std::string& a, const std::string& b) {
     return lower(a).compare(lower(b));
 }
 
+// sharing the performance, the same choice in each game's Performance page and in Settings > Performance
+void PerfShareToggle() {
+    bool share = g.state.Str("perf_share", "") == "sim";
+    RowLabel(Tr(S::PerfShare));
+    if (ImGui::Checkbox("##share", &share)) g.state.Set("perf_share", std::string(share ? "sim" : "nao"));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
+    ImGui::TextWrapped("%s", Tr(S::PerfShareHelp));
+    ImGui::PopStyleColor();
+}
+
 void PerfPage() {
     Game& gm = G();
     Heading(Tr(S::Perf));
+    PerfShareToggle();
+    ImGui::Spacing();
     // the game's own word on what weighs and where to start, before the numbers
     if (!gm.prof.perf_note.Empty()) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18 * g.scale, 14 * g.scale));
@@ -5054,13 +5066,8 @@ void SettingsPerf() {
         g.perf_msg = r.Ok() ? Tr(S::PerfDeleted) : std::string(Tr(S::SendFailed)) + ": " + r.error;
         g.perf_del_call.Reset();
     }
-    bool share = g.state.Str("perf_share", "") == "sim";
-    RowLabel(Tr(S::PerfShare));
     if (g.focus_page) ImGui::SetKeyboardFocusHere();
-    if (ImGui::Checkbox("##share", &share)) g.state.Set("perf_share", std::string(share ? "sim" : "nao"));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.76f, 0.8f, 1));
-    ImGui::TextWrapped("%s", Tr(S::PerfShareHelp));
-    ImGui::PopStyleColor();
+    PerfShareToggle();
     ImGui::Spacing();
     bool osd = g.state.Bool("osd", false);
     RowLabel(Tr(S::PerfOsd));
