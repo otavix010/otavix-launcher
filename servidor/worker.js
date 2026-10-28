@@ -27,17 +27,16 @@ async function route(req, env) {
   if (req.method === 'POST' && p === '/v1/pedidos') return pedir(req, env);
   if (req.method === 'GET' && p === '/v1/pedidos/meus') return meusPedidos(req, env);
   if (req.method === 'DELETE' && p === '/v1/pedidos') return retirar(req, env);
-  if (req.method === 'GET' && p === '/v1/ranking') return ranking(env, url, false);
+  if (req.method === 'GET' && p === '/v1/ranking') return guardado('r' + url.search, () => ranking(env, url, false));
   if (req.method === 'POST' && p === '/v1/desempenho') return desempenho(req, env);
-  if (req.method === 'GET' && p === '/v1/desempenho') return resumo(env, url);
+  if (req.method === 'GET' && p === '/v1/desempenho') return guardado('d' + url.search, () => resumo(env, url));
   if (req.method === 'DELETE' && p === '/v1/desempenho') return apagar(req, env);
   if (req.method === 'GET' && p === '/v1/respostas') return respostas(req, env);
   if (req.method === 'GET' && p === '/v1/recado') return recado(env);
-  // 28/10: o envio era de um shader por pedido (até 3000 por jogador) e estourou o limite diário do D1. Até o
-  // envio em lote, o servidor responde 429 sem tocar no banco: o launcher para no primeiro 429 e tenta outro dia,
-  // então cada jogador gasta um pedido por sessão. SHADERS_ABERTO = '1' (variável do worker) reabre.
+  // 28/10: SHADERS_FECHADO = '1' (variável do worker) pausa o envio sem tocar no banco (429: o launcher para e tenta
+  // em outra sessão)
   if (req.method === 'POST' && p === '/v1/shaders') {
-    if (env.SHADERS_ABERTO !== '1') return new Response('envio de shaders pausado', { status: 429 });
+    if (env.SHADERS_FECHADO === '1') return new Response('envio de shaders pausado', { status: 429 });
     return shaderEnviar(req, env, url);
   }
   if (req.method === 'GET' && p.startsWith('/v1/github/')) return github(env, url);
@@ -405,11 +404,14 @@ async function shaderEnviar(req, env, url) {
   if (len > 1_900_000) return text(413, 'grande demais');
   const bytes = new Uint8Array(await req.arrayBuffer());
   if (!bytes.length || bytes.length > 1_900_000) return text(413, 'vazio ou grande demais');
-  // a launcher sends at most 3 000 files or 40 MB an hour
-  const desde = now() - 3600;
-  const uso = await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(tamanho), 0) AS b FROM shaders WHERE install = ? AND quando > ?')
-    .bind(inst, desde).first();
-  if (uso.n >= 3000 || uso.b + bytes.length > 40_000_000) return text(429, 'muitos envios nesta hora');
+  // a launcher sends at most 3 000 files or 40 MB an hour. 28/10: counters in `limite` (one row each); summing the
+  // install's rows of the hour on every file read up to 3 000 rows a file and blew D1's daily rows-read limit
+  const hora = Math.floor(now() / 3600);
+  const conta = (chave, mais) => env.DB.prepare(
+    'INSERT INTO limite (ip, hora, n) VALUES (?, ?, ?) ON CONFLICT (ip, hora) DO UPDATE SET n = n + excluded.n RETURNING n')
+    .bind(chave, hora, mais).first('n');
+  const n = await conta('shn:' + inst, 1), b = await conta('shb:' + inst, bytes.length);
+  if (n > 3000 || b > 40_000_000) return text(429, 'muitos envios nesta hora');
   await env.DB.prepare('INSERT OR IGNORE INTO shaders (jogo, arquivo, install, ip, tamanho, quando, dados) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(jogo, arquivo, inst, await ipHash(req), bytes.length, now(), bytes).run();
   return text(200, 'ok');
@@ -477,6 +479,18 @@ async function desempenho(req, env) {
 
 // a game's performance by computer and options, the last 180 days: gpu, cpu, summary, sessions, computers,
 // average fps, 1% low, minimum (the sessions' averages, weighted by the seconds measured)
+// 28/10: the ranking and the per-game performance summary aggregate whole tables on every launcher view; an answer
+// kept 5 minutes in the isolate's memory spares D1 those reads (on workers.dev there is no Cache API)
+const memo = new Map();
+async function guardado(chave, fn) {
+  const m = memo.get(chave);
+  if (m && Date.now() - m.t < 300_000) return new Response(m.corpo, { status: 200, headers: m.h });
+  const r = await fn();
+  const corpo = await r.text();
+  if (r.status === 200) memo.set(chave, { t: Date.now(), corpo, h: [...r.headers] });
+  return new Response(corpo, { status: r.status, headers: r.headers });
+}
+
 async function resumo(env, url) {
   const jogo = (url.searchParams.get('jogo') || '').slice(0, 64);
   if (!/^[a-z0-9-]+$/.test(jogo)) return text(400, 'jogo inválido');

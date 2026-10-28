@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS reports (
   respondido INTEGER NOT NULL DEFAULT 0  -- when it was answered (migracao-respostas.sql for a database made before)
 );
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip, quando);
+CREATE INDEX IF NOT EXISTS reports_install ON reports (install);
 
 -- What goes along with a report: the game's log and settings (inside the report) and the player's pictures (each in a
 -- request of its own, right after). Kept here: the mail is optional (migracao-anexos.sql for a database made before).
