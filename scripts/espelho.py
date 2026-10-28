@@ -81,7 +81,7 @@ def main():
         print(f'{repo}: {sha[:12]}')
     for repo, (tag, pacote) in RELEASE.items():
         a = asset(Path(pacote).name, pacote, f'releases/{DONO}/{repo}/{tag}/{Path(pacote).name}')
-        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'html_url': '', 'assets': [a]}))
+        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'html_url': '', 'assets': [a]}, ensure_ascii=False))
         print(f'{repo}: {tag}')
     lista = []
     for i, versao in enumerate(LAUNCHER):
@@ -91,10 +91,10 @@ def main():
         rel = {'tag_name': 'v' + versao, 'name': versao, 'published_at': '', 'body': corpo, 'html_url': ''}
         if i == 0:
             rel['assets'] = [asset(exe.name, exe, f'releases/{DONO}/otavix-launcher/v{versao}/{exe.name}')]
-            guardar(f'espelho/repos/{DONO}/otavix-launcher/releases/latest.json', json.dumps(rel))
+            guardar(f'espelho/repos/{DONO}/otavix-launcher/releases/latest.json', json.dumps(rel, ensure_ascii=False))
             guardar(f'launcher/{exe.name}', exe.read_bytes())   # the download page's link
         lista.append({k: v for k, v in rel.items() if k != 'assets'})
-    guardar(f'espelho/repos/{DONO}/otavix-launcher/releases.lista.json', json.dumps(lista))
+    guardar(f'espelho/repos/{DONO}/otavix-launcher/releases.lista.json', json.dumps(lista, ensure_ascii=False))
     print(f'launcher: {LAUNCHER[0]}')
     for jogo, repo in SHADERS_REPOS.items():
         for nome in ('shaders.zip', 'shaders.zip.sha256'):
