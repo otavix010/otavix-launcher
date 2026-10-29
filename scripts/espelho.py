@@ -36,12 +36,17 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.9', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
+    'infamous-second-son-pc': ('v1.0.0', r'C:\infamous\pacote-windows\infamous-second-son-windows-x64.zip'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
         r'C:\Users\otavi\x360-ports\rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip',
+    # inFAMOUS Second Son: the Linux/SteamOS package (a manual download; the launcher takes the .zip) and the build's source (GPL)
+    'releases/otavix010/infamous-second-son-pc/v1.0.0/infamous-second-son-linux-x64.tar.gz':
+        r'C:\infamous\pacote-linux\infamous-second-son-linux-x64.tar.gz',
+    'arquivos/infamous-second-son-fonte-6cec83cc.zip': r'C:\infamous\pacote-windows\infamous-second-son-fonte-6cec83cc.zip',
 }
-LAUNCHER = ['1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}

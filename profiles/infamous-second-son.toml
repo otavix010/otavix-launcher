@@ -1,0 +1,78 @@
+# inFAMOUS Second Son (PS4) on Windows: what the launcher shows. The port is a build of the shadPS4 emulator tuned for this one game
+# (fixed effects, much more fps in the city, DLSS Frame Generation on RTX 40/50). Copied beside the launcher as launcher.toml.
+# Option keys are environment variables of the emulator's process (target = "env") or the launcher's own state (target = "launcher").
+
+[game]
+title = "inFAMOUS Second Son"
+subtitle = { pt = "Port para PC · emulador shadPS4 otimizado para o jogo", en = "PC port · shadPS4 emulator tuned for the game", es = "Port para PC · emulador shadPS4 optimizado para el juego" }
+exe = "shadPS4.exe"
+logs = "user/log"
+saves = ["user/home/1000/savedata/CUSA00004"]
+game_file = "eboot.bin"
+game_option = "game_path"
+args = ["-g", "{game}"]
+env = { SHADPS4_PIN_THREADS = "1" }
+accent = [70, 150, 235]
+legal = { pt = "Este launcher e o port não trazem nenhum arquivo do jogo. Eles leem a sua própria cópia de inFAMOUS Second Son (PS4, CUSA00004), já extraída numa pasta. inFAMOUS é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "This launcher and the port ship no game files. They read your own copy of inFAMOUS Second Son (PS4, CUSA00004), already extracted into a folder. inFAMOUS is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "Este launcher y el port no incluyen ningún archivo del juego. Leen tu propia copia de inFAMOUS Second Son (PS4, CUSA00004), ya extraída en una carpeta. inFAMOUS es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
+
+# the player's own copy of the game: the folder with eboot.bin; art from the player's copy (sce_sys)
+[art]
+kind = "image"
+folder = "../arte/infamous-second-son"
+include = ["icon0.png", "pic1.png"]
+card_only = 1
+seconds = 12
+trim = false
+
+[performance]
+note = { pt = "O emulador pesa no processador e na placa de vídeo. A geração de quadros do DLSS (RTX 40 e 50) dobra o fps exibido; sem uma RTX ela fica desligada sozinha. Na primeira vez a tela pode ficar preta por até 30 segundos enquanto os shaders são preparados, e cada efeito novo pode dar uma travadinha na primeira vez que aparece. Deixe o jogo e o port num SSD.", en = "The emulator weighs on both the processor and the graphics card. DLSS Frame Generation (RTX 40 and 50) doubles the displayed fps; without an RTX it turns itself off. The first time the screen may stay black for up to 30 seconds while the shaders are prepared, and each new effect may stutter the first time it shows. Keep the game and the port on an SSD.", es = "El emulador pesa en el procesador y en la tarjeta gráfica. La generación de cuadros de DLSS (RTX 40 y 50) duplica los fps mostrados; sin una RTX se desactiva sola. La primera vez la pantalla puede quedar negra hasta 30 segundos mientras se preparan los shaders, y cada efecto nuevo puede dar un tirón la primera vez que aparece. Deja el juego y el port en un SSD." }
+
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[options]]
+page = "game"
+key = "game_path"
+type = "path"
+pick = "folder"
+label = { pt = "Pasta do jogo", en = "Game folder", es = "Carpeta del juego" }
+help = { pt = "A pasta do inFAMOUS Second Son já extraída (CUSA00004), a que tem o eboot.bin dentro. O emulador não lê .pkg: extraia o PKG antes. Com o update 1.07 já aplicado, melhor.", en = "The already extracted inFAMOUS Second Son folder (CUSA00004), the one with eboot.bin inside. The emulator does not read .pkg: extract the PKG first. Best with the 1.07 update already applied.", es = "La carpeta de inFAMOUS Second Son ya extraída (CUSA00004), la que tiene eboot.bin dentro. El emulador no lee .pkg: extrae el PKG antes. Mejor con el update 1.07 ya aplicado." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_FG"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Geração de quadros (DLSS, RTX 40/50)", en = "Frame Generation (DLSS, RTX 40/50)", es = "Generación de cuadros (DLSS, RTX 40/50)" }
+help = { pt = "Gera quadros intermediários na placa de vídeo e dobra o fps exibido. Só funciona em placas NVIDIA RTX 40 e 50 e com a janela do jogo na frente; nas outras ela se desliga sozinha.", en = "Makes in-between frames on the graphics card and doubles the displayed fps. It only works on NVIDIA RTX 40 and 50 cards and with the game window in front; on the others it turns itself off.", es = "Genera cuadros intermedios en la tarjeta gráfica y duplica los fps mostrados. Solo funciona en tarjetas NVIDIA RTX 40 y 50 y con la ventana del juego al frente; en las demás se desactiva sola." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_DLSS_AA"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Antisserrilhamento DLSS (DLAA)", en = "DLSS anti-aliasing (DLAA)", es = "Antialiasing DLSS (DLAA)" }
+help = { pt = "Suaviza as bordas com o DLSS, em placas NVIDIA RTX. Custa cerca de 10% do fps.", en = "Smooths edges with DLSS, on NVIDIA RTX cards. It costs about 10% of the fps.", es = "Suaviza los bordes con DLSS, en tarjetas NVIDIA RTX. Cuesta cerca del 10% de los fps." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_VBLANK_HZ"
+target = "env"
+type = "choice"
+default = "360"
+label = { pt = "Limite de fps", en = "Fps cap", es = "Límite de fps" }
+help = { pt = "O jogo roda a 30 fps no console. 360 deixa o emulador livre para ir o mais alto que o PC aguentar; 60 limita.", en = "The game runs at 30 fps on the console. 360 lets the emulator go as high as the PC allows; 60 caps it.", es = "El juego corre a 30 fps en la consola. 360 deja al emulador ir tan alto como aguante el PC; 60 lo limita." }
+choices = [
+  { value = "60", label = "60" },
+  { value = "120", label = "120" },
+  { value = "360", label = { pt = "Livre (360)", en = "Uncapped (360)", es = "Libre (360)" } },
+]

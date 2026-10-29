@@ -5,7 +5,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.53"
+version = "1.0.54"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -35,6 +35,11 @@ accent = [30, 70, 165]
 [[libraries]]
 id = "ps3"
 name = "PlayStation 3"
+accent = [0, 112, 209]
+
+[[libraries]]
+id = "ps4"
+name = "PlayStation 4"
 accent = [0, 112, 209]
 
 [[libraries]]
@@ -74,6 +79,14 @@ library = "ps3"
 path = "ports/infamous"
 profile = "perfis/infamous.toml"
 platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "infamous-second-son"
+library = "ps4"
+path = "ports/infamous-second-son"
+profile = "perfis/infamous-second-son.toml"
+repo = "otavix010/infamous-second-son-pc"
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 id = "infamous-2"
