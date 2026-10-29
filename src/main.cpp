@@ -484,7 +484,9 @@ bool CopyMissing(const Game& gm) {
     std::string n = in.needs;
     for (const BuildInput& b : in.inputs)
         for (size_t at; (at = n.find("{" + b.key + "}")) != std::string::npos;) n.replace(at, b.key.size() + 2, gm.store.GetOwn(b.key));
-    if (n.empty()) return false;
+    // an input never kept (a game made by the generator alone, or a state lost): missing too, or the game opened with
+    // an empty --iso and took the next argument for it (report 326)
+    if (n.empty()) return in.needs.find('{') != std::string::npos;
     fs::path p = FromU8(n);
     return !fs::is_regular_file(p.is_absolute() ? p : gm.entry.dir / p, ec);
 }
@@ -2747,12 +2749,18 @@ fs::path UnpackSource(Game& gm, const BuildInput& b) {
     if (b.UnpackKeepsImage()) {
         if (fs::is_regular_file(v, ec)) return IsArchive(v) ? v : fs::path();
         if (!fs::is_directory(v, ec)) return {};
+        // two folders down at most, as the 360 ports' generator looks (report 148: the image in a folder inside the
+        // one picked; kept as the folder, the made game then counted as gone, its file not being one)
         fs::path image, archive;
         int images = 0, archives = 0;
-        for (auto& e : fs::directory_iterator(v, ec)) {
-            if (!e.is_regular_file(ec)) continue;
-            if (IsDiscImage(e.path())) image = e.path(), images++;
-            else if (IsArchive(e.path())) archive = e.path(), archives++;
+        for (auto it = fs::recursive_directory_iterator(v, ec); it != fs::recursive_directory_iterator(); it.increment(ec)) {
+            if (it.depth() > 2) {
+                it.disable_recursion_pending();
+                continue;
+            }
+            if (!it->is_regular_file(ec)) continue;
+            if (IsDiscImage(it->path())) image = it->path(), images++;
+            else if (IsArchive(it->path()) && it.depth() == 0) archive = it->path(), archives++;
         }
         if (images == 1) {
             gm.store.SetOwn(b.key, U8(image));
