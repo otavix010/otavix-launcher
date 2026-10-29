@@ -304,6 +304,7 @@ void ShaderShare::Send(const std::string& server, const Headers& headers, const 
         if (st_.busy) return;
         st_.busy = true;
     }
+    stop_ = false;
     std::thread([this, server, headers, game, spec, port_dir, data_dir] {
         std::error_code ec;
         fs::path cache = port_dir / FromU8(spec.folder);
@@ -320,6 +321,7 @@ void ShaderShare::Send(const std::string& server, const Headers& headers, const 
             uint64_t size = e.file_size(ec);
             // a shader file once; a storage file each time it grew
             std::string mark = spec.kind == "gowa" ? name : name + " " + std::to_string(size);
+            if (stop_) break;
             if (sent.count(mark) || pack.count(mark) || !size || size > kSendMax) continue;
             std::string body;
             if (!ReadAll(e.path(), body)) continue;

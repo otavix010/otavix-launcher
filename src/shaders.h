@@ -3,6 +3,7 @@
 // opens, and, when the player agreed to share, what the game compiled that was neither sent nor in the pack goes to
 // the launcher's server once the game closes. Packs are made and checked on the owner's PC before anyone gets them.
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -40,12 +41,15 @@ public:
     // in the background, after the game closed: the cache's new files to the server
     void Send(const std::string& server, const Headers& headers, const std::string& game, const ShaderSpec& spec,
               const fs::path& port_dir, const fs::path& data_dir);
-    void Wait();  // until the work in the background is done
+    void Wait();  // until the work in the background is done (blocks: tests only)
+    // the round of sending in the background ends at the next file: a game about to open must not wait for it
+    void StopSend() { stop_ = true; }
     Status Get();
 
 private:
     std::mutex m_;
     Status st_;
+    std::atomic<bool> stop_ = false;
 };
 
 }  // namespace launcher

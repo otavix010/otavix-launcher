@@ -182,6 +182,9 @@ struct App {
     SDL_Process* proc = nullptr;
     int proc_game = -1;
     Uint64 started = 0;
+    // a game waiting for the shaders in the background: it opens as soon as they are done (a minute at most)
+    int launch_wait = -1;
+    Uint64 launch_wait_since = 0;
     // a short message at the bottom
     std::string toast;
     Uint64 toast_until = 0;
@@ -652,8 +655,10 @@ std::string GameExe(Game& gm) {
     return exe;
 }
 
-void Launch(int index) {
+void Launch(int index, bool shaders_done = false) {
     if (g.proc) return;
+    int waiting = g.launch_wait;
+    g.launch_wait = -1;
     Game& gm = *g.games[size_t(index)];
     if (!Playable(gm, g.here)) return;
     // the copy of the game gone: the game would open and quit; its page says what to do
@@ -668,7 +673,17 @@ void Launch(int index) {
         if (MakeBackup(gm.entry.dir, gm.prof, "auto", err)) PruneAutomatic(gm.entry.dir, 10);
         gm.backups_stale = true;
     }
-    if (!gm.shader_spec.Empty()) gm.shaders.Wait();
+    // the window must not freeze while the shaders finish (report 264, 301): the sending stops at the next file and the
+    // game opens by itself when the merging is done
+    if (!shaders_done && !gm.shader_spec.Empty()) {
+        gm.shaders.StopSend();
+        if (gm.shaders.Get().busy) {
+            g.launch_wait_since = waiting == index ? g.launch_wait_since : SDL_GetTicks();
+            g.launch_wait = index;
+            Toast(Tr(S::ShadersWorking), 2500);
+            return;
+        }
+    }
     std::string exe = GameExe(gm);
     std::error_code ec;
     fs::path exe_path = (gm.entry.dir / FromU8(exe)).make_preferred();
@@ -860,6 +875,10 @@ std::string PrettyJson(const std::string& json) {
 }
 
 void PollGame() {
+    if (!g.proc && g.launch_wait >= 0) {
+        Game& gm = *g.games[size_t(g.launch_wait)];
+        if (!gm.shaders.Get().busy || SDL_GetTicks() - g.launch_wait_since > 60000) Launch(g.launch_wait, true);
+    }
     if (!g.proc) return;
     int code = 0;
     if (!SDL_WaitProcess(g.proc, false, &code)) return;
