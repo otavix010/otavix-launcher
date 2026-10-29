@@ -68,13 +68,22 @@ std::wstring FreshEnvironment() {
     return block;
 }
 
+// one argument as the program reads it back (CommandLineToArgvW): backslashes doubled before a quote and at the end,
+// or a folder ending with its separator ("F:\", "...\game\") came out as F:\" with the rest of the line in it
 std::wstring Quote(const std::wstring& a) {
     if (!a.empty() && a.find_first_of(L" \t\"") == std::wstring::npos) return a;
     std::wstring q = L"\"";
+    size_t slashes = 0;
     for (wchar_t c : a) {
-        if (c == L'"') q += L'\\';
+        if (c == L'\\') {
+            slashes++;
+        } else {
+            if (c == L'"') q.append(slashes + 1, L'\\');
+            slashes = 0;
+        }
         q += c;
     }
+    q.append(slashes, L'\\');
     return q + L"\"";
 }
 

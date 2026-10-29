@@ -492,7 +492,10 @@ bool CopyMissing(const Game& gm) {
     // an empty --iso and took the next argument for it (report 326)
     if (n.empty()) return in.needs.find('{') != std::string::npos;
     fs::path p = FromU8(n);
-    return !fs::is_regular_file(p.is_absolute() ? p : gm.entry.dir / p, ec);
+    p = p.is_absolute() ? p : gm.entry.dir / p;
+    // an input's folder counts too: the game unpacked from its disc, which the 360 ports read in place (report 214)
+    bool folder = n != in.needs && fs::is_directory(p, ec);
+    return !fs::is_regular_file(p, ec) && !folder;
 }
 
 fs::path FindGame(Game& gm) {
