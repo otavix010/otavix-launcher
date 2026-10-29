@@ -34,14 +34,14 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'silent-hill-pc': r'E:\RecompDev\silent-hill-pc',
 }
 RELEASE = {  # repository: (tag, package)
-    'fifa-street-2-pc': ('v1.0.8', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
+    'fifa-street-2-pc': ('v1.0.9', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
         r'C:\Users\otavi\x360-ports\rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip',
 }
-LAUNCHER = ['1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
@@ -103,7 +103,7 @@ def main():
     print(f'launcher: {LAUNCHER[0]}')
     for key, arquivo in FIXOS.items():
         envios.append((key, Path(arquivo)))
-    for jogo, repo in SHADERS_REPOS.items():
+    for jogo, repo in ({} if '--sem-shaders' in sys.argv else SHADERS_REPOS).items():  # local packs may be older than the server's
         for nome in ('shaders.zip', 'shaders.zip.sha256'):
             f = SHADERS / jogo / nome
             if f.exists():
