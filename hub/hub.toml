@@ -86,7 +86,7 @@ library = "ps4"
 path = "ports/infamous-second-son"
 profile = "perfis/infamous-second-son.toml"
 repo = "otavix010/infamous-second-son-pc"
-platforms = { windows = "ok", linux = "soon" }
+platforms = { windows = "ok", linux = "ok" }
 
 [[games]]
 id = "infamous-2"
