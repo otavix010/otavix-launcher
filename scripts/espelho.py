@@ -47,7 +47,12 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     'arquivos/infamous-second-son-fonte-6cec83cc.zip': r'C:\infamous\pacote-windows\infamous-second-son-fonte-6cec83cc.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.1.zip': r'C:\infamous\pacote-windows-v2\infamous-second-son-fonte-ifpc-v1.0.1.zip',
 }
-LAUNCHER = ['1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles' [art] web: every player sees the game's photo
+    'infamous-second-son': ['icon0.png', 'pic1.png'],
+    'gow-betrayal': ['capa.png', 'fundo.png'],
+}
+ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
+LAUNCHER = ['1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
@@ -109,6 +114,9 @@ def main():
     print(f'launcher: {LAUNCHER[0]}')
     for key, arquivo in FIXOS.items():
         envios.append((key, Path(arquivo)))
+    for jogo, arquivos in ARTE.items():
+        for nome in arquivos:
+            envios.append((f'arte/{jogo}/{nome}', ARTE_LOCAL / jogo / nome))
     for jogo, repo in ({} if '--sem-shaders' in sys.argv else SHADERS_REPOS).items():  # local packs may be older than the server's
         for nome in ('shaders.zip', 'shaders.zip.sha256'):
             f = SHADERS / jogo / nome
@@ -119,7 +127,7 @@ def main():
         return
     falhas = 0
     for key, arquivo in envios:
-        p = subprocess.run(['npx.cmd', 'wrangler', 'r2', 'object', 'put', f'{BUCKET}/{key}', '--file', str(arquivo), '--remote'],
+        p = subprocess.run(['npx.cmd', 'wrangler', 'r2', 'object', 'put', f'{BUCKET}/{key}', '--file', str(arquivo), '--remote', *(['--content-type', 'image/png' if str(arquivo).lower().endswith('.png') else 'image/jpeg'] if str(arquivo).lower().endswith(('.png', '.jpg')) and key.startswith('arte/') else [])],
                            cwd=RAIZ / 'servidor', capture_output=True, text=True, encoding='utf-8', errors='replace')
         if p.returncode:
             falhas += 1

@@ -6,6 +6,8 @@ setlocal
 if "%~1"=="" (echo Uso: release.cmd ^<versao^>& exit /b 1)
 cd /d "%~dp0.."
 call scripts\build.cmd || exit /b 1
+rem a regra: todo jogo tem a sua foto para qualquer jogador ([art] web dos perfis)
+py -3 -I scripts\conferir_arte.py || exit /b 1
 set "P=out\pacote"
 rd /s /q "%P%" 2>nul
 mkdir "%P%\perfis" "%P%\catalogo"

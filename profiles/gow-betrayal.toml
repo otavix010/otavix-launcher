@@ -28,6 +28,8 @@ include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg"]
 card_only = 1
 seconds = 12
 trim = false
+# the game's own picture for every player, with or without the game (rule: scripts/conferir_arte.py); sent by espelho.py (ARTE)
+web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/gow-betrayal/capa.png", "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/gow-betrayal/fundo.png"]
 
 [icon]
 # the window's and the desktop shortcut's: the jar's own (MIDlet-Icon), pixel art
