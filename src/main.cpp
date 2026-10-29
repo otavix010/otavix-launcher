@@ -240,6 +240,10 @@ struct App {
                                             // 4 beta (made and played here, still in development)
     // the report being written
     Call report_call;
+    Call hub_report_call;  // the launcher's own report (Settings > About)
+    char hub_rep_desc[4000] = "";
+    int hub_rep_cat = 5;
+    std::string hub_rep_msg;
     int rep_cat = 0;
     char rep_desc[4000] = "", rep_contact[160] = "";
     bool rep_attach = true;
@@ -4687,6 +4691,8 @@ void SettingsUpdates() {
     }
 }
 
+void LauncherReportSection();
+
 void SettingsAbout() {
     ImGui::PushFont(g.bold, 24);
     ImGui::TextUnformatted(g.hub.name.c_str());
@@ -4694,6 +4700,9 @@ void SettingsAbout() {
     ImGui::TextDisabled("%s %s", Tr(S::Version), g.hub.version.c_str());
     ImGui::Spacing();
     Dim(Tr(S::HubAbout));
+    ImGui::Spacing();
+    ImGui::Separator();
+    LauncherReportSection();
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::TextUnformatted(Tr(S::Credits));
@@ -4874,6 +4883,77 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     if (!log_text.empty()) j += ",\"log_nome\":" + Json(log_name) + ",\"log\":" + Json(log_text);
     if (!config.empty()) j += ",\"config\":" + Json(config);
     return j + "}";
+}
+
+// a report of the launcher itself (report 304): the same server and table, with the game "launcher"
+void LauncherReportSection() {
+    if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
+    ImGui::PushFont(g.bold, 22);
+    ImGui::TextUnformatted(Tr(S::LauncherReportTitle));
+    ImGui::PopFont();
+    Dim(Tr(S::LauncherReportHelp));
+    ImGui::Spacing();
+    RowLabel(Tr(S::ReportCategory));
+    if (ImGui::BeginCombo("##hubcat", Tr(kCats[std::clamp(g.hub_rep_cat, 0, 5)]))) {
+        for (int i = 0; i < 6; i++)
+            if (ImGui::Selectable(Tr(kCats[i]), i == g.hub_rep_cat)) g.hub_rep_cat = i;
+        ImGui::EndCombo();
+    }
+    ImGui::Spacing();
+    ImGui::TextUnformatted(Tr(S::ReportDesc));
+    ImGui::InputTextMultiline("##hubdesc", g.hub_rep_desc, sizeof(g.hub_rep_desc), ImVec2(-1, 130 * g.scale));
+    RowLabel(Tr(S::ReportContact));
+    ImGui::InputText("##hubcontact", g.rep_contact, sizeof(g.rep_contact));
+    ImGui::Spacing();
+    HttpResult r;
+    Call::State st = g.hub_report_call.Get(&r);
+    if (st == Call::State::Done) {
+        if (r.Ok()) {
+            g.hub_rep_msg = Tr(S::ReportSent);
+            g.hub_rep_desc[0] = 0;
+        } else {
+            g.hub_rep_msg = std::string(Tr(S::SendFailed)) + ": " + r.error + "\n" + Tr(S::ReportSaved);
+        }
+        g.hub_report_call.Reset();
+    }
+    bool busy = st == Call::State::Busy;
+    ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+    ImGui::BeginDisabled(busy);
+    if (ImGui::Button(busy ? Tr(S::Sending) : Tr(S::ReportSend), ImVec2(260 * g.scale, 0))) {
+        if (std::string(g.hub_rep_desc).find_first_not_of(" \n\t") == std::string::npos) {
+            g.hub_rep_msg = Tr(S::ReportEmpty);
+        } else {
+            std::string j = "{";
+            j += "\"launcher\":" + Json(g.hub.version);
+            j += ",\"jogo\":" + Json("launcher");
+            j += ",\"titulo\":" + Json("Launcher");
+            j += ",\"plataforma\":" + Json(PlatformName(g.view));
+            j += ",\"categoria\":" + Json(T(Lang::Pt, kCats[std::clamp(g.hub_rep_cat, 0, 5)]));
+            j += ",\"descricao\":" + Json(g.hub_rep_desc);
+            j += ",\"contato\":" + Json(g.rep_contact);
+            j += ",\"ultima_saida\":" + Json("-");
+            j += ",\"sistema\":{";
+            for (size_t i = 0; i < g.sysinfo.size(); i++)
+                j += (i ? "," : "") + Json(g.sysinfo[i].first) + ":" + Json(g.sysinfo[i].second);
+            j += "}}";
+            // a copy stays on the computer either way
+            std::error_code ec;
+            fs::create_directories(g.hub_dir / "reports", ec);
+            std::ofstream(g.hub_dir / "reports" / FromU8(Stamp() + "_launcher.json"), std::ios::binary) << j;
+            if (Server().empty()) g.hub_rep_msg = Tr(S::ServerOff);
+            else g.hub_report_call.Start("POST", Server() + "/v1/report", ServerHeaders(), j);
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::PopStyleColor();
+    if (!g.hub_rep_msg.empty()) ImGui::TextWrapped("%s", g.hub_rep_msg.c_str());
+    // the owner's answers to the launcher's reports
+    for (const auto& row : g.answers) {
+        if (Str(row, 1) != "launcher" || Str(row, 5).empty()) continue;
+        ImGui::Spacing();
+        Dim((std::string(Tr(S::AnswerYourReport)) + " \"" + Str(row, 4) + "\"").c_str());
+        ImGui::TextWrapped("%s", Str(row, 5).c_str());
+    }
 }
 
 void CrashCard(Game& gm);

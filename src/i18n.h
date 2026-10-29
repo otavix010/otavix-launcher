@@ -44,6 +44,7 @@ enum class S {
     NoticeTitle, NoticeOk, AdminNoticeTab, NoticeHelp, NoticeCurrent, NoticeNone, NoticeSend, NoticeConfirm,
     NoticeWithdraw, NoticeEmpty,
     ShadersTitle, ShadersShare, ShadersHelp, ShadersPack, ShadersNoPack, ShadersSent, ShadersWorking,
+    LauncherReportTitle, LauncherReportHelp,
     Count
 };
 

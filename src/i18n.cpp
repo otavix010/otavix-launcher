@@ -479,6 +479,8 @@ constexpr Row kRows[] = {
     {"Este jogo ainda não tem pacote da comunidade: os shaders são montados na primeira vez em cada área.", "This game has no community pack yet: shaders are built the first time in each area.", "Este juego aún no tiene paquete de la comunidad: los shaders se preparan la primera vez en cada zona."},
     {"Arquivos de shader enviados deste PC: %d.", "Shader files sent from this PC: %d.", "Archivos de shader enviados desde este PC: %d."},
     {"Atualizando os shaders...", "Updating the shaders...", "Actualizando los shaders..."},
+    {"Reportar um problema do launcher", "Report a launcher problem", "Reportar un problema del launcher"},
+    {"Algo no próprio launcher não funciona (trava, fecha, botão que não responde, texto errado) ou você tem uma sugestão para ele? Conte aqui. Vão junto o modelo do seu PC e a versão do launcher, nada mais. Problemas de um jogo específico se reportam na página do jogo.", "Something in the launcher itself does not work (freezes, closes, a button that does nothing, wrong text) or you have a suggestion for it? Tell us here. Your PC model and the launcher version go along, nothing else. A problem with one game is reported on the game's page.", "¿Algo del propio launcher no funciona (se congela, se cierra, un botón que no responde, texto incorrecto) o tienes una sugerencia? Cuéntalo aquí. Se envían el modelo de tu PC y la versión del launcher, nada más. Los problemas de un juego concreto se reportan en la página del juego."},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
