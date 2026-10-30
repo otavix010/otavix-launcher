@@ -34,7 +34,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'silent-hill-pc': r'E:\RecompDev\silent-hill-pc',
 }
 RELEASE = {  # repository: (tag, package)
-    'fifa-street-2-pc': ('v1.0.9', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
+    'fifa-street-2-pc': ('v1.0.10', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
     'infamous-second-son-pc': ('v1.0.1', r'C:\infamous\pacote-windows-v2\infamous-second-son-windows-x64.zip'),
 }
