@@ -90,6 +90,9 @@ struct Game {
     bool install_taken = true;  // the finished install's game is already the one to play
     bool confirm_delete_archive = false;
     bool manual_open = false;  // the manual install's steps shown
+    std::string disc_found;    // the game found in the discs folder (not installed yet), looked up every few seconds
+    Uint64 disc_checked = 0;
+    bool disc_auto = false;    // it was taken once already: the player's change of mind is respected
     GameBuild build;           // [install] kind = "build": the generator making the game on this PC
     std::mutex prereq_m;
     std::vector<int> prereq;   // each tool: -1 being checked, 0 missing, 1 there
@@ -2630,6 +2633,29 @@ std::string FindDisc(const Game& gm, const BuildInput& in) {
     return found.size() == 1 ? U8(found[0]) : std::string();
 }
 
+// a game that is not a build, in the discs folder or a folder inside it: the folder holding the profile's file whose
+// name, up to the first "(" or "[", is the game's title ("inFAMOUS Second Son (CUSA00004)"); empty when none or many
+std::string FindGameInDiscs(const Game& gm) {
+    fs::path dir = DiscsFolder();
+    if (dir.empty() || gm.prof.install.check.empty()) return {};
+    std::vector<std::string> title = NameWords(gm.prof.title.Get(Lang::En));
+    if (title.empty()) return {};
+    std::vector<fs::path> found;
+    std::error_code ec;
+    auto consider = [&](const fs::path& p) {
+        if (!fs::is_directory(p, ec) || !fs::is_regular_file(p / FromU8(gm.prof.install.check), ec)) return;
+        std::string name = U8(p.filename());
+        name = name.substr(0, name.find_first_of("(["));
+        if (NameWords(name) == title) found.push_back(p);
+    };
+    for (auto& e : fs::directory_iterator(dir, ec)) {
+        if (!e.is_directory(ec)) continue;
+        consider(e.path());
+        for (auto& inner : fs::directory_iterator(e.path(), ec)) consider(inner.path());
+    }
+    return found.size() == 1 ? U8(found[0]) : std::string();
+}
+
 void PickBuildInput(Game& gm, const BuildInput& in, bool file) {
     {
         std::lock_guard lock(g_build_pick.m);
@@ -3350,6 +3376,20 @@ void HomePage() {
             if (Playable(gm, g.here) && ImGui::SmallButton(Tr(S::ChangeGame)))
                 PickInstall(gm.prof.install.files.empty() ? Pick::Download : Pick::File);
         } else {
+            // the game already sits in the discs folder: taken as if the player had shown it, once
+            if (gm.prof.install.files.empty() && !gm.prof.install.check.empty() && !gm.disc_auto && is.stage != Installer::Stage::Failed) {
+                if (SDL_GetTicks() - gm.disc_checked > 4000 || !gm.disc_checked) {
+                    gm.disc_found = FindGameInDiscs(gm);
+                    gm.disc_checked = SDL_GetTicks();
+                }
+                if (!gm.disc_found.empty()) {
+                    gm.disc_auto = true;
+                    std::lock_guard lock(g.dlg_m);
+                    g.inst_path = gm.disc_found;
+                    g.inst_ready = true;
+                    g.inst_game = g.cur;
+                }
+            }
             ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::GameNotInstalled));
             bool one_file = !gm.prof.install.files.empty();
             ImGui::TextWrapped("%s", one_file && !gm.prof.install.help.Empty() ? Tx(gm.prof.install.help) : Tr(S::InstallHelp));
