@@ -254,6 +254,15 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     };
     std::error_code ec;
     fs::path search = source;
+    // a folder shown that holds the download itself and not the game (Downloads): the one archive or disc image in it
+    // is what gets unpacked
+    if (fs::is_directory(source, ec) && Candidates(source, spec).empty()) {
+        fs::path only;
+        int n = 0;
+        for (auto& e : fs::directory_iterator(source, ec))
+            if (e.is_regular_file(ec) && (IsArchive(e.path()) || (spec.unpack_images && IsDiscImage(e.path())))) only = e.path(), n++;
+        if (n == 1) source = only, search = only;
+    }
     fs::path work;  // the archive's unpacking folder, ours to clear
     bool archive = fs::is_regular_file(source, ec) && (IsArchive(source) || (spec.unpack_images && IsDiscImage(source)));
     if (archive) {

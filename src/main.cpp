@@ -3385,7 +3385,7 @@ void HomePage() {
             } else {
                 if (way("##auto", Tr(S::InstallAuto), Tr(S::InstallAutoText), true)) PickInstall(Pick::Download);
                 ImGui::SameLine(0, gap);
-                if (way("##manual", Tr(S::InstallManual), Tr(S::InstallManualText), gm.manual_open)) gm.manual_open = !gm.manual_open;
+                if (way("##manual", Tr(S::InstallManual), Tr(S::InstallManualText), true)) PickInstall(Pick::Folder);
                 if (gm.manual_open) {
                     ImGui::Spacing();
                     ImGui::TextUnformatted(Tr(S::ManualSteps));

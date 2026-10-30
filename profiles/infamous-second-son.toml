@@ -26,6 +26,11 @@ trim = false
 # the game's own picture for every player, with or without the game (rule: scripts/conferir_arte.py); sent by espelho.py (ARTE)
 web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/infamous-second-son/icon0.png", "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/infamous-second-son/pic1.png"]
 
+# the player shows the folder (or the downloaded .7z/.zip/.rar): the launcher finds the folder holding eboot.bin, unpacking first if needed
+[install]
+check = "eboot.bin"
+version = { pt = "inFAMOUS Second Son (PS4, CUSA00004), já extraído, de preferência com o update 1.07", en = "inFAMOUS Second Son (PS4, CUSA00004), already extracted, preferably with the 1.07 update", es = "inFAMOUS Second Son (PS4, CUSA00004), ya extraído, de preferencia con el update 1.07" }
+
 [performance]
 note = { pt = "O emulador pesa no processador e na placa de vídeo. A geração de quadros do DLSS (RTX 40 e 50) dobra o fps exibido; sem uma RTX ela fica desligada sozinha. Na primeira vez a tela pode ficar preta por até 30 segundos enquanto os shaders são preparados, e cada efeito novo pode dar uma travadinha na primeira vez que aparece. Deixe o jogo e o port num SSD.", en = "The emulator weighs on both the processor and the graphics card. DLSS Frame Generation (RTX 40 and 50) doubles the displayed fps; without an RTX it turns itself off. The first time the screen may stay black for up to 30 seconds while the shaders are prepared, and each new effect may stutter the first time it shows. Keep the game and the port on an SSD.", es = "El emulador pesa en el procesador y en la tarjeta gráfica. La generación de cuadros de DLSS (RTX 40 y 50) duplica los fps mostrados; sin una RTX se desactiva sola. La primera vez la pantalla puede quedar negra hasta 30 segundos mientras se preparan los shaders, y cada efecto nuevo puede dar un tirón la primera vez que aparece. Deja el juego y el port en un SSD." }
 
