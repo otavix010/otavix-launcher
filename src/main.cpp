@@ -6379,7 +6379,11 @@ void AdminPage() {
         }
         g.admin_file_call.Reset();
     }
+    // the page open: the reports and the requests look themselves up again every minute, no need to close the launcher
+    static Uint64 admin_looked = 0;
+    if (SDL_GetTicks() - admin_looked > 60000) g.admin_stale = true;
     if (g.admin_stale && g.admin_rank_call.Get() == Call::State::Idle) {
+        admin_looked = SDL_GetTicks();
         g.admin_rank_call.Start("GET", Server() + "/v1/admin/ranking?periodo=" + kPeriods[g.admin_period], ServerHeaders(true), "");
         g.admin_reports_call.Start("GET", Server() + "/v1/admin/reports", ServerHeaders(true), "");
         g.admin_stale = false;
