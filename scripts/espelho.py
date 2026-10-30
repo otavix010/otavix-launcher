@@ -57,7 +57,7 @@ ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles'
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}

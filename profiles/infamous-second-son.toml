@@ -110,7 +110,7 @@ page = "video"
 key = "SHADPS4_CFG_FULLSCREEN"
 target = "env"
 type = "toggle"
-default = true
+default = false
 label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" }
 help = { pt = "Liga a tela cheia sem borda. Desligada, o jogo abre numa janela do tamanho escolhido abaixo. A geração de quadros (DLSS) funciona nos dois modos, com a janela do jogo na frente.", en = "Turns on borderless fullscreen. Off, the game opens in a window of the size chosen below. Frame Generation (DLSS) works in both modes, with the game window in front.", es = "Activa la pantalla completa sin bordes. Desactivada, el juego abre en una ventana del tamaño elegido abajo. La generación de cuadros (DLSS) funciona en ambos modos, con la ventana del juego al frente." }
 
@@ -237,15 +237,15 @@ choices = [
 
 [[presets]]
 label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "Tela cheia, Mailbox, geração de quadros ligada (RTX 40/50), sem DLAA e sem FSR. Um bom começo para a maioria dos PCs.", en = "Fullscreen, Mailbox, Frame Generation on (RTX 40/50), no DLAA and no FSR. A good start for most PCs.", es = "Pantalla completa, Mailbox, generación de cuadros activada (RTX 40/50), sin DLAA ni FSR. Un buen comienzo para la mayoría de los PC." }
-values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Mailbox", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+help = { pt = "Janela, Mailbox, geração de quadros ligada (RTX 40/50), sem DLAA e sem FSR. Um bom começo para a maioria dos PCs.", en = "Windowed, Mailbox, Frame Generation on (RTX 40/50), no DLAA and no FSR. A good start for most PCs.", es = "Ventana, Mailbox, generación de cuadros activada (RTX 40/50), sin DLAA ni FSR. Un buen comienzo para la mayoría de los PC." }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Mailbox", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
 
 [[presets]]
 label = { pt = "Desempenho", en = "Performance", es = "Rendimiento" }
 help = { pt = "Sem DLAA, sem FSR, sem sincronia vertical e fps livre: o máximo de quadros que o PC aguentar, com a imagem mais simples.", en = "No DLAA, no FSR, no vertical sync and uncapped fps: as many frames as the PC can manage, with the plainest picture.", es = "Sin DLAA, sin FSR, sin sincronización vertical y fps libre: tantos cuadros como aguante el PC, con la imagen más simple." }
-values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
 
 [[presets]]
 label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
 help = { pt = "DLAA e FSR 1 com nitidez alta, VSync (Fifo) e fps limitado em 60: a imagem mais limpa, para quem tem folga de placa de vídeo (custa uns 10% do fps).", en = "DLAA and FSR 1 with high sharpness, VSync (Fifo) and fps capped at 60: the cleanest picture, for those with graphics card headroom (costs about 10% of the fps).", es = "DLAA y FSR 1 con nitidez alta, VSync (Fifo) y fps limitado a 60: la imagen más limpia, para quien tiene margen de tarjeta gráfica (cuesta un 10% de los fps)." }
-values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Fifo", SHADPS4_FG = false, SHADPS4_DLSS_AA = true, SHADPS4_CFG_FSR = true, SHADPS4_CFG_SHARP = 90, SHADPS4_VBLANK_HZ = "60" }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Fifo", SHADPS4_FG = false, SHADPS4_DLSS_AA = true, SHADPS4_CFG_FSR = true, SHADPS4_CFG_SHARP = 90, SHADPS4_VBLANK_HZ = "60" }
