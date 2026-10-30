@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "art.h"
+#include "net.h"
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -180,6 +181,65 @@ void UnmountImage(const fs::path& image) {
                "Dismount-DiskImage -ImagePath " + PsQuote(U8(image)) + " | Out-Null"}, code);
 }
 #endif
+
+// the .pkg files of a PS4 game: the one picked and its neighbours, or the ones in the folder picked (two folders down)
+std::vector<fs::path> FindPkgs(const fs::path& where) {
+    std::vector<fs::path> out;
+    std::error_code ec;
+    auto is_pkg = [](const fs::path& p) { return Ext(p) == ".pkg"; };
+    if (fs::is_regular_file(where, ec)) {
+        if (!is_pkg(where)) return out;
+        for (auto& e : fs::directory_iterator(where.parent_path(), ec))
+            if (e.is_regular_file(ec) && is_pkg(e.path())) out.push_back(e.path());
+    } else if (fs::is_directory(where, ec)) {
+        for (auto it = fs::recursive_directory_iterator(where, ec); it != fs::recursive_directory_iterator(); it.increment(ec)) {
+            if (it.depth() > 2) {
+                it.disable_recursion_pending();
+                continue;
+            }
+            if (it->is_regular_file(ec) && is_pkg(it->path())) out.push_back(it->path());
+        }
+    }
+    std::sort(out.begin(), out.end());
+    return out;
+}
+
+// the PS4 .pkg extractor (a build of shadPS4's own package code), kept on the launcher's server: downloaded once, into
+// the port's tools folder. Empty path and the reason when it cannot be had
+constexpr const char* kPkgToolKey = "ferramentas/ps4-pkg-extractor.zip";
+constexpr const char* kPkgToolSha256 = "5f5d475ad90418a8650ee1eff476e60192b0632e73af6e5107fa5bd00b94f02a";
+
+fs::path PkgTool(const fs::path& tools, std::atomic<bool>& cancel, std::string& why) {
+    std::error_code ec;
+    fs::path exe = tools / "pkg_extractor.exe";
+    if (fs::is_regular_file(exe, ec)) return exe;
+    std::string url = ServerFile(kPkgToolKey);
+    if (url.empty()) {
+        why = "sem conexão com o servidor do launcher (a ferramenta que abre o .pkg vem de lá)";
+        return {};
+    }
+    fs::create_directories(tools, ec);
+    fs::path zip = tools / "extrator.zip";
+    uint64_t got = 0;
+    std::mutex m;
+    std::string sha, error;
+    if (!DownloadFile(url, zip, cancel, got, m, sha, error) || sha != kPkgToolSha256) {
+        fs::remove(zip, ec);
+        why = "não deu para baixar a ferramenta que abre o .pkg" + (error.empty() ? std::string() : " (" + error + ")");
+        return {};
+    }
+    std::string tar = Tar(), src = U8(zip), to = U8(tools);
+    const char* x_args[] = {tar.c_str(), "-xf", src.c_str(), "-C", to.c_str(), nullptr};
+    SDL_Process* p = SDL_CreateProcess(x_args, false);
+    int code = -1;
+    if (p) SDL_WaitProcess(p, true, &code), SDL_DestroyProcess(p);
+    fs::remove(zip, ec);
+    if (code != 0 || !fs::is_regular_file(exe, ec)) {
+        why = "não deu para abrir a ferramenta baixada";
+        return {};
+    }
+    return exe;
+}
 
 // disc images and game folders under a folder: an image, else a folder holding the profile's file
 std::vector<fs::path> Candidates(const fs::path& dir, const InstallSpec& spec) {
@@ -368,6 +428,80 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
                         std::to_string(code) + ")");
         }
         search = work;
+    }
+    // a PS4 game given as .pkg files (base, patch, DLC): extracted beside each other in the port's folder, the way the
+    // emulator looks for them (CUSA00004, CUSA00004-patch), unless the game's folder is there already
+    if (!spec.pkg.empty() && !(fs::is_directory(search, ec) && !Candidates(search, spec).empty())) {
+        std::vector<fs::path> pkgs = FindPkgs(search);
+        if (!pkgs.empty()) {
+            std::string why;
+            fs::path tool = PkgTool(dest.parent_path() / "ferramentas", cancel_, why);
+            if (tool.empty()) {
+                if (!work.empty()) fs::remove_all(work, ec);
+                return fail(why);
+            }
+            uint64_t total = 0;
+            for (const fs::path& k : pkgs) total += fs::file_size(k, ec);
+            fs::create_directories(dest, ec);
+            auto space = fs::space(dest, ec);
+            if (!ec && space.available < total + (512ull << 20)) {
+                if (!work.empty()) fs::remove_all(work, ec);
+                char b[96];
+                std::snprintf(b, sizeof(b), "espaço: precisa de %.1f GB livres", double(total + (512ull << 20)) / (1u << 30));
+                return fail(b);
+            }
+            {
+                std::lock_guard lock(m_);
+                st_.stage = Stage::Extracting;
+                st_.progress = 0;
+                st_.from_archive = pkgs.size() == 1;
+                st_.archive = pkgs[0];
+                st_.archive_bytes = total;
+            }
+            uint64_t before = FolderBytes(dest);
+            std::string exe = U8(tool);
+            for (const fs::path& k : pkgs) {
+                std::string file = U8(k);
+                // its kind: 101 the game, 102 a patch, 103 an add-on (kept apart: it takes the game's folder name)
+                const char* c_args[] = {exe.c_str(), file.c_str(), "--check-type", nullptr};
+                SDL_Process* cp = SDL_CreateProcess(c_args, false);
+                int kind = -1;
+                if (cp) SDL_WaitProcess(cp, true, &kind), SDL_DestroyProcess(cp);
+                if (kind != 101 && kind != 102 && kind != 103) {
+                    if (!work.empty()) fs::remove_all(work, ec);
+                    return fail("o arquivo " + U8(k.filename()) + " não parece um .pkg de jogo do PS4");
+                }
+                fs::path out = kind == 103 ? dest / "_dlc" : dest;
+                fs::create_directories(out, ec);
+                std::string o = U8(out);
+                const char* x_args[] = {exe.c_str(), file.c_str(), o.c_str(), nullptr};
+                SDL_Process* p = SDL_CreateProcess(x_args, false);
+                if (!p) return fail("pkg_extractor");
+                int code = -1;
+                while (!SDL_WaitProcess(p, false, &code)) {
+                    if (cancel_) {
+                        SDL_KillProcess(p, true);
+                        SDL_WaitProcess(p, true, &code);
+                        SDL_DestroyProcess(p);
+                        return fail("cancelado");
+                    }
+                    SDL_Delay(400);
+                    uint64_t now = FolderBytes(dest);
+                    std::lock_guard lock(m_);
+                    st_.progress = std::min(float(double(now > before ? now - before : 0) / double(std::max<uint64_t>(total, 1))), 0.999f);
+                }
+                SDL_DestroyProcess(p);
+                if (code != 0) return fail("falha ao extrair " + U8(k.filename()) + " (código " + std::to_string(code) + ")");
+            }
+            if (!work.empty()) fs::remove_all(work, ec);
+            fs::path game = dest / spec.pkg;
+            if (!fs::is_regular_file(game / "eboot.bin", ec)) return fail("faltou o .pkg do jogo em si (o maior, com o jogo base " + spec.pkg + "); mostre a pasta que tem todos os .pkg");
+            std::lock_guard lock(m_);
+            st_.stage = Stage::Done;
+            st_.game = game;
+            st_.version_ok = true;
+            return;
+        }
     }
     {
         std::lock_guard lock(m_);

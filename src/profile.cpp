@@ -78,6 +78,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
     mods_game_id = std::as_const(t)["mods"]["game_id"].value_or(std::string());
     mods_help = ReadText(std::as_const(t)["mods"]["help"]);
     install.check = std::as_const(t)["install"]["check"].value_or(std::string());
+    install.pkg = std::as_const(t)["install"]["pkg"].value_or(std::string());
     install.sha1 = std::as_const(t)["install"]["sha1"].value_or(std::string());
     install.version = ReadText(std::as_const(t)["install"]["version"]);
     install.folder = std::as_const(t)["install"]["folder"].value_or(std::string("jogo"));

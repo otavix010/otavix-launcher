@@ -130,6 +130,7 @@ struct InstallSpec {
     bool unpack_images = false;    // a disc image is unpacked too (a generator's input wants the files, not the image)
     std::vector<std::string> files;  // a game that is one file: its extensions (jar); copied into folder, its SHA-1 checked
     Text help;                       // what the player picks, for such a game
+    std::string pkg;                 // a PS4 game's title id ("CUSA00004"): its .pkg files (base, patch, DLC) are extracted into folder
     std::string kind;                // "build": the game is made on the player's PC by the port's generator
     std::string done;                // build: the file there once the game is made
     std::string marks;               // build: the folder of the steps' marks and logs

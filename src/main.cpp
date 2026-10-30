@@ -1475,7 +1475,7 @@ void PickInstall(Pick what) {
         static const SDL_DialogFileFilter kImage[] = {{"Imagem do disco (.iso)", "iso;xiso"}};
         SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kImage, 1, start.c_str(), false);
     } else {
-        static const SDL_DialogFileFilter kGame[] = {{"Jogo baixado (.7z, .zip, .rar, .iso)", "7z;zip;rar;iso;xiso"}};
+        static const SDL_DialogFileFilter kGame[] = {{"Jogo baixado (.7z, .zip, .rar, .iso, .pkg)", "7z;zip;rar;iso;xiso;pkg"}};
         SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kGame, 1, start.c_str(), false);
     }
 }

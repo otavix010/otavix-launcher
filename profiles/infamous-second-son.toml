@@ -29,6 +29,7 @@ web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos
 # the player shows the folder (or the downloaded .7z/.zip/.rar): the launcher finds the folder holding eboot.bin, unpacking first if needed
 [install]
 check = "eboot.bin"
+pkg = "CUSA00004"
 version = { pt = "inFAMOUS Second Son (PS4, CUSA00004), já extraído, de preferência com o update 1.07", en = "inFAMOUS Second Son (PS4, CUSA00004), already extracted, preferably with the 1.07 update", es = "inFAMOUS Second Son (PS4, CUSA00004), ya extraído, de preferencia con el update 1.07" }
 
 [performance]
@@ -50,7 +51,7 @@ key = "game_path"
 type = "path"
 pick = "folder"
 label = { pt = "Pasta do jogo", en = "Game folder", es = "Carpeta del juego" }
-help = { pt = "A pasta do inFAMOUS Second Son já extraída (CUSA00004), a que tem o eboot.bin dentro. O emulador não lê .pkg: extraia o PKG antes. Com o update 1.07 já aplicado, melhor.", en = "The already extracted inFAMOUS Second Son folder (CUSA00004), the one with eboot.bin inside. The emulator does not read .pkg: extract the PKG first. Best with the 1.07 update already applied.", es = "La carpeta de inFAMOUS Second Son ya extraída (CUSA00004), la que tiene eboot.bin dentro. El emulador no lee .pkg: extrae el PKG antes. Mejor con el update 1.07 ya aplicado." }
+help = { pt = "A pasta do inFAMOUS Second Son já extraída (CUSA00004), a que tem o eboot.bin dentro. Na página do jogo, mostre a pasta com os arquivos .pkg (ou os .pkg, ou um .7z/.zip/.rar) e o launcher extrai sozinho, com o update.", en = "The already extracted inFAMOUS Second Son folder (CUSA00004), the one with eboot.bin inside. On the game page, show the folder with the .pkg files (or the .pkg files, or a .7z/.zip/.rar) and the launcher extracts them by itself, update included.", es = "La carpeta de inFAMOUS Second Son ya extraída (CUSA00004), la que tiene eboot.bin dentro. En la página del juego, muestra la carpeta con los archivos .pkg (o los .pkg, o un .7z/.zip/.rar) y el launcher los extrae solo, con el update." }
 
 [[options]]
 page = "video"

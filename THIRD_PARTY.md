@@ -21,6 +21,8 @@ As capas são baixadas na hora, no PC do jogador, e pertencem aos seus donos. Ne
 jogo acompanha o launcher. / Covers are fetched on the player's PC and belong to their owners. No game, game file or
 game art ships with the launcher.
 
+- PlayStation 4: o extrator de .pkg (ShadPs4Plus PkgExtractor 1.1, feito do código de pacotes do [shadPS4](https://github.com/shadps4-emu/shadPS4), GPLv2) é baixado do servidor do launcher na primeira vez que um .pkg é aberto; o código-fonte do shadPS4 está no endereço acima. / The .pkg extractor (built from shadPS4's package code, GPLv2) is downloaded from the launcher's server the first time a .pkg is opened.
+
 God of War, inFAMOUS, Silent Hill, FIFA Street, Asura's Wrath e Dante's Inferno são marcas dos seus donos (Sony
 Interactive Entertainment, Konami, Electronic Arts, Capcom). Este projeto não tem relação com eles. / These are
 trademarks of their owners; this project is not affiliated with them.

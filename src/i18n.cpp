@@ -244,7 +244,7 @@ constexpr Row kRows[] = {
     {"Atalho criado na área de trabalho.", "Shortcut made on the desktop.", "Acceso directo creado en el escritorio."},
     {"Não foi possível criar o atalho", "Could not make the shortcut", "No se pudo crear el acceso directo"},
     {"Escolher o arquivo baixado", "Pick the downloaded file", "Elegir el archivo descargado"},
-    {"Um .7z, .zip, .rar ou .iso. O launcher descompacta, acha o jogo e deixa pronto sozinho.", "A .7z, .zip, .rar or .iso. The launcher unpacks it, finds the game and sets it up by itself.", "Un .7z, .zip, .rar o .iso. El launcher lo descomprime, encuentra el juego y lo deja listo solo."},
+    {"Um .7z, .zip, .rar, .iso ou .pkg (PS4). O launcher descompacta, acha o jogo e deixa pronto sozinho.", "A .7z, .zip, .rar, .iso or .pkg (PS4). The launcher unpacks it, finds the game and sets it up by itself.", "Un .7z, .zip, .rar, .iso o .pkg (PS4). El launcher lo descomprime, encuentra el juego y lo deja listo solo."},
     {"Mostrar a pasta do jogo", "Show the game's folder", "Mostrar la carpeta del juego"},
     {"Mostre a pasta onde está o jogo (ou a pasta do download). O launcher localiza o jogo lá dentro e, se for preciso, descompacta.", "Show the folder where the game is (or the download's folder). The launcher finds the game inside and unpacks it if needed.", "Muestra la carpeta donde está el juego (o la de la descarga). El launcher encuentra el juego dentro y lo descomprime si hace falta."},
     {"Como fazer:", "How to:", "Cómo hacerlo:"},

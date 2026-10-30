@@ -44,6 +44,8 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     # inFAMOUS Second Son: the Linux/SteamOS package (a manual download; the launcher takes the .zip) and the build's source (GPL)
     'releases/otavix010/infamous-second-son-pc/v1.0.1/infamous-second-son-linux-x64.tar.gz':
         r'C:\infamous\pacote-linux\infamous-second-son-linux-x64.tar.gz',
+    # the PS4 .pkg extractor the launcher downloads once (ShadPs4Plus PkgExtractor 1.1, built from shadPS4's package code)
+    'ferramentas/ps4-pkg-extractor.zip': r'C:/infamous/tools/ps4-pkg-extractor.zip',
     'arquivos/infamous-second-son-fonte-6cec83cc.zip': r'C:\infamous\pacote-windows\infamous-second-son-fonte-6cec83cc.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.1.zip': r'C:\infamous\pacote-windows-v2\infamous-second-son-fonte-ifpc-v1.0.1.zip',
 }
@@ -52,7 +54,7 @@ ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles'
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
