@@ -207,6 +207,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
                     ChoiceItem item;
                     ReadValue(cv["value"].node(), item.value);
                     item.label = ReadText(cv["label"]);
+                    item.requires_file = cv["requires"].value_or(std::string());
                     if (const toml::table* st = cv["set"].as_table())
                         for (auto& [k, n] : *st) {
                             Value sv;

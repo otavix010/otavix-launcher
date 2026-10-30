@@ -1036,6 +1036,23 @@ void Choose(const Option& o, const ChoiceItem& c) {
     for (auto& [k, v] : c.set) SetKey(k, v);
 }
 
+// a choice that needs a file of the player's copy (a language the copy has): shown only where the file exists; with no
+// game folder yet, everything shows. Looked up once in a while, not every frame.
+bool ChoiceAvailable(const ChoiceItem& c) {
+    if (c.requires_file.empty()) return true;
+    static std::map<std::string, std::pair<Uint64, bool>> seen;
+    fs::path game = FindGame(G());
+    if (game.empty()) return true;
+    std::string key = U8(game) + "|" + c.requires_file;
+    auto& [at, there] = seen[key];
+    if (Uint64 now = SDL_GetTicks(); at == 0 || now - at > 3000) {
+        at = now;
+        std::error_code ec;
+        there = fs::exists(game / FromU8(c.requires_file), ec);
+    }
+    return there;
+}
+
 void ChoiceWidget(const Option& o) {
     Value cur = G().store.Get(o);
     const ChoiceItem* chosen = nullptr;
@@ -1048,6 +1065,7 @@ void ChoiceWidget(const Option& o) {
     if (ImGui::BeginCombo("##v", label.c_str())) {
         for (const ChoiceItem& c : o.choices) {
             bool sel = &c == chosen;
+            if (!sel && !ChoiceAvailable(c)) continue;
             if (ImGui::Selectable(c.label.Get(g.lang).c_str(), sel)) Choose(o, c);
             if (sel) ImGui::SetItemDefaultFocus();
         }

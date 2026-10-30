@@ -51,6 +51,7 @@ struct ChoiceItem {
     Value value;
     Text label;
     std::vector<std::pair<std::string, Value>> set;  // instead of value: several settings keys at once
+    std::string requires_file;  // a file of the player's copy (relative to the game's folder): the item shows only where it exists
 };
 
 struct ButtonSlot {
