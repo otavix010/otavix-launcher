@@ -28,6 +28,11 @@ trim = false
 # the game's own picture for every player, with or without the game (rule: scripts/conferir_arte.py); sent by espelho.py (ARTE)
 web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/infamous-second-son/icon0.png", "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/infamous-second-son/pic1.png"]
 
+# the window's and the desktop shortcut's: the game's own icon (the player's copy; the public picture sent as art when there is none)
+[icon]
+files = ["{game}/sce_sys/icon0.png", "sce_sys/icon0.png"]
+web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/infamous-second-son/icon0.png"]
+
 # the player shows the folder (or the downloaded .7z/.zip/.rar): the launcher finds the folder holding eboot.bin, unpacking first if needed
 [install]
 check = "eboot.bin"
@@ -46,6 +51,16 @@ label = { pt = "Jogo", en = "Game", es = "Juego" }
 id = "video"
 advanced = true
 label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "audio"
+advanced = true
+label = { pt = "Áudio", en = "Audio", es = "Audio" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
 
 [[options]]
 page = "game"
@@ -86,3 +101,152 @@ choices = [
   { value = "120", label = "120" },
   { value = "360", label = { pt = "Livre (360)", en = "Uncapped (360)", es = "Libre (360)" } },
 ]
+
+# ------------------------------------------------------------------------------------------------ vídeo (janela, sincronia, FSR)
+# The entry (shadPS4.exe) writes SHADPS4_CFG_* into user/config.json before the emulator starts; the emulator itself reads only that file.
+
+[[options]]
+page = "video"
+key = "SHADPS4_CFG_FULLSCREEN"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" }
+help = { pt = "Liga a tela cheia sem borda. Desligada, o jogo abre numa janela do tamanho escolhido abaixo. A geração de quadros (DLSS) funciona nos dois modos, com a janela do jogo na frente.", en = "Turns on borderless fullscreen. Off, the game opens in a window of the size chosen below. Frame Generation (DLSS) works in both modes, with the game window in front.", es = "Activa la pantalla completa sin bordes. Desactivada, el juego abre en una ventana del tamaño elegido abajo. La generación de cuadros (DLSS) funciona en ambos modos, con la ventana del juego al frente." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_CFG_WINDOW"
+target = "env"
+type = "choice"
+default = "1920x1080"
+label = { pt = "Tamanho da janela", en = "Window size", es = "Tamaño de la ventana" }
+help = { pt = "Só vale com a tela cheia desligada. O jogo desenha na resolução do PS4 (1080p) e a janela escala a imagem; com o FSR ligado a escala é mais nítida.", en = "Only applies with fullscreen off. The game draws at the PS4 resolution (1080p) and the window scales the picture; with FSR on the scaling is sharper.", es = "Solo vale con la pantalla completa desactivada. El juego dibuja a la resolución de PS4 (1080p) y la ventana escala la imagen; con FSR activado el escalado es más nítido." }
+choices = [
+  { value = "1280x720", label = "1280 × 720" },
+  { value = "1600x900", label = "1600 × 900" },
+  { value = "1920x1080", label = "1920 × 1080" },
+  { value = "2560x1440", label = "2560 × 1440" },
+  { value = "3840x2160", label = "3840 × 2160" },
+]
+
+[[options]]
+page = "video"
+key = "SHADPS4_CFG_VSYNC"
+target = "env"
+type = "choice"
+default = "Mailbox"
+label = { pt = "Sincronia vertical (VSync)", en = "Vertical sync (VSync)", es = "Sincronización vertical (VSync)" }
+help = { pt = "Mailbox: sem rasgos na imagem e com pouco atraso (padrão). VSync (Fifo): sem rasgos, preso ao monitor. Imediato: sem sincronia, o menor atraso, mas pode rasgar a imagem.", en = "Mailbox: no tearing and low latency (default). VSync (Fifo): no tearing, locked to the monitor. Immediate: no sync, the lowest latency, but the picture can tear.", es = "Mailbox: sin cortes de imagen y poca latencia (predeterminado). VSync (Fifo): sin cortes, atado al monitor. Inmediato: sin sincronía, la menor latencia, pero la imagen puede cortarse." }
+choices = [
+  { value = "Mailbox", label = { pt = "Mailbox (padrão)", en = "Mailbox (default)", es = "Mailbox (predeterminado)" } },
+  { value = "Fifo", label = "VSync (Fifo)" },
+  { value = "Immediate", label = { pt = "Imediato (sem sincronia)", en = "Immediate (no sync)", es = "Inmediato (sin sincronía)" } },
+]
+
+[[options]]
+page = "video"
+key = "SHADPS4_CFG_FSR"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Escala FSR 1 (AMD)", en = "FSR 1 scaling (AMD)", es = "Escalado FSR 1 (AMD)" }
+help = { pt = "Amplia a imagem de 1080p do jogo para a janela ou a tela com o FSR 1, que fica mais nítido que a escala comum. Só faz diferença se a janela ou a tela for maior que 1080p. Funciona em qualquer placa de vídeo.", en = "Upscales the game's 1080p picture to the window or screen with FSR 1, sharper than plain scaling. It only matters if the window or screen is larger than 1080p. Works on any graphics card.", es = "Amplía la imagen de 1080p del juego a la ventana o pantalla con FSR 1, más nítido que el escalado común. Solo importa si la ventana o pantalla es mayor que 1080p. Funciona en cualquier tarjeta gráfica." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_CFG_SHARP"
+target = "env"
+type = "slider"
+default = 90
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Nitidez do FSR", en = "FSR sharpness", es = "Nitidez de FSR" }
+help = { pt = "Quanto o FSR afia a imagem ampliada (RCAS). 0% desliga o afiamento. Só tem efeito com a Escala FSR 1 ligada.", en = "How much FSR sharpens the upscaled picture (RCAS). 0% turns sharpening off. Only has an effect with FSR 1 scaling on.", es = "Cuánto afila FSR la imagen ampliada (RCAS). 0% desactiva el afilado. Solo tiene efecto con el escalado FSR 1 activado." }
+
+# ------------------------------------------------------------------------------------------------ áudio
+
+[[options]]
+page = "audio"
+key = "SHADPS4_CFG_VOLUME"
+target = "env"
+type = "slider"
+default = 100
+min = 0
+max = 150
+step = 5
+suffix = "%"
+label = { pt = "Volume geral", en = "Master volume", es = "Volumen general" }
+help = { pt = "O volume de todo o som do jogo (música, vozes e efeitos juntos). 100% é o volume original; acima disso o som é amplificado e pode distorcer.", en = "The volume of all the game's sound (music, voices and effects together). 100% is the original volume; above that the sound is boosted and may distort.", es = "El volumen de todo el sonido del juego (música, voces y efectos juntos). 100% es el volumen original; por encima el sonido se amplifica y puede distorsionar." }
+
+# ------------------------------------------------------------------------------------------------ controles
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_MOTION"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Giroscópio do controle", en = "Controller gyroscope", es = "Giroscopio del mando" }
+help = { pt = "Liga o sensor de movimento do DualSense/DualShock. O jogo o usa para mirar a lata de spray de grafite e em alguns quebra-cabeças; sem esse controle, não faz diferença.", en = "Turns on the DualSense/DualShock motion sensor. The game uses it to aim the graffiti spray can and in a few puzzles; without that controller it makes no difference.", es = "Activa el sensor de movimiento del DualSense/DualShock. El juego lo usa para apuntar la lata de aerosol de grafiti y en algunos acertijos; sin ese mando, no cambia nada." }
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_DEADZONE"
+target = "env"
+type = "slider"
+default = 4
+min = 0
+max = 40
+step = 1
+suffix = "%"
+label = { pt = "Zona morta dos analógicos", en = "Stick dead zone", es = "Zona muerta de los analógicos" }
+help = { pt = "Quanto o analógico precisa inclinar antes de contar. Suba se a câmera ou o personagem se mexe sozinho (controle com desgaste); o padrão do emulador é 4%.", en = "How far the stick must tilt before it counts. Raise it if the camera or character drifts by itself (a worn controller); the emulator's default is 4%.", es = "Cuánto debe inclinarse el analógico antes de contar. Súbalo si la cámara o el personaje se mueve solo (mando desgastado); el valor predeterminado del emulador es 4%." }
+
+# ------------------------------------------------------------------------------------------------ idioma (página Jogo)
+
+[[options]]
+page = "game"
+key = "SHADPS4_CFG_LANG"
+target = "env"
+type = "choice"
+default = "17"
+label = { pt = "Idioma do jogo", en = "Game language", es = "Idioma del juego" }
+help = { pt = "Texto e voz do jogo (o idioma de console do PS4). A cópia europeia do jogo tem texto em 14 idiomas e voz em 10 (inglês, francês, alemão, italiano, espanhol, português, holandês, polonês, russo e turco); nos outros a voz fica em inglês. Se a sua cópia não tiver o idioma escolhido, o port abre em inglês e anota o motivo em user/log/entrada.txt.", en = "The game's text and voices (the PS4 console language). The European copy has text in 14 languages and voices in 10 (English, French, German, Italian, Spanish, Portuguese, Dutch, Polish, Russian and Turkish); in the others the voices stay in English. If your copy lacks the chosen language, the port opens in English and notes why in user/log/entrada.txt.", es = "Texto y voces del juego (el idioma de consola de PS4). La copia europea tiene texto en 14 idiomas y voces en 10 (inglés, francés, alemán, italiano, español, portugués, neerlandés, polaco, ruso y turco); en los demás las voces quedan en inglés. Si su copia no tiene el idioma elegido, el port abre en inglés y anota el motivo en user/log/entrada.txt." }
+choices = [
+  { value = "17", label = "Português (Brasil)" },
+  { value = "7", label = "Português (Portugal)" },
+  { value = "1", label = "English (US)" },
+  { value = "18", label = "English (UK)" },
+  { value = "3", label = "Español" },
+  { value = "2", label = "Français" },
+  { value = "4", label = "Deutsch" },
+  { value = "5", label = "Italiano" },
+  { value = "6", label = "Nederlands" },
+  { value = "16", label = "Polski" },
+  { value = "8", label = "Русский" },
+  { value = "19", label = "Türkçe" },
+  { value = "14", label = "Dansk" },
+  { value = "12", label = "Suomi" },
+  { value = "15", label = "Norsk" },
+  { value = "13", label = "Svenska" },
+]
+
+# ------------------------------------------------------------------------------------------------ predefinições
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "Tela cheia, Mailbox, geração de quadros ligada (RTX 40/50), sem DLAA e sem FSR. Um bom começo para a maioria dos PCs.", en = "Fullscreen, Mailbox, Frame Generation on (RTX 40/50), no DLAA and no FSR. A good start for most PCs.", es = "Pantalla completa, Mailbox, generación de cuadros activada (RTX 40/50), sin DLAA ni FSR. Un buen comienzo para la mayoría de los PC." }
+values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Mailbox", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+
+[[presets]]
+label = { pt = "Desempenho", en = "Performance", es = "Rendimiento" }
+help = { pt = "Sem DLAA, sem FSR, sem sincronia vertical e fps livre: o máximo de quadros que o PC aguentar, com a imagem mais simples.", en = "No DLAA, no FSR, no vertical sync and uncapped fps: as many frames as the PC can manage, with the plainest picture.", es = "Sin DLAA, sin FSR, sin sincronización vertical y fps libre: tantos cuadros como aguante el PC, con la imagen más simple." }
+values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+
+[[presets]]
+label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
+help = { pt = "DLAA e FSR 1 com nitidez alta, VSync (Fifo) e fps limitado em 60: a imagem mais limpa, para quem tem folga de placa de vídeo (custa uns 10% do fps).", en = "DLAA and FSR 1 with high sharpness, VSync (Fifo) and fps capped at 60: the cleanest picture, for those with graphics card headroom (costs about 10% of the fps).", es = "DLAA y FSR 1 con nitidez alta, VSync (Fifo) y fps limitado a 60: la imagen más limpia, para quien tiene margen de tarjeta gráfica (cuesta un 10% de los fps)." }
+values = { SHADPS4_CFG_FULLSCREEN = true, SHADPS4_CFG_VSYNC = "Fifo", SHADPS4_FG = false, SHADPS4_DLSS_AA = true, SHADPS4_CFG_FSR = true, SHADPS4_CFG_SHARP = 90, SHADPS4_VBLANK_HZ = "60" }
