@@ -34,7 +34,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'silent-hill-pc': r'E:\RecompDev\silent-hill-pc',
 }
 RELEASE = {  # repository: (tag, package)
-    'fifa-street-2-pc': ('v1.0.10', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
+    'fifa-street-2-pc': ('v1.0.11', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
     'infamous-second-son-pc': ('v1.0.2', r'C:\infamous\pacote-windows-v3\infamous-second-son-windows-x64.zip'),
 }
@@ -55,7 +55,7 @@ ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles'
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}

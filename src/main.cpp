@@ -4000,15 +4000,14 @@ void DiscsFolderPicked(void*, const char* const* files, int) {
     g_discs_pick = files[0];
 }
 
-void SettingsGeneral() {
-    // language
+// the language picker: shared by the settings page and the side menu (the Windows language is the default)
+void LanguageCombo(const char* id, float width) {
     static const char* kCodes[] = {"auto", "pt", "en", "es"};
     static const char* kNames[] = {nullptr, "Português (Brasil)", "English", "Español"};
     std::string lang = g.state.Str("language", "auto");
-    RowLabel(Tr(S::Language));
-    if (g.focus_page) ImGui::SetKeyboardFocusHere();
     const char* shown = lang == "auto" ? Tr(S::LanguageAuto) : lang == "pt" ? kNames[1] : lang == "es" ? kNames[3] : kNames[2];
-    if (ImGui::BeginCombo("##lang", shown)) {
+    if (width > 0) ImGui::SetNextItemWidth(width);
+    if (ImGui::BeginCombo(id, shown)) {
         for (int i = 0; i < 4; i++)
             if (ImGui::Selectable(i == 0 ? Tr(S::LanguageAuto) : kNames[i], lang == kCodes[i])) {
                 g.state.Set("language", std::string(kCodes[i]));
@@ -4017,6 +4016,13 @@ void SettingsGeneral() {
             }
         ImGui::EndCombo();
     }
+}
+
+void SettingsGeneral() {
+    // language
+    RowLabel(Tr(S::Language));
+    if (g.focus_page) ImGui::SetKeyboardFocusHere();
+    LanguageCombo("##lang", 0);
     ImGui::Spacing();
     // window
     bool full = g.state.Str("window_mode", "window") == "fullscreen";
@@ -6941,7 +6947,12 @@ void Sidebar(float side, float height, float pad) {
         ImGui::TextDisabled("LAUNCHER");
         ImGui::PopFont();
         ImGui::EndGroup();
-        ImGui::Dummy(ImVec2(0, 14 * g.scale));
+        // the language right under the brand: always in sight, whatever the window's height
+        ImGui::Dummy(ImVec2(0, 8 * g.scale));
+        ImGui::PushFont(g.body, 17);
+        LanguageCombo("##langside", -1);
+        ImGui::PopFont();
+        ImGui::Dummy(ImVec2(0, 8 * g.scale));
         std::vector<HubEntry> entries = HubEntries();
         for (int i = 0; i < int(entries.size()); i++) {
             const HubEntry& e = entries[size_t(i)];
