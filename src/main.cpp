@@ -2363,7 +2363,7 @@ void StartInputFetch(Game& gm, const BuildInput& in) {
             ok = DownloadFile(url, part, f.cancel, f.done, f.m, sha256, err);
             if (ok && FileSha1(part) != sha1) {
                 ok = false;
-                err = "o arquivo baixado não confere (SHA-1)";
+                err = L3("o arquivo baixado não confere (SHA-1)", "the downloaded file does not match (SHA-1)", "el archivo descargado no coincide (SHA-1)");
             }
             if (ok) {
                 fs::rename(part, file, ec);
@@ -4013,6 +4013,7 @@ void SettingsGeneral() {
             if (ImGui::Selectable(i == 0 ? Tr(S::LanguageAuto) : kNames[i], lang == kCodes[i])) {
                 g.state.Set("language", std::string(kCodes[i]));
                 g.lang = i == 0 ? SystemLang() : i == 1 ? Lang::Pt : i == 2 ? Lang::En : Lang::Es;
+                SetUiLang(g.lang);
             }
         ImGui::EndCombo();
     }
@@ -7186,6 +7187,7 @@ int main(int argc, char** argv) {
     SetGitHubProxy(g.hub.server_url);  // GitHub through the server: see GitHubApi
     std::string lang = g.state.Str("language", "auto");
     g.lang = lang == "pt" ? Lang::Pt : lang == "en" ? Lang::En : lang == "es" ? Lang::Es : SystemLang();
+    SetUiLang(g.lang);
 
     g.content_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
     if (g.content_scale <= 0) g.content_scale = 1;

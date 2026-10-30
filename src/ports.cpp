@@ -1,4 +1,5 @@
 #include "ports.h"
+#include "i18n.h"
 
 #include <SDL3/SDL.h>
 
@@ -117,7 +118,7 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
     HttpResult r = GitHubApi("repos/" + repo + "/releases/latest");
     std::lock_guard lock(m_);
     if (!r.Ok()) {
-        st_.error = r.status == 404 ? "ainda não há versão publicada" : r.error;
+        st_.error = r.status == 404 ? L3("ainda não há versão publicada", "no version published yet", "aún no hay versión publicada") : r.error;
         return false;
     }
     st_.latest = Field(r.body, "tag_name");
@@ -132,7 +133,7 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
         digest = Field(r.body, "digest", from, at);  // "sha256:..."
         return true;
     }
-    st_.error = "a versão publicada não tem o pacote .zip";
+    st_.error = L3("a versão publicada não tem o pacote .zip", "the published version has no .zip package", "la versión publicada no tiene el paquete .zip");
     return false;
 }
 
@@ -184,7 +185,7 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         // the package must be the one GitHub says it published
         if (digest.rfind("sha256:", 0) == 0 && Lower(digest.substr(7)) != sha) {
             fs::remove(zip, ec);
-            return fail("o pacote baixado não confere (SHA-256); tente de novo");
+            return fail(L3("o pacote baixado não confere (SHA-256); tente de novo", "the downloaded package does not match (SHA-256); try again", "el paquete descargado no coincide (SHA-256); inténtalo de nuevo"));
         }
         {
             std::lock_guard lock(m_);
@@ -215,7 +216,7 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         if (entries.size() == 1 && fs::is_directory(entries[0], ec)) top = entries[0];
         Merge(top, dir, ec);
         fs::remove_all(work, ec);
-        if (ec) return fail("não foi possível copiar os arquivos: " + ec.message());
+        if (ec) return fail(L3("não foi possível copiar os arquivos: ", "could not copy the files: ", "no se pudieron copiar los archivos: ") + ec.message());
         std::string tag = Get().latest;
         std::ofstream(dir / "port_version.txt") << tag << "\n";
         std::lock_guard lock(m_);

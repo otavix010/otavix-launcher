@@ -51,4 +51,8 @@ enum class S {
 const char* T(Lang l, S s);
 Lang SystemLang();
 
+// The language of the UI for the code that has no UI state at hand (errors raised in worker threads).
+void SetUiLang(Lang l);
+std::string L3(const char* pt, const char* en, const char* es);
+
 }  // namespace launcher

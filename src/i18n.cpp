@@ -491,6 +491,16 @@ const char* T(Lang l, S s) {
     return l == Lang::Pt ? r.pt : l == Lang::Es ? r.es : r.en;
 }
 
+namespace {
+Lang g_ui_lang = Lang::En;
+}
+
+void SetUiLang(Lang l) { g_ui_lang = l; }
+
+std::string L3(const char* pt, const char* en, const char* es) {
+    return g_ui_lang == Lang::Pt ? pt : g_ui_lang == Lang::Es ? es : en;
+}
+
 Lang SystemLang() {
     int n = 0;
     SDL_Locale** locales = SDL_GetPreferredLocales(&n);

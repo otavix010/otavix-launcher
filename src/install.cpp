@@ -1,4 +1,5 @@
 #include "install.h"
+#include "i18n.h"
 
 #include <SDL3/SDL.h>
 
@@ -215,7 +216,7 @@ fs::path PkgTool(const fs::path& tools, std::atomic<bool>& cancel, std::string& 
     if (fs::is_regular_file(exe, ec)) return exe;
     std::string url = ServerFile(kPkgToolKey);
     if (url.empty()) {
-        why = "sem conexão com o servidor do launcher (a ferramenta que abre o .pkg vem de lá)";
+        why = L3("sem conexão com o servidor do launcher (a ferramenta que abre o .pkg vem de lá)", "no connection to the launcher's server (the tool that opens the .pkg comes from there)", "sin conexión con el servidor del launcher (la herramienta que abre el .pkg viene de allí)");
         return {};
     }
     fs::create_directories(tools, ec);
@@ -225,7 +226,7 @@ fs::path PkgTool(const fs::path& tools, std::atomic<bool>& cancel, std::string& 
     std::string sha, error;
     if (!DownloadFile(url, zip, cancel, got, m, sha, error) || sha != kPkgToolSha256) {
         fs::remove(zip, ec);
-        why = "não deu para baixar a ferramenta que abre o .pkg" + (error.empty() ? std::string() : " (" + error + ")");
+        why = L3("não deu para baixar a ferramenta que abre o .pkg", "could not download the tool that opens the .pkg", "no se pudo descargar la herramienta que abre el .pkg") + (error.empty() ? std::string() : " (" + error + ")");
         return {};
     }
     std::string tar = Tar(), src = U8(zip), to = U8(tools);
@@ -235,7 +236,7 @@ fs::path PkgTool(const fs::path& tools, std::atomic<bool>& cancel, std::string& 
     if (p) SDL_WaitProcess(p, true, &code), SDL_DestroyProcess(p);
     fs::remove(zip, ec);
     if (code != 0 || !fs::is_regular_file(exe, ec)) {
-        why = "não deu para abrir a ferramenta baixada";
+        why = L3("não deu para abrir a ferramenta baixada", "could not open the downloaded tool", "no se pudo abrir la herramienta descargada");
         return {};
     }
     return exe;
@@ -362,7 +363,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
                 // tar's own words, from listing it again with its errors kept
                 int again = 0;
                 std::string why = code != 0 ? LastLine(RunOutput({tar, "-tvf", src}, again)) : std::string();
-                return fail(why.empty() ? std::string("arquivo compactado ilegível") : "arquivo compactado ilegível (" + why + ")");
+                return fail(L3("arquivo compactado ilegível", "unreadable archive", "archivo comprimido ilegible") + (why.empty() ? std::string() : " (" + why + ")"));
             }
             total = FolderBytes(FromU8(mounted));
         }
@@ -373,14 +374,14 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         };
         if (!total) {
             unmount();
-            return fail("a imagem do disco está vazia");
+            return fail(L3("a imagem do disco está vazia", "the disc image is empty", "la imagen del disco está vacía"));
         }
         fs::create_directories(dest, ec);
         auto space = fs::space(dest, ec);
         if (!ec && space.available < total + (512ull << 20)) {
             unmount();
             char b[96];
-            std::snprintf(b, sizeof(b), "espaço: precisa de %.1f GB livres", double(total + (512ull << 20)) / (1u << 30));
+            std::snprintf(b, sizeof(b), L3("espaço: precisa de %.1f GB livres", "space: needs %.1f GB free", "espacio: necesita %.1f GB libres").c_str(), double(total + (512ull << 20)) / (1u << 30));
             return fail(b);
         }
         {
@@ -447,7 +448,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
             if (!ec && space.available < total + (512ull << 20)) {
                 if (!work.empty()) fs::remove_all(work, ec);
                 char b[96];
-                std::snprintf(b, sizeof(b), "espaço: precisa de %.1f GB livres", double(total + (512ull << 20)) / (1u << 30));
+                std::snprintf(b, sizeof(b), L3("espaço: precisa de %.1f GB livres", "space: needs %.1f GB free", "espacio: necesita %.1f GB libres").c_str(), double(total + (512ull << 20)) / (1u << 30));
                 return fail(b);
             }
             {
@@ -469,7 +470,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
                 if (cp) SDL_WaitProcess(cp, true, &kind), SDL_DestroyProcess(cp);
                 if (kind != 101 && kind != 102 && kind != 103) {
                     if (!work.empty()) fs::remove_all(work, ec);
-                    return fail("o arquivo " + U8(k.filename()) + " não parece um .pkg de jogo do PS4");
+                    return fail(L3("o arquivo ", "the file ", "el archivo ") + U8(k.filename()) + L3(" não parece um .pkg de jogo do PS4", " does not look like a PS4 game .pkg", " no parece un .pkg de juego de PS4"));
                 }
                 fs::path out = kind == 103 ? dest / "_dlc" : dest;
                 fs::create_directories(out, ec);
@@ -491,11 +492,11 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
                     st_.progress = std::min(float(double(now > before ? now - before : 0) / double(std::max<uint64_t>(total, 1))), 0.999f);
                 }
                 SDL_DestroyProcess(p);
-                if (code != 0) return fail("falha ao extrair " + U8(k.filename()) + " (código " + std::to_string(code) + ")");
+                if (code != 0) return fail(L3("falha ao extrair ", "failed to extract ", "falló al extraer ") + U8(k.filename()) + L3(" (código ", " (code ", " (código ") + std::to_string(code) + ")");
             }
             if (!work.empty()) fs::remove_all(work, ec);
             fs::path game = dest / spec.pkg;
-            if (!fs::is_regular_file(game / "eboot.bin", ec)) return fail("faltou o .pkg do jogo em si (o maior, com o jogo base " + spec.pkg + "); mostre a pasta que tem todos os .pkg");
+            if (!fs::is_regular_file(game / "eboot.bin", ec)) return fail(L3("faltou o .pkg do jogo em si (o maior, com o jogo base ", "the game's own .pkg is missing (the largest, with the base game ", "falta el .pkg del juego en sí (el mayor, con el juego base ") + spec.pkg + L3("); mostre a pasta que tem todos os .pkg", "); show the folder that has all the .pkg files", "); muestra la carpeta que tiene todos los .pkg"));
             std::lock_guard lock(m_);
             st_.stage = Stage::Done;
             st_.game = game;
@@ -513,7 +514,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     else found = Candidates(search, spec);
     if (found.empty()) {
         if (!work.empty()) fs::remove_all(work, ec);
-        return fail("nenhuma imagem do disco (.iso) ou pasta do jogo encontrada");
+        return fail(L3("nenhuma imagem do disco (.iso) ou pasta do jogo encontrada", "no disc image (.iso) or game folder found", "no se encontró ninguna imagen del disco (.iso) ni carpeta del juego"));
     }
     // the release the port was made from, else the first one found
     fs::path pick = found[0];
@@ -534,7 +535,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         fs::path final = dest / pick.filename();
         if (fs::absolute(final, ec) != fs::absolute(pick, ec)) {
             fs::copy_file(pick, final, fs::copy_options::overwrite_existing, ec);
-            if (ec) return fail("não foi possível copiar o jogo: " + ec.message());
+            if (ec) return fail(L3("não foi possível copiar o jogo: ", "could not copy the game: ", "no se pudo copiar el juego: ") + ec.message());
         }
         pick = final;
     }
@@ -544,7 +545,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         fs::path final = dest / (fs::equivalent(pick, work, ec) ? fs::path("conteudo") : pick.filename());
         if (fs::exists(final, ec)) fs::remove_all(final, ec);
         fs::rename(pick, final, ec);
-        if (ec) return fail("não foi possível mover o jogo: " + ec.message());
+        if (ec) return fail(L3("não foi possível mover o jogo: ", "could not move the game: ", "no se pudo mover el juego: ") + ec.message());
         fs::remove_all(work, ec);
         pick = final;
     }

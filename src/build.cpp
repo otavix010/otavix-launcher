@@ -1,4 +1,5 @@
 #include "build.h"
+#include "i18n.h"
 
 #include <fstream>
 #include <thread>
@@ -220,7 +221,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
         SECURITY_ATTRIBUTES sa{sizeof sa, nullptr, TRUE};
         HANDLE out = CreateFileW(log.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, CREATE_ALWAYS,
                                  FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (out == INVALID_HANDLE_VALUE) return fail("não foi possível criar " + U8(log), -1);
+        if (out == INVALID_HANDLE_VALUE) return fail(L3("não foi possível criar ", "could not create ", "no se pudo crear ") + U8(log), -1);
         // UTF-8 in the log: the console's code page would garble the generator's accents
         std::string line = "chcp 65001 >nul &";
         for (const std::string& a : args) line += " " + N(Quote(W(ExpandEnv(a))));
@@ -234,7 +235,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
         CloseHandle(out);
         if (!ok) {
             if (job) CloseHandle(job);
-            return fail("não foi possível iniciar o gerador", -1);
+            return fail(L3("não foi possível iniciar o gerador", "could not start the generator", "no se pudo iniciar el generador"), -1);
         }
         if (job) AssignProcessToJobObject(job, pi.hProcess);
         ResumeThread(pi.hThread);

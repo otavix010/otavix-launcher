@@ -1,4 +1,5 @@
 #include "update.h"
+#include "i18n.h"
 
 #include <SDL3/SDL.h>
 
@@ -93,10 +94,10 @@ void Updater::Start(const std::string& repo, const std::string& installed) {
             r.state = r.latest.empty()                  ? UpdateCheck::State::Failed
                       : NewerVersion(r.latest, installed) ? UpdateCheck::State::Newer
                                                           : UpdateCheck::State::UpToDate;
-            if (r.latest.empty()) r.error = "resposta sem versão";
+            if (r.latest.empty()) r.error = L3("resposta sem versão", "reply without a version", "respuesta sin versión");
         } else {
             r.state = UpdateCheck::State::Failed;
-            r.error = h.status == 404 ? "ainda não há versão publicada" : h.error;
+            r.error = h.status == 404 ? L3("ainda não há versão publicada", "no version published yet", "aún no hay versión publicada") : h.error;
         }
         std::lock_guard lock(m_);
         cur_ = r;
@@ -121,7 +122,7 @@ void Updater::Download() {
         // the installer must be the one GitHub says it published
         if (ok && c.digest.rfind("sha256:", 0) == 0 && Lower(c.digest.substr(7)) != sha) {
             ok = false;
-            error = "o instalador baixado não confere (SHA-256); tente de novo";
+            error = L3("o instalador baixado não confere (SHA-256); tente de novo", "the downloaded installer does not match (SHA-256); try again", "el instalador descargado no coincide (SHA-256); inténtalo de nuevo");
         }
         if (!ok) fs::remove(file, ec);
         std::lock_guard lock(m_);

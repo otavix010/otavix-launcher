@@ -1,4 +1,5 @@
 #include "net.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <thread>
@@ -48,7 +49,7 @@ HttpResult HttpRequest(const std::string& method, const std::string& url, const 
     u.lpszExtraInfo = extra;
     u.dwExtraInfoLength = 2048;
     if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &u)) {
-        r.error = "endereço inválido";
+        r.error = L3("endereço inválido", "invalid address", "dirección no válida");
         return r;
     }
     std::wstring full = std::wstring(path) + extra;
@@ -87,7 +88,7 @@ HttpResult HttpRequest(const std::string& method, const std::string& url, const 
         }
         if (!r.Ok()) r.error = r.body.empty() ? "servidor respondeu " + std::to_string(status) : r.body;
     } else {
-        r.error = "sem conexão com o servidor (" + std::to_string(GetLastError()) + ")";
+        r.error = L3("sem conexão com o servidor (", "no connection to the server (", "sin conexión con el servidor (") + std::to_string(GetLastError()) + ")";
     }
     if (q) WinHttpCloseHandle(q);
     if (c) WinHttpCloseHandle(c);
@@ -288,7 +289,7 @@ bool DownloadFile(const std::string& url, const fs::path& file, std::atomic<bool
     u.dwHostNameLength = 256;
     u.lpszUrlPath = path;
     u.dwUrlPathLength = 4096;
-    if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &u)) return error = "endereço inválido", false;
+    if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &u)) return error = L3("endereço inválido", "invalid address", "dirección no válida"), false;
     HINTERNET s = WinHttpOpen(L"Otavix-Launcher", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     HINTERNET c = s ? WinHttpConnect(s, host, u.nPort, 0) : nullptr;
     // https, or plain http for an old public server (the Xbox 360 store pictures)
@@ -299,7 +300,7 @@ bool DownloadFile(const std::string& url, const fs::path& file, std::atomic<bool
     DWORD status = 0, size = sizeof(status);
     if (ok) WinHttpQueryHeaders(q, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &status, &size, nullptr);
     if (!ok || status != 200) {
-        error = ok ? "o GitHub respondeu " + std::to_string(status) : "sem conexão (" + std::to_string(GetLastError()) + ")";
+        error = ok ? L3("o GitHub respondeu ", "GitHub answered ", "GitHub respondió ") + std::to_string(status) : L3("sem conexão (", "no connection (", "sin conexión (") + std::to_string(GetLastError()) + ")";
         ok = false;
     }
     BCRYPT_ALG_HANDLE alg = nullptr;
