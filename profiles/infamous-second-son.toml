@@ -8,7 +8,7 @@ subtitle = { pt = "Port para PC · emulador shadPS4 otimizado para o jogo", en =
 exe = "shadPS4.exe"
 logs = "user/log"
 # the report carries the emulator's own logs too: the newest file of user/log is Streamline's sl.log (report 392 came with only that)
-report_files = ["user/log/shad_log.txt", "user/log/shadps4.log", "user/log/sl.log"]
+report_files = ["user/log/shad_log.txt", "user/log/shadps4.log", "user/log/sl.log", "user/log/entrada.txt", "user/log/crash.txt"]
 saves = ["user/home/1000/savedata/CUSA00004"]
 game_file = "eboot.bin"
 game_option = "game_path"
