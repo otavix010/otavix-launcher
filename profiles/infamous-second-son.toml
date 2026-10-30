@@ -216,21 +216,21 @@ default = "7"
 label = { pt = "Idioma do jogo", en = "Game language", es = "Idioma del juego" }
 help = { pt = "Texto e voz do jogo (o idioma de console do PS4). A cópia europeia do jogo tem texto em 14 idiomas e voz em 10 (inglês, francês, alemão, italiano, espanhol, português, holandês, polonês, russo e turco); nos outros a voz fica em inglês. Se a sua cópia não tiver o idioma escolhido, o port abre em inglês e anota o motivo em user/log/entrada.txt.", en = "The game's text and voices (the PS4 console language). The European copy has text in 14 languages and voices in 10 (English, French, German, Italian, Spanish, Portuguese, Dutch, Polish, Russian and Turkish); in the others the voices stay in English. If your copy lacks the chosen language, the port opens in English and notes why in user/log/entrada.txt.", es = "Texto y voces del juego (el idioma de consola de PS4). La copia europea tiene texto en 14 idiomas y voces en 10 (inglés, francés, alemán, italiano, español, portugués, neerlandés, polaco, ruso y turco); en los demás las voces quedan en inglés. Si su copia no tiene el idioma elegido, el port abre en inglés y anota el motivo en user/log/entrada.txt." }
 choices = [
-  { value = "7", label = { pt = "Português (Portugal)", en = "Portuguese (Portugal)", es = "Portugués (Portugal)" } },
+  { value = "7", requires = "art/cache/lang_portuguese_text.xpps", label = { pt = "Português (Portugal)", en = "Portuguese (Portugal)", es = "Portugués (Portugal)" } },
   { value = "1", label = "English (US)" },
-  { value = "18", label = "English (UK)" },
-  { value = "3", label = "Español" },
-  { value = "2", label = "Français" },
-  { value = "4", label = "Deutsch" },
-  { value = "5", label = "Italiano" },
-  { value = "6", label = "Nederlands" },
-  { value = "16", label = "Polski" },
-  { value = "8", label = "Русский" },
-  { value = "19", label = "Türkçe" },
-  { value = "14", label = "Dansk" },
-  { value = "12", label = "Suomi" },
-  { value = "15", label = "Norsk" },
-  { value = "13", label = "Svenska" },
+  { value = "18", requires = "art/cache/lang_british_text.xpps", label = "English (UK)" },
+  { value = "3", requires = "art/cache/lang_spanish_text.xpps", label = "Español" },
+  { value = "2", requires = "art/cache/lang_french_text.xpps", label = "Français" },
+  { value = "4", requires = "art/cache/lang_german_text.xpps", label = "Deutsch" },
+  { value = "5", requires = "art/cache/lang_italian_text.xpps", label = "Italiano" },
+  { value = "6", requires = "art/cache/lang_dutch_text.xpps", label = "Nederlands" },
+  { value = "16", requires = "art/cache/lang_polish_text.xpps", label = "Polski" },
+  { value = "8", requires = "art/cache/lang_russian_text.xpps", label = "Русский" },
+  { value = "19", requires = "art/cache/lang_turkish_text.xpps", label = "Türkçe" },
+  { value = "14", requires = "art/cache/lang_danish_text.xpps", label = "Dansk" },
+  { value = "12", requires = "art/cache/lang_finnish_text.xpps", label = "Suomi" },
+  { value = "15", requires = "art/cache/lang_norwegian_text.xpps", label = "Norsk" },
+  { value = "13", requires = "art/cache/lang_swedish_text.xpps", label = "Svenska" },
 ]
 
 # ------------------------------------------------------------------------------------------------ predefinições
