@@ -91,6 +91,8 @@ bool Profile::Load(const fs::path& file, std::string& error) {
         for (auto& e : *a)
             if (auto s = e.value<std::string>()) exes.push_back(*s);
     if (!exes.empty()) exe = exes[0];
+    build_info = g["build_info"].value_or(std::string());
+    build_choice = g["build_choice"].value_or(std::string());
     workdir = g["workdir"].value_or(std::string());
     exe_workdir = workdir == "exe";
     if (const toml::table* e = g["env"].as_table())

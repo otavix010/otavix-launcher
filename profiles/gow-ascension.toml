@@ -6,6 +6,8 @@ title = "God of War: Ascension"
 subtitle = { pt = "Port nativo do PS3 · recompilação estática", en = "Native PS3 port · static recompilation", es = "Port nativo de PS3 · recompilación estática" }
 exe = ["port/build_native/gowa.exe", "port/build_v3rz/gowa.exe", "port/build_nativerz/gowa.exe"]
 workdir = "exe"
+build_info = "port/build.txt"  # the generator writes which build it made for this PC (exe=, escolhida=, usada=, motivo=)
+build_choice = "GOWA_BUILD"
 port_file = "gerar.ps1"
 game_file = "jogo/GOWA.elf"
 args = ["{dir}/jogo/GOWA.elf"]
@@ -146,6 +148,20 @@ choices = [
   { value = "fr", label = "Français" },
   { value = "es", label = "Español" },
   { value = "pt-br", label = "Português (Brasil)" },
+]
+
+[[options]]
+page = "game"
+key = "GOWA_BUILD"
+target = "env"
+type = "choice"
+default = "auto"
+label = { pt = "Versão do executável", en = "Executable version", es = "Versión del ejecutable" }
+help = { pt = "Qual build do port o jogo usa. Automático escolhe pelo processador (a otimizada para ele quando tem AVX-512, senão a portátil, que roda em qualquer processador com AVX2). Se o jogo fechar logo ao abrir (erro 0xC000001D) ou se comportar mal, experimente a Portátil. A Nativa é otimizada para o seu processador. Trocar de versão exige gerar de novo: o launcher avisa e o gerador compila só a build escolhida (alguns minutos).", en = "Which build of the port the game uses. Automatic picks by the processor (the one tuned for it when it has AVX-512, otherwise the portable one, which runs on any processor with AVX2). If the game closes right away (error 0xC000001D) or misbehaves, try Portable. Native is tuned for your processor. Changing the version means making the game again: the launcher says so and the generator compiles only the chosen build (a few minutes).", es = "Qué build del port usa el juego. Automático elige según el procesador (la optimizada para él si tiene AVX-512; si no, la portátil, que funciona en cualquier procesador con AVX2). Si el juego se cierra al abrir (error 0xC000001D) o se porta mal, prueba la Portátil. La Nativa está optimizada para tu procesador. Cambiar de versión exige generar de nuevo: el launcher lo avisa y el generador compila solo la build elegida (unos minutos)." }
+choices = [
+  { value = "auto", label = { pt = "Automático (recomendado)", en = "Automatic (recommended)", es = "Automático (recomendado)" } },
+  { value = "portatil", label = { pt = "Portátil (AVX2, roda em qualquer um)", en = "Portable (AVX2, runs anywhere)", es = "Portátil (AVX2, funciona en cualquiera)" } },
+  { value = "nativa", label = { pt = "Nativa (otimizada para este processador)", en = "Native (tuned for this processor)", es = "Nativa (optimizada para este procesador)" } },
 ]
 
 [[options]]

@@ -655,11 +655,35 @@ void PlayTheme() {
 
 // the executable that runs, relative to the port: the profile's exe (or the option that picks it), else the first
 // of exe = [...] that exists (one build per processor kind)
+// the file a generator writes about the build that runs (profile build_info): key=value lines, empty when missing
+std::map<std::string, std::string> ReadBuildInfo(Game& gm) {
+    std::map<std::string, std::string> info;
+    if (gm.prof.build_info.empty()) return info;
+    std::ifstream f(gm.entry.dir / FromU8(gm.prof.build_info), std::ios::binary);
+    for (std::string l; std::getline(f, l);) {
+        while (!l.empty() && (l.back() == '\r' || l.back() == ' ')) l.pop_back();
+        if (l.size() >= 3 && (unsigned char)l[0] == 0xEF && (unsigned char)l[1] == 0xBB && (unsigned char)l[2] == 0xBF) l.erase(0, 3);
+        if (size_t eq = l.find('='); eq != std::string::npos && eq > 0) info[l.substr(0, eq)] = l.substr(eq + 1);
+    }
+    return info;
+}
+
+// the build the player chose (profile build_choice, an env option): "auto" when unset
+std::string BuildChoice(Game& gm) {
+    const Option* o = gm.prof.build_choice.empty() ? nullptr : gm.prof.Find(gm.prof.build_choice);
+    std::string v = o ? ToText(gm.store.Get(*o)) : std::string();
+    return v.empty() ? "auto" : v;
+}
+
 std::string GameExe(Game& gm) {
     std::string exe = gm.prof.exe;
     if (const Option* o = gm.prof.exe_option.empty() ? nullptr : gm.prof.Find(gm.prof.exe_option))
         exe = ToText(gm.store.Get(*o));
     std::error_code ec;
+    // the generator says which build it made for this PC (its exe= line): that one, when it is there
+    if (auto info = ReadBuildInfo(gm); info.count("exe") && !info["exe"].empty() &&
+                                        fs::is_regular_file(gm.entry.dir / FromU8(info["exe"]), ec))
+        return info["exe"];
     for (const std::string& e : gm.prof.exes)
         if (fs::is_regular_file(gm.entry.dir / FromU8(e), ec)) {
             exe = e;
@@ -2785,6 +2809,8 @@ void StartBuild(Game& gm, bool redo) {
     }
     if (redo)
         for (const std::string& a : in.redo) args.push_back(expand(a));
+    // the build the player chose goes to the generator in the environment (it keeps the choice in its build.txt)
+    if (!gm.prof.build_choice.empty()) _putenv_s(gm.prof.build_choice.c_str(), BuildChoice(gm).c_str());
     std::vector<std::string> steps;
     for (const BuildStep& s : in.steps) steps.push_back(s.id);
     gm.build_noted = false;
@@ -3078,6 +3104,30 @@ void BuildCard(Game& gm) {
         ImGui::BeginDisabled(g.proc != nullptr);
         if (ImGui::SmallButton(Tr(S::BuildRepick))) gm.build_form = gm.build_repick = true;
         ImGui::EndDisabled();
+        // the build kind changed in the options since the generator last ran: the generator compiles that one (it goes on
+        // from where it is: the disc and the translation are kept)
+        if (!gm.prof.build_info.empty()) {
+            auto info = ReadBuildInfo(gm);
+            std::string now = BuildChoice(gm);
+            if (info.count("escolhida") && info["escolhida"] != now) {
+                const std::string was = info["escolhida"];
+                const std::string msg = L3("A versão do executável mudou nas opções (", "The executable version changed in the options (", "La versión del ejecutable cambió en las opciones (") +
+                                        (was == "portatil" ? L3("portátil", "portable", "portátil") : was == "nativa" ? L3("nativa", "native", "nativa") : L3("automático", "automatic", "automático")) + " → " +
+                                        (now == "portatil" ? L3("portátil", "portable", "portátil") : now == "nativa" ? L3("nativa", "native", "nativa") : L3("automático", "automatic", "automático")) +
+                                        L3("). Gere de novo para aplicar: se for outro tipo de build, ele compila de novo e leva alguns minutos.",
+                                           "). Make it again to apply it: if it is another kind of build, it compiles again and takes a few minutes.",
+                                           "). Genera de nuevo para aplicarla: si es otro tipo de build, compila de nuevo y tarda unos minutos.");
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(StateColor("wip")));
+                ImGui::TextWrapped("● %s", msg.c_str());
+                ImGui::PopStyleColor();
+                ImGui::BeginDisabled(g.proc != nullptr);
+                if (ImGui::SmallButton(L3("Gerar de novo", "Make it again", "Generar de nuevo").c_str())) {
+                    if (inputs_set) BuildOrUnpack(gm, false);
+                    else gm.build_form = true;
+                }
+                ImGui::EndDisabled();
+            }
+        }
         // newer code of the port than the one the game was made with: made again, from the start
         if (!port.empty() && built != port) {
             ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", Tr(S::BuildNewCode));
@@ -4953,6 +5003,13 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     // the port was updated and the game not made again)
     if (gm.prof.install.kind == "build")
         if (std::string built = gm.store.GetOwn("built_version"); !built.empty()) sys.push_back({"gerado", built});
+    // the build kind: the player's choice, the one the generator chose and why
+    if (!gm.prof.build_info.empty()) {
+        auto info = ReadBuildInfo(gm);
+        sys.push_back({"build_opcao", BuildChoice(gm)});
+        for (const char* k : {"escolhida", "usada", "motivo"})
+            if (info.count(k)) sys.push_back({std::string("build_") + k, info[k]});
+    }
     j += ",\"sistema\":{";
     for (size_t i = 0; i < sys.size(); i++) j += (i ? "," : "") + Json(sys[i].first) + ":" + Json(sys[i].second);
     j += "}";

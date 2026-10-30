@@ -158,6 +158,9 @@ struct Profile {
     InstallSpec install;
     std::string exe;                  // beside the launcher
     std::vector<std::string> exes;    // exe = [...]: the first that exists (one build per CPU)
+    std::string build_info;           // [game] build_info: a file the generator writes (key=value lines; exe=, escolhida=, usada=, motivo=)
+                                      // with the build that runs; its exe= wins over exe = [...]
+    std::string build_choice;         // [game] build_choice: the option (env) that picks the build, passed to the generator too
     bool exe_workdir = false;         // workdir = "exe": run in the executable's folder, not the port's
     std::string workdir;              // or a folder in the port to run in ("trabalho/disc": the PS2 ports' disc)
     std::vector<std::pair<std::string, std::string>> env;  // [game] env: variables for the game, {dir} replaced
