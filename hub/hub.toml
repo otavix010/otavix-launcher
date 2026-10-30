@@ -5,7 +5,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.57"
+version = "1.0.58"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
