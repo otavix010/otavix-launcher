@@ -99,6 +99,7 @@ struct Game {
     bool prereq_asked = false;
     bool build_noted = false;  // the finished build's version is kept
     bool build_form = false;   // the folders asked again, to make it again
+    bool build_repick = false; // ...only to pick the disc again: nothing made is redone
     // a build input being unpacked first (an archive or a disc image picked): its key, whether the build is a redo,
     // a disc image found inside the archive (unpacked in turn, then deleted), and why the last unpacking failed
     std::string unpack_key, unpack_image, unpack_error;
@@ -3018,6 +3019,7 @@ void BuildCard(Game& gm) {
     }
     bool inputs_set = InputsSet(gm);
     if (made && bs.stage != GameBuild::Stage::Failed && !gm.build_form) {
+        gm.build_repick = false;
         ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::BuildDoneTitle));
         ImGui::TextDisabled("%s", U8(FindGame(gm)).c_str());
         // the player's copy gone from where it was picked: picked again (the form's button runs the generator with
@@ -3053,6 +3055,11 @@ void BuildCard(Game& gm) {
             ImGui::PopStyleColor();
             return;
         }
+        // made, and the copy is there: still picked again when the game does not start from it (a wrong folder, a cut
+        // file), without deleting the game's folder first
+        ImGui::BeginDisabled(g.proc != nullptr);
+        if (ImGui::SmallButton(Tr(S::BuildRepick))) gm.build_form = gm.build_repick = true;
+        ImGui::EndDisabled();
         // newer code of the port than the one the game was made with: made again, from the start
         if (!port.empty() && built != port) {
             ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("wip")), "● %s", Tr(S::BuildNewCode));
@@ -3229,7 +3236,8 @@ void BuildCard(Game& gm) {
     if (press) test_build = false;
     if (ImGui::Button(Tr(S::BuildStart), ImVec2(320 * g.scale, 0)) || press) {
         // a made game whose copy only moved: nothing to redo, the generator just links the copy again
-        BuildOrUnpack(gm, made && !CopyMissing(gm));
+        BuildOrUnpack(gm, made && !CopyMissing(gm) && !gm.build_repick);
+        gm.build_repick = false;
         gm.build_form = false;
     }
     ImGui::EndDisabled();
