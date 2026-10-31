@@ -40,7 +40,7 @@ pkg = "CUSA00004"
 version = { pt = "inFAMOUS Second Son (PS4, CUSA00004), já extraído, de preferência com o update 1.07", en = "inFAMOUS Second Son (PS4, CUSA00004), already extracted, preferably with the 1.07 update", es = "inFAMOUS Second Son (PS4, CUSA00004), ya extraído, de preferencia con el update 1.07" }
 
 [performance]
-note = { pt = "O emulador pesa no processador e na placa de vídeo. A geração de quadros do DLSS (RTX 40 e 50) dobra o fps exibido; sem uma RTX ela fica desligada sozinha. Na primeira vez a tela pode ficar preta por até 30 segundos enquanto os shaders são preparados, e cada efeito novo pode dar uma travadinha na primeira vez que aparece. Deixe o jogo e o port num SSD.", en = "The emulator weighs on both the processor and the graphics card. DLSS Frame Generation (RTX 40 and 50) doubles the displayed fps; without an RTX it turns itself off. The first time the screen may stay black for up to 30 seconds while the shaders are prepared, and each new effect may stutter the first time it shows. Keep the game and the port on an SSD.", es = "El emulador pesa en el procesador y en la tarjeta gráfica. La generación de cuadros de DLSS (RTX 40 y 50) duplica los fps mostrados; sin una RTX se desactiva sola. La primera vez la pantalla puede quedar negra hasta 30 segundos mientras se preparan los shaders, y cada efecto nuevo puede dar un tirón la primera vez que aparece. Deja el juego y el port en un SSD." }
+note = { pt = "O emulador pesa no processador e na placa de vídeo. A geração de quadros do DLSS (RTX 40 e 50) vem desligada por padrão; quando ligada, dobra o fps exibido. Na primeira vez a tela pode ficar preta por até 30 segundos enquanto os shaders são preparados, e cada efeito novo pode dar uma travadinha na primeira vez que aparece. Deixe o jogo e o port num SSD.", en = "The emulator weighs on both the processor and the graphics card. DLSS Frame Generation (RTX 40 and 50) is off by default; when on, it doubles the displayed fps. The first time the screen may stay black for up to 30 seconds while the shaders are prepared, and each new effect may stutter the first time it shows. Keep the game and the port on an SSD.", es = "El emulador pesa en el procesador y en la tarjeta gráfica. La generación de cuadros de DLSS (RTX 40 y 50) viene desactivada por defecto; al activarla, duplica los fps mostrados. La primera vez la pantalla puede quedar negra hasta 30 segundos mientras se preparan los shaders, y cada efecto nuevo puede dar un tirón la primera vez que aparece. Deja el juego y el port en un SSD." }
 
 [[pages]]
 id = "game"
@@ -75,9 +75,9 @@ page = "video"
 key = "SHADPS4_FG"
 target = "env"
 type = "toggle"
-default = true
+default = false
 label = { pt = "Geração de quadros (DLSS, RTX 40/50)", en = "Frame Generation (DLSS, RTX 40/50)", es = "Generación de cuadros (DLSS, RTX 40/50)" }
-help = { pt = "Gera quadros intermediários na placa de vídeo e dobra o fps exibido. Só funciona em placas NVIDIA RTX 40 e 50 e com a janela do jogo na frente; nas outras ela se desliga sozinha.", en = "Makes in-between frames on the graphics card and doubles the displayed fps. It only works on NVIDIA RTX 40 and 50 cards and with the game window in front; on the others it turns itself off.", es = "Genera cuadros intermedios en la tarjeta gráfica y duplica los fps mostrados. Solo funciona en tarjetas NVIDIA RTX 40 y 50 y con la ventana del juego al frente; en las demás se desactiva sola." }
+help = { pt = "Desligada por padrão. Gera quadros intermediários na placa de vídeo e dobra o fps exibido. Só funciona em placas NVIDIA RTX 40 e 50 e com a janela do jogo na frente; nas outras ela se desliga sozinha.", en = "Off by default. Makes in-between frames on the graphics card and doubles the displayed fps. It only works on NVIDIA RTX 40 and 50 cards and with the game window in front; on the others it turns itself off.", es = "Desactivada por defecto. Genera cuadros intermedios en la tarjeta gráfica y duplica los fps mostrados. Solo funciona en tarjetas NVIDIA RTX 40 y 50 y con la ventana del juego al frente; en las demás se desactiva sola." }
 
 [[options]]
 page = "video"
@@ -237,13 +237,13 @@ choices = [
 
 [[presets]]
 label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "Janela, Mailbox, geração de quadros ligada (RTX 40/50), sem DLAA e sem FSR. Um bom começo para a maioria dos PCs.", en = "Windowed, Mailbox, Frame Generation on (RTX 40/50), no DLAA and no FSR. A good start for most PCs.", es = "Ventana, Mailbox, generación de cuadros activada (RTX 40/50), sin DLAA ni FSR. Un buen comienzo para la mayoría de los PC." }
-values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Mailbox", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+help = { pt = "Janela, Mailbox, sem geração de quadros, sem DLAA e sem FSR. Um bom começo para a maioria dos PCs.", en = "Windowed, Mailbox, no Frame Generation, no DLAA and no FSR. A good start for most PCs.", es = "Ventana, Mailbox, sin generación de cuadros, sin DLAA ni FSR. Un buen comienzo para la mayoría de los PC." }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Mailbox", SHADPS4_FG = false, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
 
 [[presets]]
 label = { pt = "Desempenho", en = "Performance", es = "Rendimiento" }
 help = { pt = "Sem DLAA, sem FSR, sem sincronia vertical e fps livre: o máximo de quadros que o PC aguentar, com a imagem mais simples.", en = "No DLAA, no FSR, no vertical sync and uncapped fps: as many frames as the PC can manage, with the plainest picture.", es = "Sin DLAA, sin FSR, sin sincronización vertical y fps libre: tantos cuadros como aguante el PC, con la imagen más simple." }
-values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = true, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = false, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
 
 [[presets]]
 label = { pt = "Qualidade", en = "Quality", es = "Calidad" }

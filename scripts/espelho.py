@@ -34,9 +34,9 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'silent-hill-pc': r'E:\RecompDev\silent-hill-pc',
 }
 RELEASE = {  # repository: (tag, package)
-    'fifa-street-2-pc': ('v1.0.11', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
+    'fifa-street-2-pc': ('v1.0.12', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
-    'infamous-second-son-pc': ('v1.0.5', r'C:\infamous\pacote-windows-v6\infamous-second-son-windows-x64.zip'),
+    'infamous-second-son-pc': ('v1.0.7', r'C:\infamous\pacote-windows-v8\infamous-second-son-windows-x64.zip'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
@@ -52,13 +52,14 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.3.zip': r'C:\infamous\pacote-windows-v4\infamous-second-son-fonte-ifpc-v1.0.3.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.4.zip': r'C:\infamous\pacote-windows-v5\infamous-second-son-fonte-ifpc-v1.0.4.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.5.zip': r'C:\infamous\pacote-windows-v6\infamous-second-son-fonte-ifpc-v1.0.5.zip',
+    'arquivos/infamous-second-son-fonte-ifpc-v1.0.6.zip': r'C:\infamous\pacote-windows-v7\infamous-second-son-fonte-ifpc-v1.0.6.zip',
 }
 ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles' [art] web: every player sees the game's photo
     'infamous-second-son': ['icon0.png', 'pic1.png'],
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
