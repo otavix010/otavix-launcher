@@ -36,7 +36,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.12', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
-    'infamous-second-son-pc': ('v1.0.7', r'C:\infamous\pacote-windows-v8\infamous-second-son-windows-x64.zip'),
+    'infamous-second-son-pc': ('v1.0.8', r'C:\infamous\pacote-windows-v10\infamous-second-son-windows-x64.zip'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
@@ -53,16 +53,22 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.4.zip': r'C:\infamous\pacote-windows-v5\infamous-second-son-fonte-ifpc-v1.0.4.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.5.zip': r'C:\infamous\pacote-windows-v6\infamous-second-son-fonte-ifpc-v1.0.5.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.6.zip': r'C:\infamous\pacote-windows-v7\infamous-second-son-fonte-ifpc-v1.0.6.zip',
+    'arquivos/infamous-second-son-fonte-ifpc-v1.0.8.zip': r'C:\infamous\pacote-windows-v10\infamous-second-son-fonte-ifpc-v1.0.8.zip',
+    'arquivos/fsr-vulkan-fonte.zip': r'C:\infamous\pacote-windows-v10\fsr-vulkan-fonte.zip',
 }
 ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles' [art] web: every player sees the game's photo
     'infamous-second-son': ['icon0.png', 'pic1.png'],
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.69', '1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
+
+# shadPS4 ports: the community packs, one zip a kind of graphics card plus shaders-index.txt (made and checked by
+# C:\infamous	ools\pacote_shaders_ps4.py on the owner's PC), in a folder a game; they go up as they are
+SHADPS4 = {'infamous-second-son-pc': Path(r'C:\infamous\shaders-comunidade\CUSA00004')}
 
 envios = []  # (key, local file)
 
@@ -129,6 +135,11 @@ def main():
             f = SHADERS / jogo / nome
             if f.exists():
                 envios.append((f'shaders/{DONO}/{repo}/{nome}', f))
+    for repo, pasta in ({} if '--sem-shaders' in sys.argv else SHADPS4).items():
+        if (pasta / 'shaders-index.txt').exists():
+            for f in sorted(pasta.iterdir()):
+                if f.is_file() and (f.name == 'shaders-index.txt' or (f.name.startswith('shaders-') and f.suffix == '.zip')):
+                    envios.append((f'shaders/{DONO}/{repo}/{f.name}', f))
     if '--so-gerar' in sys.argv:
         print(f'{len(envios)} arquivos em {TMP}')
         return

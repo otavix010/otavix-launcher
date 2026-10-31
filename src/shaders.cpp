@@ -159,6 +159,50 @@ void AppendLine(const fs::path& p, const std::string& line) {
     f << line << "\n";
 }
 
+
+// shaders-index.txt: a line a pack, "<sha256> <shaders-<serial>-<12 hex>.zip>"; anything else is dropped (the file name
+// ends up on the player's disk, so only this exact shape is accepted)
+bool IndexName(const std::string& n) {
+    if (n.size() < 22 || n.size() > 80 || n.compare(0, 8, "shaders-") != 0 || n.compare(n.size() - 4, 4, ".zip") != 0) return false;
+    std::string mid = n.substr(8, n.size() - 12);
+    size_t dash = mid.rfind('-');
+    if (dash == std::string::npos || dash == 0 || mid.size() - dash - 1 != 12) return false;
+    for (size_t i = 0; i < mid.size(); i++) {
+        char c = mid[i];
+        if (i == dash) continue;
+        if (i > dash) {
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
+        } else if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::vector<std::pair<std::string, std::string>> ParseIndex(const std::string& text) {
+    std::vector<std::pair<std::string, std::string>> out;  // sha256, file
+    std::istringstream in(text);
+    std::string line;
+    while (std::getline(in, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        if (line.size() < 66 || line[64] != ' ') continue;
+        std::string sha = line.substr(0, 64), name = line.substr(65);
+        for (char& c : sha) c = char(std::tolower(static_cast<unsigned char>(c)));
+        if (sha.find_first_not_of("0123456789abcdef") != std::string::npos || !IndexName(name)) continue;
+        out.push_back({sha, name});
+    }
+    return out;
+}
+
+// a short mark of a file's content (FNV-1a, 64 bits), for a file whose name stays while its content can change
+std::string ContentMark(const std::string& b) {
+    uint64_t h = 1469598103934665603ull;
+    for (unsigned char c : b) h = (h ^ c) * 1099511628211ull;
+    char s[24];
+    std::snprintf(s, sizeof(s), "%016llx", static_cast<unsigned long long>(h));
+    return s;
+}
+
 }  // namespace
 
 ShaderSpec ReadShaderSpec(const fs::path& profile_file) {
@@ -173,10 +217,11 @@ ShaderSpec ReadShaderSpec(const fs::path& profile_file) {
     if (!a) return s;
     s.kind = (*a)["kind"].value_or(std::string());
     s.folder = (*a)["folder"].value_or(std::string());
+    s.pack_folder = (*a)["pack_folder"].value_or(std::string("user/shaders_comunidade"));
     if (const toml::array* arr = (*a)["files"].as_array())
         for (auto& e : *arr)
             if (auto v = e.value<std::string>()) s.files.push_back(*v);
-    if (s.kind != "gowa" && s.kind != "xenia") s.kind.clear();
+    if (s.kind != "gowa" && s.kind != "xenia" && s.kind != "shadps4") s.kind.clear();
     return s;
 }
 
@@ -205,6 +250,65 @@ void ShaderShare::Apply(const std::string& repo, const ShaderSpec& spec, const f
             st_.busy = false;
         };
         std::error_code ec;
+        if (spec.kind == "shadps4") {
+            // the packs, one a graphics-card profile: shaders-index.txt first, then each zip it lists with its SHA-256
+            // checked; what the index no longer lists goes away. The emulator reads the folder when the game opens
+            const char* tb = SDL_getenv("LAUNCHER_SHADERS_BASE");
+            std::string gbase = tb ? std::string(tb) : "https://github.com/" + repo + "/releases/download/shaders/";
+            const std::string gmirror = tb ? std::string() : ServerFile("shaders/" + repo + "/");
+            HttpResult gr;
+            if (!gmirror.empty()) {
+                gr = HttpRequest("GET", gmirror + "shaders-index.txt", {}, "");
+                if (gr.Ok()) gbase = gmirror;
+            }
+            if (gbase != gmirror) gr = HttpRequest("GET", gbase + "shaders-index.txt", {}, "");
+            if (!gr.Ok() || gr.body.size() > 64 * 1024) return done();
+            auto index = ParseIndex(gr.body);
+            if (index.empty()) return done();
+            fs::path dest = port_dir / FromU8(spec.pack_folder);
+            fs::create_directories(dest, ec);
+            fs::create_directories(data_dir, ec);
+            std::set<std::string> listed;
+            for (auto& [sha, name] : index) listed.insert(name);
+            std::string had_index;
+            ReadAll(dest / "shaders-index.txt", had_index);
+            for (auto& [sha, name] : index) {
+                // the index of the last run named this file with this SHA-256 and it is on disk: it stays
+                if (fs::exists(dest / name, ec) && had_index.find(sha + " " + name) != std::string::npos) continue;
+                std::atomic<bool> cancel = false;
+                uint64_t got = 0;
+                std::mutex m;
+                std::string have, error;
+                fs::path part = dest / name;
+                part += ".part";
+                if (DownloadFile(gbase + name, part, cancel, got, m, have, error) && have == sha) {
+                    fs::remove(dest / name, ec);
+                    fs::rename(part, dest / name, ec);
+                } else {
+                    fs::remove(part, ec);
+                }
+            }
+            // the index goes in last, with the packs that are really there: the emulator never trusts what it does not list
+            std::string kept;
+            int zips = 0;
+            for (auto& [sha, name] : index)
+                if (fs::exists(dest / name, ec)) kept += sha + " " + name + "\n", zips++;
+            if (kept != had_index) WriteAll(dest / "shaders-index.txt", kept);
+            for (auto& e : fs::directory_iterator(dest, ec)) {
+                std::string n = U8(e.path().filename());
+                if (e.is_regular_file(ec) && IndexName(n) && !listed.count(n)) fs::remove(e.path(), ec);
+            }
+            if (!zips) return done();
+            std::string day = Today();
+            WriteAll(data_dir / "shaders_pacote.txt", "gpu " + std::to_string(zips) + " " + day + "\n");
+            int sent = int(ReadLines(data_dir / "shaders_enviados.txt").size());
+            std::lock_guard lock(m_);
+            st_.pack_count = zips;
+            st_.pack_day = day;
+            st_.sent = sent;
+            st_.busy = false;
+            return;
+        }
         // tests: LAUNCHER_SHADERS_BASE=<address ending in />, the pack from there instead of the repository's release
         const char* test_base = SDL_getenv("LAUNCHER_SHADERS_BASE");
         std::string base = test_base ? std::string(test_base) : "https://github.com/" + repo + "/releases/download/shaders/";
@@ -310,21 +414,44 @@ void ShaderShare::Send(const std::string& server, const Headers& headers, const 
         fs::path cache = port_dir / FromU8(spec.folder);
         fs::create_directories(data_dir, ec);
         std::set<std::string> sent = ReadLines(data_dir / "shaders_enviados.txt");
-        const std::set<std::string> pack = ReadLines(data_dir / "shaders_do_pacote.txt");
+        std::set<std::string> pack = ReadLines(data_dir / "shaders_do_pacote.txt");
+        // "shadps4": the emulator lists what it took from the packs in <pack_folder>/importados.txt, one name a line;
+        // those never go back up
+        if (spec.kind == "shadps4") {
+            std::set<std::string> imported = ReadLines(port_dir / FromU8(spec.pack_folder) / "importados.txt");
+            pack.insert(imported.begin(), imported.end());
+        }
         Headers h = headers;
         h.push_back({"Content-Type", "application/octet-stream"});
         int n = 0, last = -1;
         size_t candidates = 0;
-        for (auto& e : fs::directory_iterator(cache, ec)) {
-            std::string name = U8(e.path().filename());
-            if (!e.is_regular_file(ec) || !Wanted(spec, name)) continue;
-            uint64_t size = e.file_size(ec);
-            // a shader file once; a storage file each time it grew
-            std::string mark = spec.kind == "gowa" ? name : name + " " + std::to_string(size);
+        // "shadps4": the cache has a folder a serial (user/cache/CUSA00004/); the files go up flat, a name each, as the
+        // other ports'. A file whose name stays while its content can change (profile.bin: a new driver) goes up under a
+        // name with its content mark, never over the old one
+        const bool gpu = spec.kind == "shadps4";
+        std::vector<fs::path> files;
+        if (gpu) {
+            for (auto& e : fs::recursive_directory_iterator(cache, fs::directory_options::skip_permission_denied, ec))
+                if (e.is_regular_file(ec) && e.path().parent_path() != cache) files.push_back(e.path());
+        } else {
+            for (auto& e : fs::directory_iterator(cache, ec))
+                if (e.is_regular_file(ec)) files.push_back(e.path());
+        }
+        for (const fs::path& path : files) {
+            std::string name = U8(path.filename());
+            if (!Wanted(spec, name)) continue;
+            uint64_t size = fs::file_size(path, ec);
             if (stop_) break;
-            if (sent.count(mark) || pack.count(mark) || !size || size > kSendMax) continue;
+            if (!size || size > kSendMax) continue;
             std::string body;
-            if (!ReadAll(e.path(), body)) continue;
+            if (gpu) {
+                if (!ReadAll(path, body)) continue;
+                if (name == "profile.bin") name = "profile." + ContentMark(body).substr(0, 12) + ".bin";
+            }
+            // a shader file once; a storage file each time it grew
+            std::string mark = spec.kind == "xenia" ? name + " " + std::to_string(size) : name;
+            if (sent.count(mark) || pack.count(mark)) continue;
+            if (!gpu && !ReadAll(path, body)) continue;
             candidates++;
             HttpResult r = HttpRequest("POST", server + "/v1/shaders?jogo=" + game + "&arquivo=" + name, h, body);
             last = r.status;

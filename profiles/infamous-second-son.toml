@@ -90,6 +90,48 @@ help = { pt = "Suaviza as bordas com o DLSS, em placas NVIDIA RTX. Custa cerca d
 
 [[options]]
 page = "video"
+key = "SHADPS4_CFG_RENDER"
+target = "env"
+type = "choice"
+default = "nativa"
+label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
+help = { pt = "Resolução em que o jogo é desenhado. Menor que a janela, o FSR amplia a imagem e libera fps; em nativa não há ampliação.", en = "Resolution the game is drawn at. Lower than the window, FSR upscales the picture and frees up fps; at native there is no upscaling.", es = "Resolución en la que se dibuja el juego. Menor que la ventana, el FSR amplía la imagen y libera fps; en nativa no hay ampliación." }
+choices = [
+  { value = "nativa", label = { pt = "Nativa", en = "Native", es = "Nativa" } },
+  { value = "1600x900", label = "1600x900" },
+  { value = "1280x720", label = "1280x720" },
+  { value = "960x540", label = "960x540" },
+]
+
+[[options]]
+page = "video"
+key = "SHADPS4_FSR"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Upscaler FSR (qualquer placa)", en = "FSR upscaler (any card)", es = "Escalador FSR (cualquier tarjeta)" }
+help = { pt = "Amplia a resolução interna com o FSR, em qualquer placa de vídeo. Desliga o DLSS enquanto estiver ligado.", en = "Upscales the internal resolution with FSR, on any graphics card. It turns DLSS off while on.", es = "Amplía la resolución interna con FSR, en cualquier tarjeta gráfica. Desactiva el DLSS mientras esté activado." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_FSR4"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "FSR 4 (Radeon RX 6000, 7000 e 9000)", en = "FSR 4 (Radeon RX 6000, 7000 and 9000)", es = "FSR 4 (Radeon RX 6000, 7000 y 9000)" }
+help = { pt = "Usa o FSR 4 pelo AMD FSR SDK nas Radeon compatíveis; nas outras placas usa o FSR 3.1. Vale só com o upscaler FSR ligado.", en = "Uses FSR 4 through the AMD FSR SDK on compatible Radeon cards; on other cards it uses FSR 3.1. It only applies with the FSR upscaler on.", es = "Usa el FSR 4 mediante el AMD FSR SDK en las Radeon compatibles; en las demás tarjetas usa el FSR 3.1. Solo vale con el escalador FSR activado." }
+
+[[options]]
+page = "video"
+key = "SHADPS4_FSR_FG"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Geração de quadros FSR (qualquer placa)", en = "FSR Frame Generation (any card)", es = "Generación de cuadros FSR (cualquier tarjeta)" }
+help = { pt = "Gera quadros intermediários com o FSR, em qualquer placa de vídeo. Desliga o DLSS e a geração de quadros do DLSS enquanto estiver ligada.", en = "Makes in-between frames with FSR, on any graphics card. It turns DLSS and DLSS Frame Generation off while on.", es = "Genera cuadros intermedios con FSR, en cualquier tarjeta gráfica. Desactiva el DLSS y su generación de cuadros mientras esté activada." }
+
+[[options]]
+page = "video"
 key = "SHADPS4_VBLANK_HZ"
 target = "env"
 type = "choice"
@@ -246,6 +288,20 @@ help = { pt = "Sem DLAA, sem FSR, sem sincronia vertical e fps livre: o máximo 
 values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = false, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_VBLANK_HZ = "360" }
 
 [[presets]]
+label = { pt = "Desempenho AMD", en = "AMD performance", es = "Rendimiento AMD" }
+help = { pt = "Para placas Radeon: resolução interna de 1280x720 ampliada pelo FSR 4 (FSR 3.1 nas placas sem suporte), com geração de quadros FSR, sem sincronia vertical e fps livre.", en = "For Radeon cards: 1280x720 internal resolution upscaled by FSR 4 (FSR 3.1 on cards without support), with FSR frame generation, no vertical sync and uncapped fps.", es = "Para tarjetas Radeon: resolución interna de 1280x720 ampliada por FSR 4 (FSR 3.1 en las tarjetas sin soporte), con generación de cuadros FSR, sin sincronización vertical y fps libre." }
+values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Immediate", SHADPS4_FG = false, SHADPS4_DLSS_AA = false, SHADPS4_CFG_FSR = false, SHADPS4_CFG_RENDER = "1280x720", SHADPS4_FSR = true, SHADPS4_FSR4 = true, SHADPS4_FSR_FG = true, SHADPS4_VBLANK_HZ = "360" }
+
+[[presets]]
 label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
 help = { pt = "DLAA e FSR 1 com nitidez alta, VSync (Fifo) e fps limitado em 60: a imagem mais limpa, para quem tem folga de placa de vídeo (custa uns 10% do fps).", en = "DLAA and FSR 1 with high sharpness, VSync (Fifo) and fps capped at 60: the cleanest picture, for those with graphics card headroom (costs about 10% of the fps).", es = "DLAA y FSR 1 con nitidez alta, VSync (Fifo) y fps limitado a 60: la imagen más limpia, para quien tiene margen de tarjeta gráfica (cuesta un 10% de los fps)." }
 values = { SHADPS4_CFG_FULLSCREEN = false, SHADPS4_CFG_VSYNC = "Fifo", SHADPS4_FG = false, SHADPS4_DLSS_AA = true, SHADPS4_CFG_FSR = true, SHADPS4_CFG_SHARP = 90, SHADPS4_VBLANK_HZ = "60" }
+
+# The community's shaders (shadPS4): the emulator's cache, <port>/user/cache/<serial>/ (.spv, .meta, .key and profile.bin),
+# goes up file by file when the player shares; the packs, one a kind of graphics card, come into user/shaders_comunidade
+# (shaders-index.txt lists them with their SHA-256) and the emulator picks the one for its own card
+[shaders]
+kind = "shadps4"
+folder = "user/cache"
+pack_folder = "user/shaders_comunidade"
+files = ["*.spv", "*.meta", "*.key", "profile.bin"]

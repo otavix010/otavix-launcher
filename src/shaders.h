@@ -19,6 +19,11 @@ struct ShaderSpec {
     // with the guest shaders and <TITLEID>.<rtv|rov>.d3d12.xpso with the pipelines
     std::string kind;
     std::string folder;              // the cache, relative to the port's folder
+    // "shadps4" (inFAMOUS, SotC): the emulator's cache (<folder>/<serial>/: .spv, .meta, .key and profile.bin, a file each,
+    // content-addressed) goes up one file at a time; the packs come back as one zip per kind of graphics card
+    // ("profile"), listed with their SHA-256 in shaders-index.txt, into pack_folder, where the emulator picks the one
+    // for its own card (the launcher cannot work the profile out)
+    std::string pack_folder;
     std::vector<std::string> files;  // which of its files: patterns such as "*.bin"
     bool Empty() const { return kind.empty() || folder.empty(); }
 };

@@ -3356,10 +3356,11 @@ void ShadersCard(Game& gm) {
         ImGui::PushFont(g.bold, 20);
         ImGui::TextUnformatted(Tr(S::ShadersTitle));
         ImGui::PopFont();
-        char b[160];
+        char b[256];
         if (st.busy) Dim(Tr(S::ShadersWorking));
         else if (st.pack_count >= 0) {
-            std::snprintf(b, sizeof(b), Tr(S::ShadersPack), st.pack_count, st.pack_day.c_str());
+            std::snprintf(b, sizeof(b), Tr(gm.shader_spec.kind == "shadps4" ? S::ShadersPackGpu : S::ShadersPack), st.pack_count,
+                          st.pack_day.c_str());
             ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("ok")), "%s", b);
         } else Dim(Tr(S::ShadersNoPack));
         bool share = g.state.Bool("share_shaders", false);

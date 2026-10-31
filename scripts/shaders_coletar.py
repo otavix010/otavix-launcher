@@ -20,6 +20,21 @@ def consulta(sql):
     return json.loads(p.stdout)[0]['results']
 
 
+def perfis_shadps4(out):
+    """shadPS4 caches: the launcher sends profile.bin as profile.<12 hex of its content>.bin, so a changed profile (a new
+    driver) never replaces the old one. A sender with ONE profile gets its profile.bin back, which is what
+    pacote_shaders_ps4.py (in C:/infamous/tools) reads; with several the folder is ambiguous (which shaders are of which),
+    so it is left without profile.bin and the tool skips it"""
+    import glob
+    for pasta in glob.glob(os.path.join(out, '*', '*')):
+        perfis = sorted(glob.glob(os.path.join(pasta, 'profile.*.bin')))
+        alvo = os.path.join(pasta, 'profile.bin')
+        if len(perfis) == 1:
+            open(alvo, 'wb').write(open(perfis[0], 'rb').read())
+        elif len(perfis) > 1 and os.path.exists(alvo):
+            os.remove(alvo)
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -44,6 +59,7 @@ def main():
         novos += 1
         ultimo = max(ultimo, int(r['id']))
     open(marca, 'w').write(str(ultimo))
+    perfis_shadps4(out)
     jogos = sorted({r['jogo'] for r in linhas})
     print(f'{novos} arquivo(s) novo(s) em {out}' + (f' ({", ".join(jogos)})' if jogos else '') + f'; último id {ultimo}')
 
