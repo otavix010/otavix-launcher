@@ -3317,6 +3317,13 @@ void BuildCard(Game& gm) {
     }
     if (bs.stage == GameBuild::Stage::Failed) {
         ImGui::Spacing();
+        if (bs.cancelled) {
+            // the player's own cancel: nothing to report, just start again when they want
+            ImGui::TextWrapped("%s", L3("A geração foi cancelada. Clique em iniciar para tentar de novo.",
+                                        "The build was cancelled. Press start to try again.",
+                                        "La generación se canceló. Pulsa iniciar para intentar de nuevo.").c_str());
+            return;
+        }
         ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", Tr(S::BuildFailedTitle));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.82f, 1));
         ImGui::TextWrapped("%s", bs.error.c_str());

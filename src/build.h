@@ -31,6 +31,7 @@ public:
         std::string line;         // the newest line of the current step's log
         std::string error;        // the end of the log when it failed
         int code = 0;
+        bool cancelled = false;   // the player pressed Cancel: not a failure to report
     };
     // args: the generator and its arguments; marks: the folder of the steps' .ok and .log files
     void Start(const std::vector<std::string>& args, const fs::path& marks, const std::vector<std::string>& steps);

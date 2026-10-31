@@ -292,7 +292,10 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
 void GameBuild::Cancel() {
 #ifdef _WIN32
     std::lock_guard lock(m_);
-    if (job_) TerminateJobObject(static_cast<HANDLE>(job_), 1);
+    if (job_) {
+        st_.cancelled = true;
+        TerminateJobObject(static_cast<HANDLE>(job_), 1);
+    }
 #endif
 }
 
