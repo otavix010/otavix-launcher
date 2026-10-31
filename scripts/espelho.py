@@ -110,7 +110,12 @@ def main():
         print(f'{repo}: {sha[:12]}')
     for repo, (tag, pacote) in RELEASE.items():
         a = asset(Path(pacote).name, pacote, f'releases/{DONO}/{repo}/{tag}/{Path(pacote).name}')
-        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'html_url': '', 'assets': [a]}, ensure_ascii=False))
+        # the ports' notes (docs/notas-portes/<repo>/<tag>.md, as the launcher's): the "What's new" page reads them from here
+        notas = {f.stem: f.read_text(encoding='utf-8') for f in (RAIZ / 'docs' / 'notas-portes' / repo).glob('v*.md')}
+        ordem = sorted(notas, key=lambda v: [int(x) for x in v.lstrip('v').split('.')], reverse=True)
+        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'name': tag, 'body': notas.get(tag, ''), 'published_at': '', 'html_url': '', 'assets': [a]}, ensure_ascii=False))
+        if notas:
+            guardar(f'espelho/repos/{DONO}/{repo}/releases.lista.json', json.dumps([{'tag_name': v, 'name': v, 'published_at': '', 'body': notas[v], 'html_url': ''} for v in ordem], ensure_ascii=False))
         print(f'{repo}: {tag}')
     lista = []
     for i, versao in enumerate(LAUNCHER):
