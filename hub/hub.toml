@@ -5,7 +5,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.70"
+version = "1.0.71"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -86,7 +86,7 @@ library = "ps4"
 path = "ports/infamous-second-son"
 profile = "perfis/infamous-second-son.toml"
 repo = "otavix010/infamous-second-son-pc"
-platforms = { windows = "ok", linux = "ok" }
+platforms = { windows = "ok", linux = "wip" }  # the Linux package comes from the ps4 session; "ok" once it is published
 
 [[games]]
 id = "infamous-2"

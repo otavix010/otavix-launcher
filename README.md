@@ -11,11 +11,26 @@ mouse, teclado e controle.
 
 ![Biblioteca](docs/biblioteca.jpg)
 
-## Instalar (Windows 10 e 11, 64 bits)
+## Baixar
 
-1. Baixe o `Instalar-Otavix-Launcher-<versão>.exe` em [Releases](../../releases).
+| Sistema | Arquivo |
+|---|---|
+| **Windows 10 e 11, 64 bits** | [Instalar-Otavix-Launcher-1.0.71.exe](https://github.com/otavix010/otavix-launcher/releases/download/v1.0.71/Instalar-Otavix-Launcher-1.0.71.exe) |
+| **Linux / SteamOS (Steam Deck, Legion Go S)** | [Otavix-Launcher-1.0.71-linux-x64.tar.gz](https://github.com/otavix010/otavix-launcher/releases/download/v1.0.71/Otavix-Launcher-1.0.71-linux-x64.tar.gz) |
+
+Todas as versões ficam em [Releases](https://github.com/otavix010/otavix-launcher/releases/latest).
+
+### Instalar no Windows
+
+1. Baixe o `Instalar-Otavix-Launcher-<versão>.exe`.
 2. Abra e siga o instalador. Não precisa de administrador: ele instala na sua pasta de usuário.
 3. Abra o Otavix Launcher, escolha um jogo e siga a página dele: **Baixar o port** e depois **Instalar o jogo**.
+
+### Instalar no Linux / SteamOS
+
+1. Baixe o `Otavix-Launcher-<versão>-linux-x64.tar.gz` e extraia numa pasta sua (por exemplo, em `~/Games`).
+2. Execute `./instalar.sh` dentro da pasta para criar a entrada no menu (modo desktop). No Modo Jogo do SteamOS, adicione `Otavix Launcher` como jogo fora da Steam.
+3. Abra o Otavix Launcher, escolha um jogo e siga a página dele. Na versão Linux estão disponíveis o **God of War: Betrayal** e, em breve, o **inFAMOUS Second Son**; os outros jogos ficam como "em breve".
 
 A página **Como usar**, dentro do launcher, explica tudo passo a passo.
 
