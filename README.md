@@ -15,10 +15,10 @@ mouse, teclado e controle.
 
 | Sistema | Arquivo |
 |---|---|
-| **Windows 10 e 11, 64 bits** | [Instalar-Otavix-Launcher-1.0.71.exe](https://github.com/otavix010/otavix-launcher/releases/download/v1.0.71/Instalar-Otavix-Launcher-1.0.71.exe) |
-| **Linux / SteamOS (Steam Deck, Legion Go S)** | [Otavix-Launcher-1.0.71-linux-x64.tar.gz](https://github.com/otavix010/otavix-launcher/releases/download/v1.0.71/Otavix-Launcher-1.0.71-linux-x64.tar.gz) |
+| **Windows 10 e 11, 64 bits** | [Instalar-Otavix-Launcher.exe](https://github.com/otavix010/otavix-launcher/releases/latest/download/Instalar-Otavix-Launcher.exe) |
+| **Linux / SteamOS (Steam Deck, Legion Go S)** | [Otavix-Launcher-linux-x64.tar.gz](https://github.com/otavix010/otavix-launcher/releases/latest/download/Otavix-Launcher-linux-x64.tar.gz) |
 
-Todas as versões ficam em [Releases](https://github.com/otavix010/otavix-launcher/releases/latest).
+Os dois links levam sempre à última versão. Todas as versões ficam em [Releases](https://github.com/otavix010/otavix-launcher/releases/latest).
 
 ### Instalar no Windows
 
@@ -92,7 +92,9 @@ arte e a música tema da sua própria cópia, quando o port sabe ler, entram no 
 - **Compilar:** Visual Studio 2022 (ou Build Tools) com C++ e o componente Clang; depois `scripts\build.cmd`. O CMake baixa
   SDL 3, Dear ImGui e toml++.
 - **Versão pública:** `scripts\release.cmd <versão>` gera o pacote, os catálogos (`scripts\catalogo.py`) e o instalador
-  (Inno Setup 6).
+  (Inno Setup 6); `scripts/pacote_linux.sh <versão>` gera o pacote Linux (compila no Legion). Na release do GitHub, além dos
+  arquivos com versão, anexe as cópias de nome fixo `Instalar-Otavix-Launcher.exe` e `Otavix-Launcher-linux-x64.tar.gz`:
+  são elas que os links "última versão" do README baixam.
 - **Jogos e bibliotecas:** `hub\hub.toml` lista as bibliotecas e os ports; cada port tem um perfil em `profiles\` que
   descreve as páginas, as opções, os saves, a instalação e os mods.
 - **Servidor** (reports e pedidos): `servidor\`, um Cloudflare Worker com banco D1; veja `servidor\LEIA-ME.md`.
