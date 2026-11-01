@@ -9,6 +9,13 @@
 #endif
 #include <windows.h>
 #include <tlhelp32.h>
+#else
+#include <dirent.h>
+#include <signal.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
 #endif
 
 namespace launcher {
@@ -59,6 +66,46 @@ BOOL CALLBACK Collect(HWND w, LPARAM p) {
     if (OwnWindow(*s, w)) s->windows.push_back(w);
     return TRUE;
 }
+#else
+// the process and everything it started, and what those started (parents read from /proc/<pid>/stat)
+std::set<pid_t> Tree(pid_t root) {
+    std::set<pid_t> tree{root};
+    std::vector<std::pair<pid_t, pid_t>> all;  // pid, parent
+    if (DIR* d = opendir("/proc")) {
+        while (dirent* e = readdir(d)) {
+            char* end = nullptr;
+            const long pid = std::strtol(e->d_name, &end, 10);
+            if (pid <= 0 || *end) continue;
+            const std::string path = std::string("/proc/") + e->d_name + "/stat";
+            FILE* f = std::fopen(path.c_str(), "rb");
+            if (!f) continue;
+            char buf[512];
+            const size_t n = std::fread(buf, 1, sizeof(buf) - 1, f);
+            std::fclose(f);
+            buf[n] = 0;
+            // "pid (comm) state ppid ...": the name may hold spaces and parentheses, so read after the last ')'
+            const char* close = std::strrchr(buf, ')');
+            char state = 0;
+            int parent = 0;
+            if (close && std::sscanf(close + 1, " %c %d", &state, &parent) == 2) all.push_back({pid_t(pid), pid_t(parent)});
+        }
+        closedir(d);
+    }
+    for (bool grew = true; grew;) {
+        grew = false;
+        for (auto [pid, parent] : all)
+            if (tree.count(parent) && tree.insert(pid).second) grew = true;
+    }
+    return tree;
+}
+
+// the signal to every live process of the tree; how many got it
+int SignalTree(pid_t root, int sig) {
+    int sent = 0;
+    for (pid_t p : Tree(root))
+        if (kill(p, sig) == 0) sent++;
+    return sent;
+}
 #endif
 
 }  // namespace
@@ -69,8 +116,9 @@ bool AskToClose(uint64_t pid) {
     EnumWindows(Ask, reinterpret_cast<LPARAM>(&s));
     return s.found > 0;
 #else
-    (void)pid;
-    return false;
+    // no window to post to from here (X11, Wayland, gamescope): SIGTERM is what closing asks of a Linux game; SDL
+    // turns it into its quit event, so the game saves and exits as from its window's X
+    return pid != 0 && SignalTree(pid_t(pid), SIGTERM) > 0;
 #endif
 }
 
@@ -94,7 +142,7 @@ void EndProcessTree(uint64_t pid) {
         CloseHandle(h);
     }
 #else
-    (void)pid;
+    if (pid != 0) SignalTree(pid_t(pid), SIGKILL);
 #endif
 }
 
