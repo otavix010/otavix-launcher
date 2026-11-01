@@ -35,7 +35,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
 }
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.12', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
-    'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip'),
+    'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip', r'C:\Users\otavi\gowb-port\gowb-port-linux-x64.tar.gz'),
     'infamous-second-son-pc': ('v1.0.8', r'C:\infamous\pacote-windows-v10\infamous-second-son-windows-x64.zip'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
@@ -108,12 +108,14 @@ def main():
             pass
         guardar(f'espelho/repos/{DONO}/{repo}/commits/main.json', json.dumps({'sha': sha, 'zip_url': url(zkey)}))
         print(f'{repo}: {sha[:12]}')
-    for repo, (tag, pacote) in RELEASE.items():
+    for repo, (tag, pacote, *linux) in RELEASE.items():
         a = asset(Path(pacote).name, pacote, f'releases/{DONO}/{repo}/{tag}/{Path(pacote).name}')
+        # the Linux / SteamOS package, when there is one (its name carries "linux": each system takes its own)
+        assets = [a] + [asset(Path(p).name, p, f'releases/{DONO}/{repo}/{tag}/{Path(p).name}') for p in linux if p and Path(p).exists()]
         # the ports' notes (docs/notas-portes/<repo>/<tag>.md, as the launcher's): the "What's new" page reads them from here
         notas = {f.stem: f.read_text(encoding='utf-8') for f in (RAIZ / 'docs' / 'notas-portes' / repo).glob('v*.md')}
         ordem = sorted(notas, key=lambda v: [int(x) for x in v.lstrip('v').split('.')], reverse=True)
-        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'name': tag, 'body': notas.get(tag, ''), 'published_at': '', 'html_url': '', 'assets': [a]}, ensure_ascii=False))
+        guardar(f'espelho/repos/{DONO}/{repo}/releases/latest.json', json.dumps({'tag_name': tag, 'name': tag, 'body': notas.get(tag, ''), 'published_at': '', 'html_url': '', 'assets': assets}, ensure_ascii=False))
         if notas:
             guardar(f'espelho/repos/{DONO}/{repo}/releases.lista.json', json.dumps([{'tag_name': v, 'name': v, 'published_at': '', 'body': notas[v], 'html_url': ''} for v in ordem], ensure_ascii=False))
         print(f'{repo}: {tag}')
@@ -125,6 +127,10 @@ def main():
         rel = {'tag_name': 'v' + versao, 'name': versao, 'published_at': '', 'body': corpo, 'html_url': ''}
         if i == 0:
             rel['assets'] = [asset(exe.name, exe, f'releases/{DONO}/otavix-launcher/v{versao}/{exe.name}')]
+            tgz = RAIZ / 'out' / f'Otavix-Launcher-{versao}-linux-x64.tar.gz'   # built on the Legion (scripts/pacote_linux.sh)
+            if tgz.exists():
+                rel['assets'].append(asset(tgz.name, tgz, f'releases/{DONO}/otavix-launcher/v{versao}/{tgz.name}'))
+                guardar(f'launcher/{tgz.name}', tgz.read_bytes())
             guardar(f'espelho/repos/{DONO}/otavix-launcher/releases/latest.json', json.dumps(rel, ensure_ascii=False))
             guardar(f'launcher/{exe.name}', exe.read_bytes())   # the download page's link
         lista.append({k: v for k, v in rel.items() if k != 'assets'})

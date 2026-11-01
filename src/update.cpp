@@ -85,7 +85,13 @@ void Updater::Start(const std::string& repo, const std::string& installed) {
             for (size_t at = h.body.find("\"browser_download_url\"", from); at != std::string::npos;
                  from = at + 1, at = h.body.find("\"browser_download_url\"", from)) {
                 std::string link = Field(h.body, "browser_download_url", at);
-                if (Lower(link).size() < 4 || Lower(link).substr(link.size() - 4) != ".exe") continue;
+                const std::string low = Lower(link);
+#ifdef _WIN32
+                if (low.size() < 4 || low.substr(low.size() - 4) != ".exe") continue;
+#else
+                // Linux / SteamOS: the launcher's folder as a .tar.gz
+                if (low.find("linux") == std::string::npos || low.size() < 7 || low.substr(low.size() - 7) != ".tar.gz") continue;
+#endif
                 r.installer = link;
                 r.size = std::strtoull(Field(h.body, "size", from, at).c_str(), nullptr, 10);
                 r.digest = Field(h.body, "digest", from, at);
@@ -116,7 +122,11 @@ void Updater::Download() {
     cancel_ = false;
     std::thread([this, c] {
         std::error_code ec;
+#ifdef _WIN32
         fs::path file = fs::temp_directory_path(ec) / ("Instalar-Otavix-Launcher-" + c.latest + ".exe");
+#else
+        fs::path file = fs::temp_directory_path(ec) / ("Otavix-Launcher-" + c.latest + "-linux-x64.tar.gz");
+#endif
         std::string sha, error;
         bool ok = DownloadFile(c.installer, file, cancel_, cur_.done, m_, sha, error);
         // the installer must be the one GitHub says it published
@@ -137,6 +147,22 @@ UpdateCheck Updater::Get() {
     return cur_;
 }
 
+#ifndef _WIN32
+// Linux / SteamOS: the package's files over the launcher's folder (its top folder stripped), then the new launcher opens
+bool RunInstaller(const fs::path& installer, const fs::path& install_dir, std::string& error) {
+    fs::path d = install_dir.has_filename() ? install_dir : install_dir.parent_path();
+    std::string file = installer.string(), dir = d.string();
+    const char* script = "sleep 1; bsdtar -xf \"$1\" -C \"$2\" --strip-components=1 && rm -f \"$1\"; exec \"$2/Otavix Launcher\"";
+    const char* args[] = {"sh", "-c", script, "_", file.c_str(), dir.c_str(), nullptr};
+    SDL_Process* p = SDL_CreateProcess(args, false);
+    if (!p) {
+        error = SDL_GetError();
+        return false;
+    }
+    SDL_DestroyProcess(p);  // it keeps running on its own
+    return true;
+}
+#else
 bool RunInstaller(const fs::path& installer, const fs::path& install_dir, std::string& error) {
     // no separator at the end: before the quote Windows adds around it, it would escape that quote
     fs::path d = install_dir.has_filename() ? install_dir : install_dir.parent_path();
@@ -152,5 +178,6 @@ bool RunInstaller(const fs::path& installer, const fs::path& install_dir, std::s
     SDL_DestroyProcess(p);  // it keeps running on its own
     return true;
 }
+#endif
 
 }  // namespace launcher

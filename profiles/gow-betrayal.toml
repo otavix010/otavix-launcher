@@ -5,7 +5,7 @@
 [game]
 title = "God of War: Betrayal"
 subtitle = { pt = "Port nativo do jogo de celular (Java ME)", en = "Native port of the mobile game (Java ME)", es = "Port nativo del juego de móvil (Java ME)" }
-exe = "GoW Betrayal.exe"
+exe = ["GoW Betrayal.exe", "jogar.sh"]  # Windows, then Linux / SteamOS
 logs = "logs"
 saves = ["save"]
 game_option = "game_path"

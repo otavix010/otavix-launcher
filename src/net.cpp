@@ -21,6 +21,10 @@ namespace launcher {
 
 namespace fs = std::filesystem;
 
+#ifndef _WIN32
+HttpResult HttpRequestLinux(const std::string& method, const std::string& url, const Headers& headers, const std::string& body);  // net_linux.cpp
+#endif
+
 namespace {
 
 #ifdef _WIN32
@@ -94,8 +98,7 @@ HttpResult HttpRequest(const std::string& method, const std::string& url, const 
     if (c) WinHttpCloseHandle(c);
     WinHttpCloseHandle(s);
 #else
-    (void)method, (void)url, (void)headers, (void)body;
-    r.error = "not on this system yet";
+    r = HttpRequestLinux(method, url, headers, body);
 #endif
     return r;
 }
@@ -337,13 +340,6 @@ bool DownloadFile(const std::string& url, const fs::path& file, std::atomic<bool
     if (s) WinHttpCloseHandle(s);
     return ok;
 }
-#else
-bool DownloadFile(const std::string&, const fs::path&, std::atomic<bool>&, uint64_t&, std::mutex&, std::string&,
-                  std::string& error) {
-    error = "not on this system yet";
-    return false;
-}
-std::string FileSha1(const fs::path&) { return {}; }
-#endif
+#endif  // on Linux: net_linux.cpp
 
 }  // namespace launcher

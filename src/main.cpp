@@ -1699,8 +1699,12 @@ void TutorialPage() {
 // the port's own files are there: no repository to fetch them from, or its executable in place
 bool PortPresent(const Game& gm) {
     std::error_code ec;
+    if (gm.entry.repo.empty()) return true;
+    if (gm.prof.port_file.empty())
+        for (const std::string& e : gm.prof.exes)  // exe = [...]: one build per system or CPU, any of them
+            if (fs::is_regular_file(gm.entry.dir / FromU8(e), ec)) return true;
     const std::string& file = gm.prof.port_file.empty() ? gm.prof.exe : gm.prof.port_file;
-    return gm.entry.repo.empty() || fs::is_regular_file(gm.entry.dir / FromU8(file), ec);
+    return fs::is_regular_file(gm.entry.dir / FromU8(file), ec);
 }
 
 // the port's files: downloaded when missing, updated when a newer release is out; false while there is nothing to play
@@ -2502,7 +2506,11 @@ bool MoveGameTo(Game& gm, const std::string& picked) {
         for (auto it = fs::recursive_directory_iterator(from, ec); !ec && it != fs::recursive_directory_iterator();
              it.increment(ec)) {
             fs::file_type t = it->symlink_status(ec).type();
+            #ifdef _WIN32
             if (t == fs::file_type::symlink || t == fs::file_type::junction) {
+#else
+            if (t == fs::file_type::symlink) {
+#endif
                 link = true;
                 break;
             }
@@ -2810,7 +2818,7 @@ void StartBuild(Game& gm, bool redo) {
     if (redo)
         for (const std::string& a : in.redo) args.push_back(expand(a));
     // the build the player chose goes to the generator in the environment (it keeps the choice in its build.txt)
-    if (!gm.prof.build_choice.empty()) _putenv_s(gm.prof.build_choice.c_str(), BuildChoice(gm).c_str());
+    if (!gm.prof.build_choice.empty()) SDL_setenv_unsafe(gm.prof.build_choice.c_str(), BuildChoice(gm).c_str(), 1);
     std::vector<std::string> steps;
     for (const BuildStep& s : in.steps) steps.push_back(s.id);
     gm.build_noted = false;
@@ -4392,8 +4400,13 @@ std::string NewsBody(const std::string& body, Lang lang) {
 std::string UpdateHours(std::string* next) {
     const time_t now = time(nullptr);
     tm loc{};
+#ifdef _WIN32
     localtime_s(&loc, &now);
-    const int east = int(_mkgmtime(&loc) - now) / 60;   // the player's offset from UTC, in minutes
+    const int east = int(_mkgmtime(&loc) - now) / 60;
+#else
+    localtime_r(&now, &loc);
+    const int east = int(timegm(&loc) - now) / 60;
+#endif   // the player's offset from UTC, in minutes
     const int cur = loc.tm_hour * 60 + loc.tm_min;
     std::vector<int> mins;
     for (int h = 0; h < 24; h += 4) mins.push_back((((h + 3) * 60 + east) % 1440 + 1440) % 1440);
@@ -7530,6 +7543,16 @@ int main(int argc, char** argv) {
         SDL_SetRenderDrawColor(g.ren, 15, 15, 18, 255);
         SDL_RenderClear(g.ren);
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), g.ren);
+        // tests: LAUNCHER_SHOT=file.bmp saves the window once, about 4 s after the start (a screen capture of a window
+        // that is not in front, or of a session without a desktop, shows nothing)
+        static const char* shot = SDL_getenv("LAUNCHER_SHOT");
+        if (shot && SDL_GetTicks() > 4000) {
+            if (SDL_Surface* s = SDL_RenderReadPixels(g.ren, nullptr)) {
+                SDL_SaveBMP(s, shot);
+                SDL_DestroySurface(s);
+            }
+            shot = nullptr;
+        }
         SDL_RenderPresent(g.ren);
     }
     for (auto& gp : g.games)

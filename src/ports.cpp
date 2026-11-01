@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <thread>
 #include <vector>
@@ -127,7 +128,14 @@ bool PortFetcher::Latest(const std::string& source, std::string& url, std::strin
     for (size_t at = r.body.find("\"browser_download_url\"", from); at != std::string::npos;
          from = at + 1, at = r.body.find("\"browser_download_url\"", from)) {
         std::string link = Field(r.body, "browser_download_url", at);
-        if (Lower(link).size() < 4 || Lower(link).substr(link.size() - 4) != ".zip") continue;
+        // the package of this system: Windows takes a .zip; Linux / SteamOS the one with "linux" in its name (.tar.gz or .zip)
+        const std::string low = Lower(link);
+        auto ends = [&](const char* e) { size_t n = std::strlen(e); return low.size() >= n && low.compare(low.size() - n, n, e) == 0; };
+#ifdef _WIN32
+        if (!ends(".zip") || low.find("linux") != std::string::npos) continue;
+#else
+        if (low.find("linux") == std::string::npos || !(ends(".tar.gz") || ends(".zip"))) continue;
+#endif
         url = link;
         st_.size = std::strtoull(Field(r.body, "size", from, at).c_str(), nullptr, 10);
         digest = Field(r.body, "digest", from, at);  // "sha256:..."
@@ -167,7 +175,6 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
             st_.stage = Stage::Failed;
             st_.error = why;
         };
-#ifdef _WIN32
         std::string url, digest;
         if (!Latest(repo, url, digest)) {
             std::lock_guard lock(m_);
@@ -176,7 +183,8 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         }
         std::error_code ec;
         fs::create_directories(dir, ec);
-        fs::path zip = dir / "_port.zip", work = dir / "_port";
+        const bool tgz = url.size() >= 7 && url.compare(url.size() - 7, 7, ".tar.gz") == 0;
+        fs::path zip = dir / (tgz ? "_port.tar.gz" : "_port.zip"), work = dir / "_port";
         std::string sha, error;
         if (!DownloadFile(url, zip, cancel_, st_.done, m_, sha, error)) {
             fs::remove(zip, ec);
@@ -193,9 +201,13 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         }
         fs::remove_all(work, ec);
         fs::create_directories(work, ec);
+#ifdef _WIN32
         char sys[512];
         const char* root = SDL_getenv("SystemRoot");
         std::snprintf(sys, sizeof(sys), "%s\\System32\\tar.exe", root ? root : "C:\\Windows");
+#else
+        const char* sys = "bsdtar";  // libarchive's, as on Windows: reads .zip and .tar.gz and keeps the permissions
+#endif
         std::string z = U8(zip), w = U8(work);
         const char* args[] = {sys, "-xf", z.c_str(), "-C", w.c_str(), nullptr};
         SDL_Process* p = SDL_CreateProcess(args, false);
@@ -221,10 +233,6 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         std::ofstream(dir / "port_version.txt") << tag << "\n";
         std::lock_guard lock(m_);
         st_.stage = Stage::Done;
-#else
-        (void)repo, (void)dir;
-        fail("not on this system yet");
-#endif
     }).detach();
 }
 

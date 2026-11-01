@@ -28,6 +28,12 @@ add_executable(Launcher WIN32 ${LAUNCHER_SOURCES}
 target_include_directories(Launcher PRIVATE src third_party ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 target_link_libraries(Launcher PRIVATE SDL3::SDL3-static tomlplusplus::tomlplusplus)
 set_target_properties(Launcher PROPERTIES OUTPUT_NAME "Otavix Launcher")
+if(NOT WIN32)
+    # libcurl is loaded when first used (net_linux.cpp): only its headers are needed here
+    find_path(CURL_INCLUDE_DIR curl/curl.h REQUIRED)
+    target_include_directories(Launcher PRIVATE ${CURL_INCLUDE_DIR})
+    target_link_libraries(Launcher PRIVATE ${CMAKE_DL_LIBS})
+endif()
 if(WIN32)
     target_compile_definitions(Launcher PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
     target_link_libraries(Launcher PRIVATE winhttp dxgi crypt32 bcrypt windowscodecs ole32)
