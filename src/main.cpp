@@ -111,6 +111,7 @@ struct Game {
     int confirm_remove = -1;
     int page = 0, tab = 0;
     int last_exit = INT_MIN;
+    int exit_no_memory = -1;  // -1: not looked at yet; the game's log says the memory ran out (looked at once per exit)
     double last_minutes = 0;
 
     // ok, beta (playable, in development), wip or soon on that system; a port that names no system is playable here only
@@ -926,6 +927,7 @@ void PollGame() {
     if (g.proc_game >= 0) {
         Game& gm = *g.games[size_t(g.proc_game)];
         gm.last_exit = code;
+        gm.exit_no_memory = -1;
         gm.last_minutes = double(SDL_GetTicks() - g.started) / 60000.0;
         gm.backups_stale = true;
         RecordSession(gm);
@@ -2297,6 +2299,10 @@ void CrashCard(Game& gm) {
     ImGui::TextWrapped("%s", Tr(S::CrashText));
     // an instruction the processor lacks (report 40: a GoW built for AVX2 on an Ivy Bridge Xeon)
     if (unsigned(gm.last_exit) == 0xC000001Du) ImGui::TextWrapped("%s", Tr(S::CrashIllegalInstruction));
+    // the GoW port says in its log when the commit of guest memory failed (reports 590-595: a paging file too small)
+    if (gm.exit_no_memory < 0)
+        gm.exit_no_memory = FileTail(GameLog(gm), 64 * 1024).find("[memória] SEM MEMÓRIA") != std::string::npos;
+    if (gm.exit_no_memory > 0) ImGui::TextWrapped("%s", Tr(S::CrashNoMemory));
     ImGui::Spacing();
     std::snprintf(b, sizeof(b), "O jogo fechou com erro (código %s) depois de %.0f minutos.", ExitText(gm.last_exit).c_str(),
                   gm.last_minutes);

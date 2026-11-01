@@ -35,7 +35,7 @@ enum class S {
     GamesFolder, GamesFolderHelp, GamesFolderAuto, GamesFolderBad,
     GameFolderAt, ChangeFolder, GameFolderBusy, GameFolderNotEmpty, GameFolderMoveFailed, GameFolderStartOver,
     OpenOldFolder,
-    ReportToLauncher, CrashIllegalInstruction, AdminRequestsTab, NoReports,
+    ReportToLauncher, CrashIllegalInstruction, CrashNoMemory, AdminRequestsTab, NoReports,
     StaleTitle, StaleText, StaleBuildNow, StalePlayOld,
     News, NewsIntro, NewsInstalled, NewsInUpdate, NewsNone, NewsRebuild, NewsHours,
     Ported, MarkPorted, UnmarkPorted, AlreadyPorted,
