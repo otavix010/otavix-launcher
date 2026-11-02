@@ -3032,16 +3032,16 @@ std::string ExplainBuildError(const std::string& err) {
     if (g.lang == Lang::Pt) return {};
     auto has = [&](const char* s) { return err.find(s) != std::string::npos; };
     if (has("este disco é a versão"))
-        return L3("", "This disc is not the supported version. The port only works with the American version (BCUS98232) with update 1.04; the files of the European or other regions are different and the game closes. Click \"Choose the disc again\" and pick a copy of the American disc.",
+        return L3("", "This disc is not the supported version. The port only works with the American version (BCUS98232) with update 1.04; the files of the European or other regions are different and the game closes. Click \"Pick the disc again\" and pick a copy of the American disc.",
                   "Este disco no es la versión compatible. El port solo funciona con la versión americana (BCUS98232) con la actualización 1.04; los archivos de la versión europea u otras regiones son distintos y el juego se cierra. Pulsa \"Elegir el disco de nuevo\" y elige una copia del disco americano.");
     if (has("criptografada"))
-        return L3("", "Your copy of the game is encrypted. Use a copy with the PS3_GAME folder taken from your PS3 or from RPCS3, or a decrypted .iso, of the American version (BCUS98232). Click \"Choose the disc again\" and pick it.",
+        return L3("", "Your copy of the game is encrypted. Use a copy with the PS3_GAME folder taken from your PS3 or from RPCS3, or a decrypted .iso, of the American version (BCUS98232). Click \"Pick the disc again\" and pick it.",
                   "Tu copia del juego está cifrada. Usa una copia con la carpeta PS3_GAME sacada de tu PS3 o de RPCS3, o un .iso descifrado, de la versión americana (BCUS98232). Pulsa \"Elegir el disco de nuevo\" y elígela.");
     if (has("está incompleta"))
-        return L3("", "Your copy of the game is incomplete: files are missing. Copy or extract the game again (check the free disk space and that the antivirus did not delete anything), then click \"Choose the disc again\".",
+        return L3("", "Your copy of the game is incomplete: files are missing. Copy or extract the game again (check the free disk space and that the antivirus did not delete anything), then click \"Pick the disc again\".",
                   "Tu copia del juego está incompleta: faltan archivos. Copia o extrae el juego de nuevo (revisa el espacio libre en el disco y que el antivirus no haya borrado nada) y pulsa \"Elegir el disco de nuevo\".");
     if (has("não achei o jogo"))
-        return L3("", "The game was not found in the folder you chose. Choose the folder that contains PS3_GAME (with USRDIR), or an .iso/.zip/.7z/.rar of the game. Do not choose the port's own folder, an empty folder or the PS3_UPDATE folder. Click \"Choose the disc again\".",
+        return L3("", "The game was not found in the folder you chose. Choose the folder that contains PS3_GAME (with USRDIR), or an .iso/.zip/.7z/.rar of the game. Do not choose the port's own folder, an empty folder or the PS3_UPDATE folder. Click \"Pick the disc again\".",
                   "No se encontró el juego en la carpeta elegida. Elige la carpeta que contiene PS3_GAME (con USRDIR), o un .iso/.zip/.7z/.rar del juego. No elijas la carpeta del propio port, una carpeta vacía ni la carpeta PS3_UPDATE. Pulsa \"Elegir el disco de nuevo\".");
     if (has("não tem AVX2"))
         return L3("", "Your processor does not have AVX2, which the port needs: Intel Core 4th generation (Haswell, 2013) or newer, or AMD Ryzen or FX Excavator (2015) or newer. Unfortunately the game cannot run on this processor.",
@@ -3053,10 +3053,10 @@ std::string ExplainBuildError(const std::string& err) {
         return L3("", "Visual Studio is missing a component. Open the Visual Studio Installer, click Modify and tick \"Desktop development with C++\" and \"Windows 11 SDK\" (and \"C++ Clang tools\"), install and generate again.",
                   "A Visual Studio le falta un componente. Abre el Visual Studio Installer, pulsa Modificar y marca \"Desarrollo para el escritorio con C++\" y \"Windows 11 SDK\" (y \"C++ Clang tools\"), instala y genera de nuevo.");
     if (has("não é uma imagem de disco do Xbox 360"))
-        return L3("", "The chosen file is not an Xbox 360 disc image. This port needs the Xbox 360 .iso of the game (not the PS3 or another console's version). Click \"Choose the disc again\".",
+        return L3("", "The chosen file is not an Xbox 360 disc image. This port needs the Xbox 360 .iso of the game (not the PS3 or another console's version). Click \"Pick the disc again\".",
                   "El archivo elegido no es una imagen de disco de Xbox 360. Este port necesita el .iso de Xbox 360 del juego (no la versión de PS3 ni de otra consola). Pulsa \"Elegir el disco de nuevo\".");
     if (has("não existe"))
-        return L3("", "The disc image or game folder you chose no longer exists or was moved. Click \"Choose the disc again\" and pick it.",
+        return L3("", "The disc image or game folder you chose no longer exists or was moved. Click \"Pick the disc again\" and pick it.",
                   "La imagen de disco o la carpeta del juego elegida ya no existe o se movió. Pulsa \"Elegir el disco de nuevo\" y elígela.");
     if (has("pouco espaço"))
         return L3("", "There is not enough free disk space to extract the game. Free some space (about 35 GB) and try again.",
