@@ -165,6 +165,19 @@ choices = [
 ]
 
 [[options]]
+page = "game"
+key = "GOWA_EDGE_NATIVO"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Processamento gráfico nativo (EDGE)", en = "Native graphics processing (EDGE)", es = "Procesamiento gráfico nativo (EDGE)" }
+help = { pt = "Parte do processamento gráfico do PS3 (EDGE) roda como código nativo do PC, o que alivia o processador. Se o cenário ficar preto, riscado ou com peças fora do lugar, desligue para usar a versão traduzida (mais lenta, mas igual à do PS3) e conte para nós pelo relato.", en = "Part of the PS3 graphics processing (EDGE) runs as native PC code, which eases the load on the processor. If the scenery turns black, streaked or has pieces out of place, turn it off to use the translated version (slower, but identical to the PS3's) and tell us through a report.", es = "Parte del procesamiento gráfico de la PS3 (EDGE) se ejecuta como código nativo de PC, lo que alivia el procesador. Si el escenario se ve negro, con rayas o con piezas fuera de lugar, desactívalo para usar la versión traducida (más lenta, pero igual a la de PS3) y cuéntanoslo en un reporte." }
+choices = [
+  { value = "1", label = { pt = "Ligado (recomendado)", en = "On (recommended)", es = "Activado (recomendado)" } },
+  { value = "0", label = { pt = "Desligado (versão traduzida)", en = "Off (translated version)", es = "Desactivado (versión traducida)" } },
+]
+
+[[options]]
 page = "audio"
 key = "GOWA_AUDIO_BUFFER_MS"
 target = "env"
