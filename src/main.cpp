@@ -5743,7 +5743,13 @@ HubMatch MatchInHub(const std::string& console, const std::string& name) {
         size_t cut = std::min(s.find(':'), s.find(" - "));
         return cut != std::string::npos && cut > 0 ? key(s.substr(0, cut)) : key(s);
     };
-    const std::string want = key(name), base = base_of(name);
+    // subtitles that name another game of the series, not an edition of the same one ("God of War - Chains of Olympus" is
+    // not the PS2's "God of War"): such a request is matched by its whole title only
+    static const char* const kOtherGames[] = {"chainsofolympus", "ghostofsparta", "prisonofthedamned", "betrayal", "origins"};
+    const std::string want = key(name);
+    std::string base = base_of(name);
+    for (const char* other : kOtherGames)
+        if (want.find(other) != std::string::npos) base = want;
     // the same game: the whole titles, or the request's without its subtitle ("Dante's Inferno - Gates of Hell" is
     // the 360's "Dante's Inferno"); loose also takes the port's without its subtitle ("Onimusha 3" is "Onimusha 3:
     // Demon Siege"), only on the same console, so that the PS2's "God of War" is not the PS3's "God of War: Ascension"
