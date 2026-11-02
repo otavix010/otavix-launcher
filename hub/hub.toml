@@ -5,7 +5,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.77"
+version = "1.0.78"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -182,7 +182,7 @@ repo = "otavix010/spawn-armageddon-pc"
 
 branch = "main"
 
-platforms = { windows = "beta", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 
 
@@ -330,7 +330,7 @@ repo = "otavix010/god-of-war-pc"
 
 branch = "main"
 
-platforms = { windows = "beta", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 
@@ -346,7 +346,7 @@ repo = "otavix010/god-of-war-2-pc"
 
 branch = "main"
 
-platforms = { windows = "beta", linux = "soon" }
+platforms = { windows = "ok", linux = "soon" }
 
 [[games]]
 
