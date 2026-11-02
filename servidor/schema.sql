@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS reports (
   sistema TEXT NOT NULL,
   enviado INTEGER NOT NULL DEFAULT 0,
   resposta TEXT NOT NULL DEFAULT '',     -- the owner's answer, read by the launcher that sent it
-  respondido INTEGER NOT NULL DEFAULT 0  -- when it was answered (migracao-respostas.sql for a database made before)
+  respondido INTEGER NOT NULL DEFAULT 0, -- when it was answered (migracao-respostas.sql for a database made before)
+  idioma TEXT NOT NULL DEFAULT ''        -- the language the player chose in the launcher (migracao-idioma.sql for a database made before)
 );
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip, quando);
 CREATE INDEX IF NOT EXISTS reports_install ON reports (install);

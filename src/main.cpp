@@ -4991,6 +4991,8 @@ std::string Stamp() {
     return s;
 }
 
+static const char* LangCode(Lang l) { return l == Lang::En ? "en" : l == Lang::Es ? "es" : "pt"; }
+
 std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std::string& config) {
     std::string log_name = log.empty() ? std::string() : U8(log.filename());
     if (g.rep_attach) {
@@ -5011,6 +5013,8 @@ std::string ReportJson(Game& gm, const fs::path& log, std::string& log_text, std
     j += ",\"jogo\":" + Json(gm.entry.id);
     j += ",\"titulo\":" + Json(gm.prof.title.Get(Lang::Pt));
     j += ",\"plataforma\":" + Json(PlatformName(g.view));
+    // the language the player chose, so the answer goes back in a language they read (reports 626, 654, 666, 676)
+    j += ",\"idioma\":" + Json(LangCode(g.lang));
     // the owner reads the kind in Portuguese
     j += ",\"categoria\":" + Json(T(Lang::Pt, kCats[std::clamp(g.rep_cat, 0, 5)]));
     j += ",\"descricao\":" + Json(g.rep_desc);
@@ -5088,6 +5092,7 @@ void LauncherReportSection() {
             j += ",\"jogo\":" + Json("launcher");
             j += ",\"titulo\":" + Json("Launcher");
             j += ",\"plataforma\":" + Json(PlatformName(g.view));
+            j += ",\"idioma\":" + Json(LangCode(g.lang));
             j += ",\"categoria\":" + Json(T(Lang::Pt, kCats[std::clamp(g.hub_rep_cat, 0, 5)]));
             j += ",\"descricao\":" + Json(g.hub_rep_desc);
             j += ",\"contato\":" + Json(g.rep_contact);
@@ -6387,7 +6392,7 @@ void AdminReports() {
     if (g.admin_reports.empty()) Dim(Tr(S::NoReports));
     bool open_reply = false;
     for (size_t i = 0; i < g.admin_reports.size(); i++) {
-        // when, title, platform, kind, contact, description, mailed, id, answer, attachments, computer
+        // when, title, platform, kind, contact, description, mailed, id, answer, attachments, computer, language
         const auto& row = g.admin_reports[i];
         SDL_DateTime d{};
         SDL_TimeToDateTime(SDL_Time(std::atoll(Str(row, 0).c_str())) * SDL_NS_PER_SECOND, &d, true);
@@ -6406,7 +6411,9 @@ void AdminReports() {
             ImGui::TextDisabled("(%s)", Tr(S::Mailed));
         }
         Dim(Str(row, 5).c_str());
-        if (!Str(row, 10).empty()) ImGui::TextDisabled("%s", Str(row, 10).c_str());
+        // the language the player chose in the launcher (11): the answer goes back in it
+        if (!Str(row, 10).empty() || !Str(row, 11).empty())
+            ImGui::TextDisabled("%s%s%s", Str(row, 11).empty() ? "" : ("[" + Str(row, 11) + "] ").c_str(), "", Str(row, 10).c_str());
         // the attachments, "id|name|bytes;...": each opens in its own program
         const std::string& files = Str(row, 9);
         for (size_t at = 0, n = 0; at < files.size(); n++) {

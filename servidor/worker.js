@@ -250,11 +250,13 @@ async function report(req, env) {
   const contato = String(r.contato || '').slice(0, 200);
   const info = r.sistema && typeof r.sistema === 'object' ? r.sistema : {};
   const res = await env.DB.prepare(
-    'INSERT INTO reports (quando, ip, install, jogo, titulo, plataforma, versao, categoria, contato, descricao, sistema) ' +
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO reports (quando, ip, install, jogo, titulo, plataforma, versao, categoria, contato, descricao, sistema, idioma) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   )
     .bind(t, ip, install(req), f(r.jogo).slice(0, 80), f(r.titulo).slice(0, 120), f(r.plataforma).slice(0, 40),
-      f(r.launcher).slice(0, 40), f(r.categoria).slice(0, 40), contato, desc, JSON.stringify(info).slice(0, 4000))
+      f(r.launcher).slice(0, 40), f(r.categoria).slice(0, 40), contato, desc, JSON.stringify(info).slice(0, 4000),
+      // the language the player chose in the launcher: the answer goes back in it (1.0.74)
+      ['pt', 'en', 'es'].includes(r.idioma) ? r.idioma : '')
     .run();
   const id = res.meta.last_row_id;
   // the game's log and settings, kept with it (until 1.0.23 they only went by mail, and without mail set up were lost)
@@ -273,6 +275,7 @@ async function report(req, env) {
       `Jogo: ${f(r.titulo)} (${f(r.jogo)})`,
       `Plataforma: ${f(r.plataforma)} · launcher ${f(r.launcher)}`,
       `Tipo: ${f(r.categoria)}`,
+      `Idioma do jogador: ${f(r.idioma) || "não informado"}`,
       `Contato: ${contato || '(não deixou)'}`,
       `Última saída do jogo: ${f(r.ultima_saida)}`,
       '',
@@ -350,15 +353,15 @@ async function anexo(env, url) {
 
 async function reports(env) {
   const rows = await env.DB.prepare(
-    'SELECT id, quando, titulo, plataforma, categoria, contato, descricao, enviado, resposta, sistema, ' +
+    'SELECT id, quando, titulo, plataforma, categoria, contato, descricao, enviado, resposta, sistema, idioma, ' +
       "(SELECT group_concat(a.id || '|' || a.nome || '|' || a.tamanho, ';') FROM anexos a WHERE a.report = r.id) AS anexos " +
       'FROM reports r ORDER BY quando DESC LIMIT 100'
   ).all();
-  // the id, the answer, the attachments ("id|name|bytes;...") and the computer last: older launchers read the fields
+  // the id, the answer, the attachments ("id|name|bytes;..."), the computer and the player's language last: older launchers read the fields
   // before them by position
   return text(200, rows.results.map((r) =>
     [r.quando, r.titulo, r.plataforma, r.categoria, r.contato, r.descricao.slice(0, 400), r.enviado, r.id, r.resposta,
-      r.anexos || '', resumoSistema(r.sistema)]
+      r.anexos || '', resumoSistema(r.sistema), r.idioma || '']
       .map(f).join('\t')).join('\n'));
 }
 
