@@ -1,12 +1,24 @@
-# God of War II (PlayStation 2) port: listed in the hub while it is made (no generator yet; the European SCES-54206)
+# God of War II (PlayStation 2) port: made on the player's PC by the port's generator (gerar.ps1 of otavix010/god-of-war-2-pc),
+# from their own DVD image (the US SCUS-97481). The game's own variables (jogo.json "ambiente") go in bin\ambiente.txt,
+# which the runtime reads; the launcher only passes the disc and the menu's options. In development.
 [game]
 title = "God of War II"
 subtitle = { pt = "Port nativo do PlayStation 2 · recompilação estática", en = "Native PlayStation 2 port · static recompilation", es = "Port nativo de PlayStation 2 · recompilación estática" }
 status = "wip"
 status_text = { pt = "Em desenvolvimento", en = "In development", es = "En desarrollo" }
-exe = "god-of-war-2.exe"
-accent = [185, 120, 30]
+exe = "bin/god-of-war-2.exe"
+workdir = "trabalho/disc"  # as jogar.cmd: the game opens its files from the disc's folder
+port_file = "gerar.ps1"
+args = ["{dir}/trabalho/disc/SCUS_974.81"]
+# the ISO picked when making it (the game reads its sectors) and the disc's files; the rest comes from bin\ambiente.txt
+env = { PS2X_CD_IMAGE = "{iso}", PS2X_CD_ROOT = "{dir}/trabalho/disc" }
+log_file = "out/jogo.log"
+logs = "out"
+accent = [160, 30, 25]
 legal = { pt = "O port lê a sua própria cópia do jogo. God of War II é marca dos seus donos; este projeto não tem relação com eles.", en = "The port reads your own copy of the game. God of War II is a trademark of its owners; this project is not affiliated with them.", es = "El port lee tu propia copia del juego. God of War II es marca de sus dueños; este proyecto no tiene relación con ellos." }
+
+[performance]
+note = { pt = "God of War II roda a 60 fps em PCs atuais. Em notebooks e PCs fracos, use a predefinição Notebook / PC fraco (30 fps estáveis). O que mais pesa é o processador: o port traduz o código do PlayStation 2 (incluindo o processador de geometria, o VU1) para o seu PC.", en = "God of War II runs at 60 fps on current PCs. On laptops and weak PCs, use the Laptop / weak PC preset (steady 30 fps). What weighs most is the processor: the port translates the PlayStation 2's code (including its geometry processor, the VU1) for your PC.", es = "God of War II va a 60 fps en PC actuales. En portátiles y PC débiles, usa el preajuste Portátil / PC débil (30 fps estables). Lo que más pesa es el procesador: el port traduce el código de PlayStation 2 (incluido su procesador de geometría, la VU1) para tu PC." }
 
 # pictures in arte/god-of-war-2 when there are (capa, the library card; fundo, the page), else the public ones (libretro)
 [art]
@@ -22,7 +34,194 @@ web = [
   "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/God%20of%20War%20II%20%28USA%29.png",
 ]
 
-# the window's and the desktop shortcut's: a miniature of the box art (libretro)
+[install]
+kind = "build"
+done = "out/gerar/7_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}"]
+redo = ["-RefazerDe", "3"]  # new code of the port: its PS2Recomp fixes, the translation, the VU1 and the build again, not the disc
+version = { pt = "God of War II dos EUA (SCUS-97481): a imagem .iso do DVD do PlayStation 2", en = "God of War II, US (SCUS-97481): the PlayStation 2 DVD's .iso image", es = "God of War II de EE. UU. (SCUS-97481): la imagen .iso del DVD de PlayStation 2" }
+time = { pt = "Leva de alguns minutos a meia hora, conforme o processador, e só uma vez. Baixa e compila o PS2Recomp. Precisa de um processador com AVX2.", en = "It takes from a few minutes to half an hour depending on the processor, and only once. It downloads and builds PS2Recomp. It needs a processor with AVX2.", es = "Tarda de unos minutos a media hora según el procesador, y solo una vez. Descarga y compila PS2Recomp. Necesita un procesador con AVX2." }
+
+[[install.prereqs]]
+name = "Python 3.11"
+check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)\""
+install = "(where winget >nul 2>&1 && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements) || (echo Sem o winget: baixando o instalador oficial do python.org... && curl -L --fail -o \"%TEMP%\\python-3.12.10-amd64.exe\" https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe && \"%TEMP%\\python-3.12.10-amd64.exe\" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1)"
+help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
+
+[[install.prereqs]]
+name = "Visual Studio Build Tools (C++ e CMake)"
+check = "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 Microsoft.VisualStudio.Component.VC.CMake.Project -property installationPath"
+output = true
+install = "(where winget >nul 2>&1 && winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\") || (echo Sem o winget: baixando o instalador oficial da Microsoft... && curl -L --fail -o \"%TEMP%\\vs_BuildTools.exe\" https://aka.ms/vs/17/release/vs_BuildTools.exe && \"%TEMP%\\vs_BuildTools.exe\" --passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended)"
+help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado sem o CMake: abra o Visual Studio Installer, clique em Modificar e marque \"C++ CMake tools\".", en = "It compiles the game (about 6 GB). If Build Tools is installed without CMake: open the Visual Studio Installer, click Modify and tick \"C++ CMake tools\".", es = "Compila el juego (unos 6 GB). Si Build Tools ya está instalado sin CMake: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ CMake tools\"." }
+
+[[install.inputs]]
+key = "iso"
+pick = "both"
+filters = ["7z", "zip", "rar", "iso"]
+unpack = "*.iso"
+label = { pt = "A imagem do DVD (.iso, ou o .7z/.zip/.rar baixado)", en = "The DVD image (.iso, or the downloaded .7z/.zip/.rar)", es = "La imagen del DVD (.iso, o el .7z/.zip/.rar descargado)" }
+help = { pt = "Tem que ser a versão dos EUA (SCUS-97481). O gerador confere o executável do jogo e avisa se for outra versão. O jogo lê a ISO enquanto roda: deixe-a onde está. Um arquivo .7z, .zip ou .rar com a .iso dentro (ou a pasta onde ele está) também serve: o launcher extrai a .iso na pasta do port antes de gerar.", en = "It must be the US release (SCUS-97481). The generator checks the game's executable and says so when it is another version. The game reads the ISO while it runs: leave it where it is. A .7z, .zip or .rar holding the .iso (or the folder it is in) works too: the launcher unpacks the .iso into the port's folder before making the game.", es = "Tiene que ser la versión de EE. UU. (SCUS-97481). El generador comprueba el ejecutable del juego y avisa si es otra versión. El juego lee la ISO mientras se ejecuta: déjala donde está. Un archivo .7z, .zip o .rar con la .iso dentro (o la carpeta donde está) también sirve: el launcher extrae la .iso en la carpeta del port antes de generar." }
+
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_disco"
+label = { pt = "conferindo e extraindo o disco", en = "checking and extracting the disc", es = "comprobando y extrayendo el disco" }
+[[install.steps]]
+id = "3_ps2recomp"
+label = { pt = "preparando o PS2Recomp", en = "preparing PS2Recomp", es = "preparando PS2Recomp" }
+[[install.steps]]
+id = "4_traduzir"
+label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
+[[install.steps]]
+id = "5_vu1"
+label = { pt = "processador de geometria (VU1)", en = "geometry processor (VU1)", es = "procesador de geometría (VU1)" }
+[[install.steps]]
+id = "6_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "7_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
+
+# the window's and the shortcut's icon: the public box art
 [icon]
 kind = "image"
 web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/God%20of%20War%20II%20%28USA%29.png"]
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "game"
+advanced = true
+label = { pt = "Jogo", en = "Game", es = "Juego" }
+
+[[options]]
+page = "video"
+key = "PS2X_QPS"
+target = "env"
+type = "choice"
+default = "60"
+label = { pt = "Taxa de quadros", en = "Frame rate", es = "Tasa de fotogramas" }
+help = { pt = "60 fps é o modo original do jogo. 30 fps usa o limitador do próprio jogo: em PCs mais fracos e notebooks, deixa o ritmo estável em vez de oscilar entre 20 e 30. O jogo continua na velocidade certa nos dois modos.", en = "60 fps is the game's original mode. 30 fps uses the game's own limiter: on weaker PCs and laptops, it keeps the pace steady instead of swinging between 20 and 30. The game runs at the right speed in both modes.", es = "60 fps es el modo original del juego. 30 fps usa el limitador del propio juego: en PC más débiles y portátiles, mantiene el ritmo estable en lugar de oscilar entre 20 y 30. El juego va a la velocidad correcta en los dos modos." }
+choices = [
+  { value = "60", label = { pt = "60 fps (original)", en = "60 fps (original)", es = "60 fps (original)" } },
+  { value = "30", label = { pt = "30 fps (PCs fracos e notebooks)", en = "30 fps (weaker PCs and laptops)", es = "30 fps (PC débiles y portátiles)" } },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_TELA_CHEIA"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Modo de tela", en = "Display mode", es = "Modo de pantalla" }
+help = { pt = "Janela ou tela cheia sem bordas. No jogo, F11 ou Alt+Enter alternam entre os dois.", en = "A window or borderless fullscreen. In game, F11 or Alt+Enter switch between them.", es = "Ventana o pantalla completa sin bordes. En el juego, F11 o Alt+Enter alternan entre los dos." }
+choices = [
+  { value = "0", label = { pt = "Janela", en = "Window", es = "Ventana" } },
+  { value = "1", label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" } },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_JANELA_TAM"
+target = "env"
+type = "choice"
+default = "1280x720"
+label = { pt = "Tamanho da janela", en = "Window size", es = "Tamaño de la ventana" }
+help = { pt = "O tamanho em que a janela abre (em tela cheia vale a resolução do monitor). O jogo desenha na resolução do PlayStation 2 e a imagem é ampliada até a janela: para a ampliação ficar mais nítida, use o Escalonador abaixo.", en = "The size the window opens at (in fullscreen, the monitor's resolution is used). The game draws at the PlayStation 2's resolution and the picture is enlarged to the window: for a sharper enlargement, use the Upscaler below.", es = "El tamaño con el que se abre la ventana (en pantalla completa vale la resolución del monitor). El juego dibuja a la resolución de PlayStation 2 y la imagen se amplía hasta la ventana: para una ampliación más nítida, usa el Escalador de abajo." }
+choices = [
+  { value = "1280x720", label = "1280 × 720" },
+  { value = "1600x900", label = "1600 × 900" },
+  { value = "1920x1080", label = "1920 × 1080" },
+  { value = "2560x1440", label = "2560 × 1440" },
+  { value = "3840x2160", label = "3840 × 2160" },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_ESCALA"
+target = "env"
+type = "choice"
+default = "nenhum"
+label = { pt = "Escalonador", en = "Upscaler", es = "Escalador" }
+help = { pt = "Como a imagem do PlayStation 2 é ampliada até a janela. Nenhum: pixels maiores, como no console. Bilinear: suaviza. FSR 1 (AMD) e NIS (NVIDIA Image Scaling): ampliação com nitidez, funcionam em qualquer placa de vídeo e custam pouco. O DLSS não está disponível: ele precisa de dados de movimento que os jogos de PlayStation 2 não fornecem.", en = "How the PlayStation 2's picture is enlarged to the window. None: bigger pixels, as on the console. Bilinear: smooths it. FSR 1 (AMD) and NIS (NVIDIA Image Scaling): sharp upscaling, they work on any graphics card and cost little. DLSS is not available: it needs motion data that PlayStation 2 games do not provide.", es = "Cómo se amplía la imagen de PlayStation 2 hasta la ventana. Ninguno: píxeles más grandes, como en la consola. Bilineal: la suaviza. FSR 1 (AMD) y NIS (NVIDIA Image Scaling): ampliación con nitidez, funcionan en cualquier tarjeta gráfica y cuestan poco. DLSS no está disponible: necesita datos de movimiento que los juegos de PlayStation 2 no proporcionan." }
+choices = [
+  { value = "nenhum", label = { pt = "Nenhum (padrão)", en = "None (default)", es = "Ninguno (por defecto)" } },
+  { value = "bilinear", label = { pt = "Bilinear", en = "Bilinear", es = "Bilineal" } },
+  { value = "fsr", label = "AMD FSR 1" },
+  { value = "nis", label = "NVIDIA Image Scaling (NIS)" },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_NITIDEZ_PCT"
+target = "env"
+type = "slider"
+default = 50
+min = 0
+max = 100
+step = 5
+suffix = "%"
+label = { pt = "Nitidez do escalonador", en = "Upscaler sharpness", es = "Nitidez del escalador" }
+help = { pt = "Quanto o FSR 1 ou o NIS realçam as bordas. Valores altos deixam a imagem mais definida, mas podem destacar o serrilhado.", en = "How much FSR 1 or NIS bring out the edges. High values make the picture crisper but can bring out jagged edges.", es = "Cuánto realzan los bordes FSR 1 o NIS. Los valores altos dejan la imagen más definida, pero pueden resaltar el dentado." }
+
+[[options]]
+page = "video"
+key = "PS2X_FXAA"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Anti-serrilhamento (FXAA)", en = "Anti-aliasing (FXAA)", es = "Antialiasing (FXAA)" }
+help = { pt = "Suaviza as bordas serrilhadas antes da ampliação. Custa pouco; pode deixar textos e detalhes finos um pouco mais macios.", en = "Smooths jagged edges before the upscaling. It costs little; it can make text and fine detail a little softer.", es = "Suaviza los bordes dentados antes de la ampliación. Cuesta poco; puede dejar textos y detalles finos un poco más suaves." }
+choices = [
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_ASPECTO"
+target = "env"
+type = "choice"
+default = "4:3"
+label = { pt = "Proporção da imagem", en = "Aspect ratio", es = "Relación de aspecto" }
+help = { pt = "4:3 é a proporção original. 16:9 estica para telas largas: use junto com a opção de tela larga (widescreen) do próprio jogo, quando ele tiver.", en = "4:3 is the original ratio. 16:9 stretches for wide screens: use it together with the game's own widescreen option, when it has one.", es = "4:3 es la proporción original. 16:9 estira para pantallas anchas: úsalo junto con la opción de pantalla ancha (widescreen) del propio juego, cuando la tenga." }
+choices = [
+  { value = "4:3", label = { pt = "4:3 (original)", en = "4:3 (original)", es = "4:3 (original)" } },
+  { value = "16:9", label = "16:9" },
+  { value = "nativo", label = { pt = "Pixels quadrados", en = "Square pixels", es = "Píxeles cuadrados" } },
+]
+
+[[options]]
+page = "game"
+key = "PS2X_NUCLEOS"
+target = "env"
+type = "choice"
+default = "auto"
+label = { pt = "Fixar as threads nos núcleos", en = "Pin threads to cores", es = "Fijar los hilos a los núcleos" }
+help = { pt = "Em processadores de até 6 núcleos com Hyper-Threading/SMT, põe cada parte pesada do jogo num núcleo físico só dela (num i5 de 4 núcleos, o processamento de geometria ficou 15 a 25% mais rápido). Em processadores maiores não muda nada. Se o jogo travar ou engasgar, teste Desligado.", en = "On processors with up to 6 cores and Hyper-Threading/SMT, puts each heavy part of the game on a physical core of its own (on a 4-core i5, geometry processing got 15 to 25% faster). On bigger processors it changes nothing. If the game stutters, try Off.", es = "En procesadores de hasta 6 núcleos con Hyper-Threading/SMT, pone cada parte pesada del juego en un núcleo físico propio (en un i5 de 4 núcleos, el procesamiento de geometría fue 15 a 25% más rápido). En procesadores más grandes no cambia nada. Si el juego se traba, prueba Desactivado." }
+choices = [
+  { value = "auto", label = { pt = "Automático (padrão)", en = "Automatic (default)", es = "Automático (por defecto)" } },
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+]
+
+[[presets]]
+label = { pt = "Notebook / PC fraco", en = "Laptop / weak PC", es = "Portátil / PC débil" }
+help = { pt = "30 fps estáveis, janela 1280 × 720, sem escalonador: o mais leve.", en = "Steady 30 fps, a 1280 × 720 window, no upscaler: the lightest.", es = "30 fps estables, ventana 1280 × 720, sin escalador: lo más ligero." }
+values = { PS2X_QPS = "30", PS2X_JANELA_TAM = "1280x720", PS2X_ESCALA = "nenhum", PS2X_FXAA = "0" }
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "60 fps, janela 1920 × 1080 e ampliação com AMD FSR 1.", en = "60 fps, a 1920 × 1080 window and AMD FSR 1 upscaling.", es = "60 fps, ventana 1920 × 1080 y ampliación con AMD FSR 1." }
+values = { PS2X_QPS = "60", PS2X_JANELA_TAM = "1920x1080", PS2X_ESCALA = "fsr", PS2X_NITIDEZ_PCT = 50, PS2X_FXAA = "0" }
+
+[[presets]]
+label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
+help = { pt = "60 fps em tela cheia, com anti-serrilhamento FXAA e ampliação NVIDIA Image Scaling.", en = "60 fps in fullscreen, with FXAA anti-aliasing and NVIDIA Image Scaling upscaling.", es = "60 fps en pantalla completa, con antialiasing FXAA y ampliación NVIDIA Image Scaling." }
+values = { PS2X_QPS = "60", PS2X_TELA_CHEIA = "1", PS2X_ESCALA = "nis", PS2X_NITIDEZ_PCT = 60, PS2X_FXAA = "1" }
