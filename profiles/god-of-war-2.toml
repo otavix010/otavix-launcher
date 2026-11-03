@@ -191,10 +191,13 @@ target = "env"
 type = "choice"
 default = "4:3"
 label = { pt = "Proporção da imagem", en = "Aspect ratio", es = "Relación de aspecto" }
-help = { pt = "4:3 é a proporção original. 16:9 estica para telas largas: use junto com a opção de tela larga (widescreen) do próprio jogo, quando ele tiver.", en = "4:3 is the original ratio. 16:9 stretches for wide screens: use it together with the game's own widescreen option, when it has one.", es = "4:3 es la proporción original. 16:9 estira para pantallas anchas: úsalo junto con la opción de pantalla ancha (widescreen) del propio juego, cuando la tenga." }
+help = { pt = "4:3 é a proporção original. Nas telas largas (16:9, ultrawide 21:9, 32:9 ou a do seu monitor) o jogo abre o campo de visão para os lados, sem esticar o cenário nem os personagens; o HUD fica um pouco mais largo e os vídeos continuam em 4:3. O 21:9 se ajusta sozinho ao seu monitor (2560x1080, 3440x1440...).", en = "4:3 is the original ratio. On wide screens (16:9, 21:9 ultrawide, 32:9 or your monitor's own) the game widens its field of view to the sides, without stretching the scenery or the characters; the HUD gets a bit wider and videos stay 4:3. 21:9 adjusts itself to your monitor (2560x1080, 3440x1440...).", es = "4:3 es la proporción original. En pantallas anchas (16:9, ultrawide 21:9, 32:9 o la de tu monitor) el juego amplía el campo de visión hacia los lados, sin estirar el escenario ni los personajes; el HUD queda un poco más ancho y los videos siguen en 4:3. El 21:9 se ajusta solo a tu monitor (2560x1080, 3440x1440...)." }
 choices = [
   { value = "4:3", label = { pt = "4:3 (original)", en = "4:3 (original)", es = "4:3 (original)" } },
   { value = "16:9", label = "16:9" },
+  { value = "21:9", label = { pt = "21:9 (ultrawide)", en = "21:9 (ultrawide)", es = "21:9 (ultrawide)" } },
+  { value = "32:9", label = { pt = "32:9 (super ultrawide)", en = "32:9 (super ultrawide)", es = "32:9 (super ultrawide)" } },
+  { value = "tela", label = { pt = "Igual ao monitor", en = "Match monitor", es = "Igual al monitor" } },
   { value = "nativo", label = { pt = "Pixels quadrados", en = "Square pixels", es = "Píxeles cuadrados" } },
 ]
 
