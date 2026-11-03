@@ -334,8 +334,9 @@ ImU32 StateColor(const std::string& st) {
 std::string StateLabel(const Game& gm, Platform p) {
     std::string st = gm.StateOn(p, g.here);
     if (st == "ok") return p == g.here ? std::string() : std::string(T(g.lang, S::Available));
-    // beta: playable here, and the card still says it is in development
-    if (st == "wip" || st == "beta") return T(g.lang, S::Wip);
+    // beta: playable here, but incomplete -- the card says "Beta" (same badge as "in development")
+    if (st == "beta") return T(g.lang, S::FilterBeta);
+    if (st == "wip") return T(g.lang, S::Wip);
     if (st == "soon") return T(g.lang, S::Soon);
     return gm.prof.status_text.Empty() ? std::string(T(g.lang, S::Wip)) : gm.prof.status_text.Get(g.lang);
 }
