@@ -438,9 +438,33 @@ async function shaderEnviar(req, env, url) {
     .bind(chave, hora, mais).first('n');
   const n = await conta('shn:' + inst, 1), b = await conta('shb:' + inst, bytes.length);
   if (n > 3000 || b > 40_000_000) return text(429, 'muitos envios nesta hora');
-  await env.DB.prepare('INSERT OR IGNORE INTO shaders (jogo, arquivo, install, ip, tamanho, quando, dados) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(jogo, arquivo, inst, await ipHash(req), bytes.length, now(), bytes).run();
+  // 04/11: o banco (D1, 10 GB) encheu com 9,5 GB de shaders, quase tudo o mesmo arquivo mandado por centenas de
+  // jogadores. Agora cada conteúdo é guardado UMA vez, comprimido, no R2 (shaders/<sha256>), e o banco só anota quem
+  // mandou o quê (dados vazio + hash). O espaço do R2 para shaders tem teto (SHADERS_TETO, padrão 2 GB): passou dele,
+  // conteúdo novo é recusado com 429 (o launcher tenta em outra sessão) e o resto do servidor não é afetado.
+  const hash = await sha256hex(bytes);
+  const ja = await env.DB.prepare('SELECT 1 FROM shader_r2 WHERE hash = ?').bind(hash).first();
+  if (!ja) {
+    const gz = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+    const teto = Number(env.SHADERS_TETO || 2_000_000_000);
+    const usado = Number(await env.DB.prepare("SELECT valor FROM contadores WHERE nome = 'shaders_r2'").first('valor') || 0);
+    if (usado + gz.length > teto) return text(429, 'espaço de shaders cheio');
+    await env.ARQ.put('shaders/' + hash, gz);
+    const novo = await env.DB.prepare('INSERT OR IGNORE INTO shader_r2 (hash, jogo, bytes, quando) VALUES (?, ?, ?, ?)')
+      .bind(hash, jogo, gz.length, now()).run();
+    if (novo.meta.changes === 1) {
+      await env.DB.prepare("INSERT INTO contadores (nome, valor) VALUES ('shaders_r2', ?) ON CONFLICT (nome) DO UPDATE SET valor = valor + excluded.valor")
+        .bind(gz.length).run();
+    }
+  }
+  await env.DB.prepare('INSERT OR IGNORE INTO shaders (jogo, arquivo, install, ip, tamanho, quando, dados, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(jogo, arquivo, inst, await ipHash(req), bytes.length, now(), new Uint8Array(0), hash).run();
   return text(200, 'ok');
+}
+
+async function sha256hex(bytes) {
+  const d = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
 // what was shared, after an id: id, game, file, sender, size, when (oldest first, a page of 500)
@@ -456,9 +480,15 @@ async function shadersLista(env, url) {
 async function shaderBaixar(env, url) {
   const id = Number(url.searchParams.get('id'));
   if (!Number.isInteger(id) || id <= 0) return text(400, 'qual shader?');
-  const r = await env.DB.prepare('SELECT dados FROM shaders WHERE id = ?').bind(id).first();
+  const r = await env.DB.prepare('SELECT dados, hash FROM shaders WHERE id = ?').bind(id).first();
   if (!r) return text(404, 'não encontrado');
-  const dados = r.dados instanceof ArrayBuffer ? r.dados : new Uint8Array(r.dados);
+  let dados = r.dados instanceof ArrayBuffer ? r.dados : new Uint8Array(r.dados);
+  // desde 04/11 o conteúdo fica no R2, comprimido e uma vez só (ver shaderEnviar); os antigos seguem no banco
+  if (!dados.byteLength && r.hash) {
+    const obj = await env.ARQ.get('shaders/' + r.hash);
+    if (!obj) return text(404, 'conteúdo não encontrado');
+    dados = await new Response(obj.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
   return new Response(dados, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
 }
 

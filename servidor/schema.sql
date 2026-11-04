@@ -118,8 +118,11 @@ CREATE TABLE IF NOT EXISTS shaders (
   ip TEXT NOT NULL,
   tamanho INTEGER NOT NULL,
   quando INTEGER NOT NULL,
-  dados BLOB NOT NULL          -- under D1's 2 MB a value
+  dados BLOB NOT NULL,         -- under D1's 2 MB a value; empty since 04/11 (content in R2, see hash)
+  hash TEXT                    -- sha256 of the content: R2 key shaders/<hash>, gzip, stored once
 );
+CREATE TABLE IF NOT EXISTS shader_r2 (hash TEXT PRIMARY KEY, jogo TEXT NOT NULL, bytes INTEGER NOT NULL, quando INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS contadores (nome TEXT PRIMARY KEY, valor INTEGER NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS shaders_um ON shaders (jogo, arquivo, install, tamanho);
 CREATE INDEX IF NOT EXISTS shaders_jogo ON shaders (jogo, id);
 CREATE INDEX IF NOT EXISTS shaders_install ON shaders (install, quando);
