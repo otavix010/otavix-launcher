@@ -162,17 +162,26 @@ std::string PowerShell() {
 }
 
 // a disc image mounted by Windows itself, read-only (it reads ISO 9660 and UDF images that tar does not): its root,
-// such as "E:\", empty when it does not mount. An image the player had mounted already is used as it is
-std::string MountImage(const fs::path& image, bool& ours) {
+// such as "E:\", empty when it does not mount, and then Windows' reason in why (report 871: only "unreadable archive"
+// reached us). An image the player had mounted already is used as it is
+std::string MountImage(const fs::path& image, bool& ours, std::string& why) {
     std::string img = PsQuote(U8(image));
-    std::string script = "$ErrorActionPreference='Stop'; $i=Get-DiskImage -ImagePath " + img + "; $ours=$false; " +
+    std::string script = "$ErrorActionPreference='Stop'; try { $i=Get-DiskImage -ImagePath " + img + "; $ours=$false; " +
                          "if (-not $i.Attached) { $i=Mount-DiskImage -ImagePath " + img + " -Access ReadOnly -PassThru; $ours=$true }; " +
                          "$l=$null; for ($n=0; $n -lt 40 -and -not $l; $n++) { $l=($i | Get-Volume).DriveLetter; " +
-                         "if (-not $l) { Start-Sleep -Milliseconds 250 } }; if ($l) { $l + ':' + $ours }";
+                         "if (-not $l) { Start-Sleep -Milliseconds 250 } }; if ($l) { $l + ':' + $ours } " +
+                         "else { if ($ours) { Dismount-DiskImage -ImagePath " + img + " | Out-Null }; 'ERRO:sem letra de unidade' } } " +
+                         "catch { 'ERRO:' + ($_.Exception.Message -replace '\\s+',' ') }";
     int code = 0;
     std::string out = LastLine(RunOutput({PowerShell(), "-NoProfile", "-NonInteractive", "-Command", script}, code));
     ours = out.size() > 2 && out.substr(2) == "True";
-    if (code != 0 || out.size() < 2 || out[1] != ':' || !std::isalpha(static_cast<unsigned char>(out[0]))) return {};
+    if (code != 0 || out.size() < 2 || out[1] != ':' || !std::isalpha(static_cast<unsigned char>(out[0]))) {
+        if (out.rfind("ERRO:", 0) == 0) why = out.substr(5);
+        else why = out;
+        if (why == "sem letra de unidade")
+            why = L3("o Windows montou a imagem, mas sem letra de unidade", "Windows mounted the image, but gave it no drive letter", "Windows montó la imagen, pero sin letra de unidad");
+        return {};
+    }
     return out.substr(0, 1) + ":\\";
 }
 
@@ -307,6 +316,28 @@ bool Installer::Busy() {
     return s == Stage::Reading || s == Stage::Extracting || s == Stage::Checking;
 }
 
+// one volume of an archive split in parts (name.part1.rar, name.r00, name.7z.001, name.zip.001): tar opens only whole
+// archives (report 879: "unreadable archive" on the part 1)
+static bool IsArchivePart(const fs::path& p) {
+    std::string n = Lower(U8(p.filename()));
+    auto digits = [](const std::string& s) { return !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return c >= '0' && c <= '9'; }); };
+    size_t dot = n.rfind('.');
+    if (dot == std::string::npos) return false;
+    std::string ext = n.substr(dot + 1), stem = n.substr(0, dot);
+    if (ext.size() == 3 && ext[0] == 'r' && digits(ext.substr(1))) return true;  // .r00
+    if (ext.size() == 3 && digits(ext)) {                                          // .7z.001, .zip.001, .rar.001
+        size_t d2 = stem.rfind('.');
+        std::string inner = d2 == std::string::npos ? std::string() : stem.substr(d2 + 1);
+        return inner == "7z" || inner == "zip" || inner == "rar" || inner == "iso";
+    }
+    if (ext == "rar") {  // .part1.rar
+        size_t d2 = stem.rfind('.');
+        std::string inner = d2 == std::string::npos ? std::string() : stem.substr(d2 + 1);
+        return inner.size() > 4 && inner.compare(0, 4, "part") == 0 && digits(inner.substr(4));
+    }
+    return false;
+}
+
 void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     auto fail = [&](const std::string& why) {
         std::lock_guard lock(m_);
@@ -323,7 +354,18 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         for (auto& e : fs::directory_iterator(source, ec))
             if (e.is_regular_file(ec) && (IsArchive(e.path()) || (spec.unpack_images && IsDiscImage(e.path())))) only = e.path(), n++;
         if (n == 1) source = only, search = only;
+        // the parts of a split archive: one of them, for the message below
+        if (n != 1)
+            for (auto& e : fs::directory_iterator(source, ec))
+                if (e.is_regular_file(ec) && IsArchivePart(e.path())) {
+                    source = e.path(), search = source;
+                    break;
+                }
     }
+    if (fs::is_regular_file(source, ec) && IsArchivePart(source))
+        return fail(L3("o jogo está num arquivo dividido em partes, que o launcher não abre: extraia-o com o 7-Zip ou o WinRAR (abrindo a parte 1) e escolha aqui a pasta ou a .iso extraída",
+                       "the game is in an archive split into parts, which the launcher cannot open: extract it with 7-Zip or WinRAR (opening part 1) and pick the extracted folder or .iso here",
+                       "el juego está en un archivo dividido en partes, que el launcher no abre: extráigalo con 7-Zip o WinRAR (abriendo la parte 1) y elija aquí la carpeta o la .iso extraída"));
     fs::path work;  // the archive's unpacking folder, ours to clear
     bool archive = fs::is_regular_file(source, ec) && (IsArchive(source) || (spec.unpack_images && IsDiscImage(source)));
     if (archive) {
@@ -353,16 +395,18 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         // else tar's own words go in the message
         std::string mounted;
         bool mounted_here = false;
+        std::string mount_why;
         // tests: LAUNCHER_ISO_MOUNT=1, a disc image goes the mounted way even when tar reads it
         bool force_mount = SDL_getenv("LAUNCHER_ISO_MOUNT") && IsDiscImage(source);
         if (code != 0 || !total || force_mount) {
 #ifdef _WIN32
-            if (IsDiscImage(source)) mounted = MountImage(source, mounted_here);
+            if (IsDiscImage(source)) mounted = MountImage(source, mounted_here, mount_why);
 #endif
             if (mounted.empty()) {
-                // tar's own words, from listing it again with its errors kept
+                // tar's own words, from listing it again with its errors kept; for a disc image, Windows' as well
                 int again = 0;
                 std::string why = code != 0 ? LastLine(RunOutput({tar, "-tvf", src}, again)) : std::string();
+                if (!mount_why.empty()) why = mount_why;
                 return fail(L3("arquivo compactado ilegível", "unreadable archive", "archivo comprimido ilegible") + (why.empty() ? std::string() : " (" + why + ")"));
             }
             total = FolderBytes(FromU8(mounted));
