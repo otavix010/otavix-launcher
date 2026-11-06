@@ -2907,7 +2907,28 @@ bool UnpackInputs(Game& gm, bool redo) {
     return false;
 }
 
+// the disc (or archive) the player picked before whose file or folder is gone, such as the port's own disco\conteudo
+// deleted, moved or sitting on a drive that is off (report 893: the generator ran the tools and only then stopped, with
+// an error report). The text to show, empty when everything picked is still there
+std::string PickedInputGone(Game& gm) {
+    std::error_code ec;
+    for (const BuildInput& b : gm.prof.install.inputs) {
+        std::string v = gm.store.GetOwn(b.key);
+        if (b.unpack.empty() || v.empty() || fs::exists(FromU8(v), ec)) continue;
+        return L3("o jogo que você escolheu não está mais em ", "the game you picked is no longer at ", "el juego que elegiste ya no está en ") + v +
+               L3(" (foi movido, apagado ou está num HD desligado). Clique em \"Escolher o disco de novo\" e escolha o arquivo (.7z, .zip, .rar ou .iso) ou a pasta do jogo (a que tem PS3_GAME) outra vez.",
+                  " (it was moved, deleted or is on a drive that is off). Click \"Pick the disc again\" and pick the game's file (.7z, .zip, .rar or .iso) or folder (the one with PS3_GAME) once more.",
+                  " (se movió, se borró o está en un disco apagado). Pulsa \"Elegir el disco de nuevo\" y elige otra vez el archivo (.7z, .zip, .rar o .iso) o la carpeta del juego (la que tiene PS3_GAME).");
+    }
+    return {};
+}
+
 void BuildOrUnpack(Game& gm, bool redo) {
+    std::string gone = PickedInputGone(gm);
+    if (!gone.empty()) {
+        gm.unpack_error = gone;
+        return;
+    }
     if (!UnpackInputs(gm, redo)) StartBuild(gm, redo);
 }
 

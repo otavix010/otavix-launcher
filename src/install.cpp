@@ -168,12 +168,26 @@ std::string MountImage(const fs::path& image, bool& ours, std::string& why) {
     std::string img = PsQuote(U8(image));
     std::string script = "$ErrorActionPreference='Stop'; try { $i=Get-DiskImage -ImagePath " + img + "; $ours=$false; " +
                          "if (-not $i.Attached) { $i=Mount-DiskImage -ImagePath " + img + " -Access ReadOnly -PassThru; $ours=$true }; " +
-                         "$l=$null; for ($n=0; $n -lt 40 -and -not $l; $n++) { $l=($i | Get-Volume).DriveLetter; " +
+                         "$l=$null; $v=$null; for ($n=0; $n -lt 40 -and -not $l; $n++) { $v=($i | Get-Volume); $l=$v.DriveLetter; " +
                          "if (-not $l) { Start-Sleep -Milliseconds 250 } }; if ($l) { $l + ':' + $ours } " +
+                         // report 883: Windows mounted the image but gave it no drive letter (automount off, or all the
+                         // letters taken): a junction to the volume's own path (Volume{guid}) reads the same, with no
+                         // letter and without administrator rights (robocopy does not take the volume path itself)
+                         "elseif ($v -and $v.Path) { $j=Join-Path $env:TEMP 'otavix-iso-mount'; try { [IO.Directory]::Delete($j) } catch {}; " +
+                         "cmd /c mklink /J $j $v.Path | Out-Null; if (Test-Path -LiteralPath $j) { 'JUNCAO:' + $j + '|' + $ours } " +
+                         "else { if ($ours) { Dismount-DiskImage -ImagePath " + img + " | Out-Null }; 'ERRO:sem letra de unidade' } } " +
                          "else { if ($ours) { Dismount-DiskImage -ImagePath " + img + " | Out-Null }; 'ERRO:sem letra de unidade' } } " +
                          "catch { 'ERRO:' + ($_.Exception.Message -replace '\\s+',' ') }";
     int code = 0;
     std::string out = LastLine(RunOutput({PowerShell(), "-NoProfile", "-NonInteractive", "-Command", script}, code));
+    // no drive letter: the junction's folder, "JUNCAO:<folder>|True"
+    if (code == 0 && out.rfind("JUNCAO:", 0) == 0 && out.find('|') != std::string::npos) {
+        ours = out.substr(out.rfind('|') + 1) == "True";
+        std::string path = out.substr(7, out.rfind('|') - 7);
+        // no trailing backslash: the folder's path has spaces at times, and robocopy would read the closing quote as escaped
+        while (!path.empty() && path.back() == '\\') path.pop_back();
+        return path;
+    }
     ours = out.size() > 2 && out.substr(2) == "True";
     if (code != 0 || out.size() < 2 || out[1] != ':' || !std::isalpha(static_cast<unsigned char>(out[0]))) {
         if (out.rfind("ERRO:", 0) == 0) why = out.substr(5);
@@ -188,7 +202,7 @@ std::string MountImage(const fs::path& image, bool& ours, std::string& why) {
 void UnmountImage(const fs::path& image) {
     int code = 0;
     RunOutput({PowerShell(), "-NoProfile", "-NonInteractive", "-Command",
-               "Dismount-DiskImage -ImagePath " + PsQuote(U8(image)) + " | Out-Null"}, code);
+               "try { [IO.Directory]::Delete((Join-Path $env:TEMP 'otavix-iso-mount')) } catch {}; Dismount-DiskImage -ImagePath " + PsQuote(U8(image)) + " | Out-Null"}, code);
 }
 #endif
 
@@ -587,9 +601,24 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     if (!work.empty()) {
         // the archive's top is the game itself: its unpacking folder is kept under a name of its own
         fs::path final = dest / (fs::equivalent(pick, work, ec) ? fs::path("conteudo") : pick.filename());
-        if (fs::exists(final, ec)) fs::remove_all(final, ec);
+        // the earlier copy is put aside, not deleted first: if the move fails (an antivirus holding a file), it comes back
+        // and the game picked before is not lost (report 893: the folder the port pointed at was gone)
+        fs::path aside = final;
+        aside += ".antigo";
+        std::error_code ec_aside;
+        fs::remove_all(aside, ec_aside);
+        bool had_old = fs::exists(final, ec);
+        if (had_old) {
+            fs::rename(final, aside, ec);
+            if (ec) return fail(L3("não foi possível substituir a cópia anterior do jogo: ", "could not replace the earlier copy of the game: ", "no se pudo reemplazar la copia anterior del juego: ") + ec.message());
+        }
         fs::rename(pick, final, ec);
-        if (ec) return fail(L3("não foi possível mover o jogo: ", "could not move the game: ", "no se pudo mover el juego: ") + ec.message());
+        if (ec) {
+            std::string why = ec.message();
+            if (had_old) fs::rename(aside, final, ec);
+            return fail(L3("não foi possível mover o jogo: ", "could not move the game: ", "no se pudo mover el juego: ") + why);
+        }
+        if (had_old) fs::remove_all(aside, ec);
         fs::remove_all(work, ec);
         pick = final;
     }
