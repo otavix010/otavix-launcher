@@ -33,18 +33,12 @@ web = [
 
 [install]
 kind = "build"
-done = "out/gerar/6_jogar.ok"
+done = "out/gerar/7_jogar.ok"
 marks = "out/gerar"
 command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}"]
-redo = ["-RefazerDe", "3"]  # new code of the port: its PS2Recomp fixes, the translation and the build again, not the disc
+redo = ["-RefazerDe", "3"]  # new engine or port code: the engine, the translation, the VU1 and the build again, not the disc
 version = { pt = "10.000 Bullets europeu (SLES-53481): a imagem .iso do DVD do PlayStation 2", en = "10.000 Bullets, European (SLES-53481): the PlayStation 2 DVD's .iso image", es = "10.000 Bullets europeo (SLES-53481): la imagen .iso del DVD de PlayStation 2" }
-time = { pt = "Leva de alguns minutos a meia hora, conforme o processador, e só uma vez. Baixa e compila o PS2Recomp. Precisa de um processador com AVX2.", en = "It takes from a few minutes to half an hour depending on the processor, and only once. It downloads and builds PS2Recomp. It needs a processor with AVX2.", es = "Tarda de unos minutos a media hora según el procesador, y solo una vez. Descarga y compila PS2Recomp. Necesita un procesador con AVX2." }
-
-[[install.prereqs]]
-name = "Python 3.11"
-check = "python -c \"import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)\""
-install = "(where winget >nul 2>&1 && winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements) || (echo Sem o winget: baixando o instalador oficial do python.org... && curl -L --fail -o \"%TEMP%\\python-3.12.10-amd64.exe\" https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe && \"%TEMP%\\python-3.12.10-amd64.exe\" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1)"
-help = { pt = "Traduz o código do jogo. Depois de instalar, clique em Conferir de novo.", en = "It translates the game's code. Once installed, click Check again.", es = "Traduce el código del juego. Después de instalarlo, haz clic en Comprobar de nuevo." }
+time = { pt = "Leva de alguns minutos a meia hora, conforme o processador, e só uma vez. Baixa o motor do port (uns 16 MB); não precisa de Python nem de Git.", en = "It takes from a few minutes to half an hour depending on the processor, and only once. It downloads the port's engine (about 16 MB); no Python or Git needed.", es = "Tarda de unos minutos a media hora según el procesador, y solo una vez. Descarga el motor del port (unos 16 MB); no necesita Python ni Git." }
 
 [[install.prereqs]]
 name = "Visual Studio Build Tools (C++ e CMake)"
@@ -67,16 +61,19 @@ label = { pt = "ferramentas", en = "tools", es = "herramientas" }
 id = "2_disco"
 label = { pt = "conferindo e extraindo o disco", en = "checking and extracting the disc", es = "comprobando y extrayendo el disco" }
 [[install.steps]]
-id = "3_ps2recomp"
-label = { pt = "preparando o PS2Recomp", en = "preparing PS2Recomp", es = "preparando PS2Recomp" }
+id = "3_motor"
+label = { pt = "baixando o motor", en = "downloading the engine", es = "descargando el motor" }
 [[install.steps]]
 id = "4_traduzir"
 label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
 [[install.steps]]
-id = "5_compilar"
+id = "5_vu1"
+label = { pt = "processador de geometria (VU1)", en = "geometry processor (VU1)", es = "procesador de geometría (VU1)" }
+[[install.steps]]
+id = "6_compilar"
 label = { pt = "compilando", en = "compiling", es = "compilando" }
 [[install.steps]]
-id = "6_jogar"
+id = "7_jogar"
 label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
 
 # the window's and the shortcut's icon: the public box art
