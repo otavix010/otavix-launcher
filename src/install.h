@@ -17,6 +17,8 @@ std::string Sha1Hex(const uint8_t* data, size_t size);
 // what can be picked: archives and disc images
 bool IsArchive(const fs::path& p);
 bool IsDiscImage(const fs::path& p);
+// the game's id on a disc image or in a folder with PS3_GAME ("BCUS98232", "SCUS_974.81"); empty when it cannot be read
+std::string DiscId(const fs::path& p);
 // a game that is one file, by the profile's extensions
 bool IsGameFile(const fs::path& p, const InstallSpec& spec);
 

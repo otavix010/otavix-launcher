@@ -107,6 +107,9 @@ struct BuildInput {
     // "*.iso": the generator wants the disc image itself (the 360 and PS2 ports read it while they run): an archive
     // is unpacked and the image found in it becomes the input, an image is taken as it is
     std::string unpack;
+    // the id of the release the port needs ("BCUS98232", "SCUS-97481"): the disc picked is read before the generator runs, and a
+    // disc of another region stops there with the reason (most generator stops were the wrong release). Empty: no check
+    std::string disc_id;
     bool UnpackKeepsImage() const { return unpack.rfind("*.", 0) == 0; }
 };
 // a step of the generator: <id>.ok in the marks folder once done, <id>.log while it runs

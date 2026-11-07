@@ -2923,13 +2923,50 @@ std::string PickedInputGone(Game& gm) {
     return {};
 }
 
+// the disc picked read before the generator runs: another region's release (BCES for BCUS, SCES for SCUS) stops here, in
+// the player's language, instead of after the tools were downloaded (reports 940-972: most generator stops were the wrong
+// release). Only the region letter is compared (third letter of the id: E, U, A, J...): the generator still checks the
+// game's executable of the same region. Empty when the disc cannot be read, is an archive or matches
+std::string WrongDisc(Game& gm) {
+    auto norm = [](const std::string& s) {
+        std::string o;
+        for (char c : s)
+            if (std::isalnum((unsigned char)c)) o += (char)std::toupper((unsigned char)c);
+        return o;
+    };
+    for (const BuildInput& b : gm.prof.install.inputs) {
+        std::string v = gm.store.GetOwn(b.key);
+        if (b.disc_id.empty() || v.empty()) continue;
+        std::string found = DiscId(FromU8(v)), a = norm(found), e = norm(b.disc_id);
+        if (a.size() < 4 || e.size() < 4 || a[2] == e[2]) continue;
+        return L3("o disco que você escolheu é de outra versão (", "the disc you picked is another release (", "el disco que elegiste es de otra versión (") + found +
+               L3("), e o port só funciona com a versão ", "), and the port only works with release ", "), y el port solo funciona con la versión ") + b.disc_id +
+               L3(": os arquivos das outras versões são diferentes e o jogo não abre. Clique em \"Escolher o disco de novo\" e escolha uma cópia da versão certa.",
+                  ": the files of the other releases are different and the game does not start. Click \"Pick the disc again\" and pick a copy of the right release.",
+                  ": los archivos de las otras versiones son distintos y el juego no se abre. Pulsa \"Elegir el disco de nuevo\" y elige una copia de la versión correcta.");
+    }
+    return {};
+}
+
 void BuildOrUnpack(Game& gm, bool redo) {
     std::string gone = PickedInputGone(gm);
     if (!gone.empty()) {
         gm.unpack_error = gone;
         return;
     }
-    if (!UnpackInputs(gm, redo)) StartBuild(gm, redo);
+    std::string wrong = WrongDisc(gm);
+    if (!wrong.empty()) {
+        gm.unpack_error = wrong;
+        return;
+    }
+    if (!UnpackInputs(gm, redo)) {
+        wrong = WrongDisc(gm);  // a folder with the image inside: now the image itself
+        if (!wrong.empty()) {
+            gm.unpack_error = wrong;
+            return;
+        }
+        StartBuild(gm, redo);
+    }
 }
 
 // an input being unpacked, done: the folder found is the input and the generator goes on (true while there is still
@@ -3069,8 +3106,8 @@ std::string ExplainBuildError(const std::string& err) {
         return L3("", "Your processor does not have AVX2, which the port needs: Intel Core 4th generation (Haswell, 2013) or newer, or AMD Ryzen or FX Excavator (2015) or newer. Unfortunately the game cannot run on this processor.",
                   "Tu procesador no tiene AVX2, que el port necesita: Intel Core de 4.ª generación (Haswell, 2013) o posterior, o AMD Ryzen o FX Excavator (2015) o posterior. Por desgracia el juego no puede funcionar en este procesador.");
     if (has("FFmpeg"))
-        return L3("", "FFmpeg could not be downloaded or extracted. Check that the internet is stable and the antivirus is not blocking the download, move the project to a shorter folder (for example C:\OtavixPorts), and generate again.",
-                  "No se pudo descargar o extraer FFmpeg. Revisa que internet sea estable y que el antivirus no bloquee la descarga, mueve el proyecto a una carpeta más corta (por ejemplo C:\OtavixPorts) y genera de nuevo.");
+        return L3("", "FFmpeg could not be downloaded or extracted. Check that the internet is stable and the antivirus is not blocking the download, move the project to a shorter folder (for example C:\\OtavixPorts), and generate again.",
+                  "No se pudo descargar o extraer FFmpeg. Revisa que internet sea estable y que el antivirus no bloquee la descarga, mueve el proyecto a una carpeta más corta (por ejemplo C:\\OtavixPorts) y genera de nuevo.");
     if (has("Windows SDK") || has("GOWA_ERRO_SDK") || has("falta o Visual Studio"))
         return L3("", "Visual Studio is missing a component. Open the Visual Studio Installer, click Modify and tick \"Desktop development with C++\" and \"Windows 11 SDK\" (and \"C++ Clang tools\"), install and generate again.",
                   "A Visual Studio le falta un componente. Abre el Visual Studio Installer, pulsa Modificar y marca \"Desarrollo para el escritorio con C++\" y \"Windows 11 SDK\" (y \"C++ Clang tools\"), instala y genera de nuevo.");
@@ -3087,8 +3124,8 @@ std::string ExplainBuildError(const std::string& err) {
         return L3("", "The computer could not reach the internet (DNS error). Check the connection, try a public DNS (1.1.1.1 or 8.8.8.8), check that the antivirus or firewall is not blocking Python, and generate again.",
                   "El equipo no pudo acceder a internet (error de DNS). Revisa la conexión, prueba un DNS público (1.1.1.1 u 8.8.8.8), revisa que el antivirus o el firewall no bloqueen Python y genera de nuevo.");
     if (has("sem espaços"))
-        return L3("", "Put the project in a folder whose path has no spaces (for example C:\OtavixPorts) and generate again.",
-                  "Pon el proyecto en una carpeta cuya ruta no tenga espacios (por ejemplo C:\OtavixPorts) y genera de nuevo.");
+        return L3("", "Put the project in a folder whose path has no spaces (for example C:\\OtavixPorts) and generate again.",
+                  "Pon el proyecto en una carpeta cuya ruta no tenga espacios (por ejemplo C:\\OtavixPorts) y genera de nuevo.");
     return {};
 }
 

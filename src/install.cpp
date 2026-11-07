@@ -5,6 +5,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
+#include <fstream>
+#include <iterator>
+#include <vector>
 #include <cstdio>
 #include <sstream>
 #include <thread>
@@ -298,6 +302,132 @@ bool IsArchive(const fs::path& p) {
 bool IsDiscImage(const fs::path& p) {
     std::string e = Ext(p);
     return e == ".iso" || e == ".xiso";
+}
+
+// ---- the game's id read from a disc (before the generator runs: report 940-972, most generator stops were the wrong release)
+namespace {
+
+uint32_t Le32(const uint8_t* p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
+
+// the id inside a PARAM.SFO (TITLE_ID), empty when it is not one
+std::string SfoTitleId(const std::vector<uint8_t>& d) {
+    if (d.size() < 20 || d[0] != 0 || d[1] != 'P' || d[2] != 'S' || d[3] != 'F') return {};
+    uint32_t keys = Le32(&d[8]), data = Le32(&d[12]), count = Le32(&d[16]);
+    if (count > 256) return {};
+    for (uint32_t i = 0; i < count; i++) {
+        size_t e = 20 + (size_t)i * 16;
+        if (e + 16 > d.size()) return {};
+        size_t k = keys + (d[e] | (d[e + 1] << 8));
+        uint32_t len = Le32(&d[e + 4]), off = data + Le32(&d[e + 12]);
+        if (k + 9 > d.size() || std::memcmp(&d[k], "TITLE_ID", 9) != 0) continue;
+        if ((size_t)off + len > d.size()) return {};
+        std::string id((const char*)&d[off], len);
+        id.erase(std::find(id.begin(), id.end(), '\0'), id.end());
+        return id;
+    }
+    return {};
+}
+
+// the SYSTEM.CNF boot line of a PlayStation 2 disc: "cdrom0:\SCUS_974.81;1" gives SCUS_974.81
+std::string BootId(const std::string& cnf) {
+    size_t pos = 0;
+    while (pos < cnf.size()) {
+        size_t eol = cnf.find_first_of("\r\n", pos);
+        std::string line = cnf.substr(pos, eol == std::string::npos ? std::string::npos : eol - pos);
+        pos = eol == std::string::npos ? cnf.size() : eol + 1;
+        size_t c = line.find("cdrom");
+        if (line.rfind("BOOT", 0) != 0 || c == std::string::npos) continue;
+        size_t a = line.find_first_of("\\/", c);
+        size_t from = a == std::string::npos ? line.find(':', c) + 1 : a + 1;
+        size_t to = line.find_first_of(";\r\n ", from);
+        std::string id = line.substr(from, to == std::string::npos ? std::string::npos : to - from);
+        return id;
+    }
+    return {};
+}
+
+struct Iso9660 {
+    std::ifstream f;
+    bool Read(uint64_t lba, uint32_t bytes, std::vector<uint8_t>& out) {
+        if (bytes > (1u << 22)) return false;
+        out.assign(bytes, 0);
+        f.clear();
+        f.seekg((std::streamoff)(lba * 2048));
+        f.read((char*)out.data(), bytes);
+        return (uint32_t)f.gcount() == bytes;
+    }
+    // an entry of a directory by name (case ignored, ";1" ignored): its extent and size; dir true when a folder
+    bool Find(uint32_t lba, uint32_t size, const char* name, bool dir, uint32_t& extent, uint32_t& length) {
+        std::vector<uint8_t> d;
+        if (!Read(lba, (size + 2047) / 2048 * 2048, d)) return false;
+        size_t pos = 0;
+        while (pos + 33 < d.size()) {
+            uint8_t len = d[pos];
+            if (len == 0) {  // records do not cross a sector: go to the next sector
+                pos = (pos / 2048 + 1) * 2048;
+                continue;
+            }
+            if (pos + len > d.size()) break;
+            uint8_t nl = d[pos + 32];
+            std::string n((const char*)&d[pos + 33], std::min<size_t>(nl, len - 33));
+            size_t semi = n.find(';');
+            if (semi != std::string::npos) n.resize(semi);
+            bool isdir = (d[pos + 25] & 2) != 0;
+            if (isdir == dir && n.size() == std::strlen(name) &&
+                std::equal(n.begin(), n.end(), name, [](char a, char b) { return std::toupper((unsigned char)a) == std::toupper((unsigned char)b); })) {
+                extent = Le32(&d[pos + 2]);
+                length = Le32(&d[pos + 10]);
+                return true;
+            }
+            pos += len;
+        }
+        return false;
+    }
+};
+
+std::string IsoId(const fs::path& p) {
+    Iso9660 iso;
+    iso.f.open(p, std::ios::binary);
+    if (!iso.f) return {};
+    std::vector<uint8_t> pvd;
+    if (!iso.Read(16, 2048, pvd) || std::memcmp(&pvd[1], "CD001", 5) != 0) return {};
+    uint32_t root = Le32(&pvd[156 + 2]), rootLen = Le32(&pvd[156 + 10]);
+    uint32_t ex = 0, ln = 0;
+    std::vector<uint8_t> data;
+    if (iso.Find(root, rootLen, "SYSTEM.CNF", false, ex, ln) && ln <= 4096 && iso.Read(ex, (ln + 2047) / 2048 * 2048, data)) {
+        std::string id = BootId(std::string((const char*)data.data(), ln));
+        if (!id.empty()) return id;
+    }
+    uint32_t dx = 0, dl = 0;
+    if (iso.Find(root, rootLen, "PS3_GAME", true, dx, dl) && iso.Find(dx, dl, "PARAM.SFO", false, ex, ln) && ln <= 65536 &&
+        iso.Read(ex, (ln + 2047) / 2048 * 2048, data)) {
+        data.resize(ln);
+        return SfoTitleId(data);
+    }
+    return {};
+}
+
+std::string FolderId(const fs::path& dir) {
+    std::error_code ec;
+    for (const fs::path& sfo : {dir / "PS3_GAME" / "PARAM.SFO", dir / "PARAM.SFO"}) {
+        if (!fs::is_regular_file(sfo, ec)) continue;
+        std::ifstream f(sfo, std::ios::binary);
+        std::vector<uint8_t> d((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        if (d.size() <= 65536) return SfoTitleId(d);
+    }
+    return {};
+}
+
+}  // namespace
+
+std::string DiscId(const fs::path& p) {
+    try {
+        std::error_code ec;
+        if (fs::is_directory(p, ec)) return FolderId(p);
+        if (fs::is_regular_file(p, ec) && IsDiscImage(p)) return IsoId(p);
+    } catch (...) {
+    }
+    return {};
 }
 
 bool IsGameFile(const fs::path& p, const InstallSpec& spec) {
