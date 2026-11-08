@@ -2888,7 +2888,7 @@ fs::path UnpackSource(Game& gm, const BuildInput& b) {
 
 void StartUnpack(Game& gm, const BuildInput& b, const fs::path& source) {
     InstallSpec spec;
-    spec.check = b.UnpackKeepsImage() ? std::string() : b.unpack;
+    spec.check = b.UnpackKeepsImage() ? b.unpack_folder : b.unpack;
     spec.unpack_images = !b.UnpackKeepsImage();
     gm.unpack_key = b.key;
     gm.unpack_error.clear();

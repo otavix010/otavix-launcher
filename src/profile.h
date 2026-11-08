@@ -107,6 +107,10 @@ struct BuildInput {
     // "*.iso": the generator wants the disc image itself (the 360 and PS2 ports read it while they run): an archive
     // is unpacked and the image found in it becomes the input, an image is taken as it is
     std::string unpack;
+    // with "*.iso": the file that also marks a game folder (default.xex): an archive holding the game already unpacked
+    // (the folder with that file) is taken too, not only one holding a disc image (report 1010: a .zip with the folder
+    // of the game inside it was left as the "image")
+    std::string unpack_folder;
     // the id of the release the port needs ("BCUS98232", "SCUS-97481"): the disc picked is read before the generator runs, and a
     // disc of another region stops there with the reason (most generator stops were the wrong release). Empty: no check
     std::string disc_id;

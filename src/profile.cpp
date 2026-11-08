@@ -122,6 +122,7 @@ bool Profile::Load(const fs::path& file, std::string& error) {
                 b.help = ReadText((*it)["help"]);
                 b.auto_text = ReadText((*it)["auto"]);
                 b.unpack = (*it)["unpack"].value_or(std::string());
+                b.unpack_folder = (*it)["unpack_folder"].value_or(std::string());
                 b.disc_id = (*it)["disc_id"].value_or(std::string());
                 std::string pick = (*it)["pick"].value_or(std::string("folder"));
                 b.folder = pick != "file";

@@ -212,14 +212,39 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         const char* args[] = {sys, "-xf", z.c_str(), "-C", w.c_str(), nullptr};
         SDL_Process* p = SDL_CreateProcess(args, false);
         int code = -1;
+        std::string why;
         if (p) {
             SDL_WaitProcess(p, true, &code);
             SDL_DestroyProcess(p);
+        } else {
+            why = SDL_GetError();  // tar did not even start (reports 985 and 994: "tar -1")
         }
+#ifdef _WIN32
+        // tar.exe missing, blocked or failing on this PC: the .zip is unpacked by PowerShell instead
+        if (code != 0 && !tgz) {
+            fs::remove_all(work, ec);
+            fs::create_directories(work, ec);
+            auto quote = [](const std::string& t) {
+                std::string o = "'";
+                for (char c : t) o += c == '\'' ? std::string("''") : std::string(1, c);
+                return o + "'";
+            };
+            std::string ps = std::string(root ? root : "C:\\Windows") + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+            std::string cmd = "$ProgressPreference='SilentlyContinue'; Expand-Archive -LiteralPath " + quote(z) + " -DestinationPath " + quote(w) + " -Force";
+            const char* pargs[] = {ps.c_str(), "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd.c_str(), nullptr};
+            SDL_Process* q = SDL_CreateProcess(pargs, false);
+            int pcode = -1;
+            if (q) {
+                SDL_WaitProcess(q, true, &pcode);
+                SDL_DestroyProcess(q);
+            }
+            if (pcode == 0) code = 0;
+        }
+#endif
         fs::remove(zip, ec);
         if (code != 0) {
             fs::remove_all(work, ec);
-            return fail("falha ao descompactar o port (tar " + std::to_string(code) + ")");
+            return fail(std::string("falha ao descompactar o port (") + (p ? "tar saiu com " + std::to_string(code) : "tar.exe não abriu: " + why) + ")");
         }
         // a package wrapped in one folder: that folder's contents
         fs::path top = work;

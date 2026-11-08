@@ -708,6 +708,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     fs::path pick = found[0];
     bool ok = false;
     for (const fs::path& c : found) {
+        if (spec.sha1.empty()) break;
         std::vector<uint8_t> bytes;
         bool read = spec.check.empty() ? IsGameFile(c, spec) && ReadWhole(c, bytes) : ReadGameFile(c, spec.check, bytes);
         if (read && Lower(Sha1Hex(bytes.data(), bytes.size())) == Lower(spec.sha1)) {
