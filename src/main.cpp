@@ -249,6 +249,10 @@ struct App {
     char hub_rep_desc[4000] = "";
     int hub_rep_cat = 5;
     std::string hub_rep_msg;
+    Call suggest_call;  // a suggestion: the same server and table as the reports, category "Sugestão"
+    char sug_desc[4000] = "";
+    int sug_game = -1;  // -1 the launcher itself, else the game's index
+    std::string sug_msg;
     int rep_cat = 0;
     char rep_desc[4000] = "", rep_contact[160] = "";
     bool rep_attach = true;
@@ -3959,6 +3963,7 @@ struct HubEntry {
     bool settings = false;
     bool requests = false;
     bool tutorial = false;
+    bool suggest = false;  // the Suggestions page
 };
 
 std::vector<HubEntry> HubEntries() {
@@ -3966,6 +3971,7 @@ std::vector<HubEntry> HubEntries() {
     for (size_t i = 0; i < g.hub.libraries.size(); i++) e.push_back({int(i), false, false, false});
     e.push_back({-1, false, false, true});
     e.push_back({-1, false, true, false});
+    e.push_back({-1, false, false, false, true});
     e.push_back({-1, true, false, false});
     return e;
 }
@@ -4073,6 +4079,7 @@ bool GameCard(Game& gm, ImVec2 size, bool focus) {
 }
 
 void RequestsPage();
+void SuggestPage();
 
 void UpdateActions(const UpdateCheck& u);
 
@@ -5891,6 +5898,96 @@ void NameWithMatch(const std::string& name, const HubMatch& m) {
     ImGui::TextColored(color, "%s", status);
 }
 
+// a suggestion or a word of praise, for a game or for the launcher: the report's server and table, category "Sugestão",
+// no log, no settings, only the computer's basics (the owner reads them apart from the problems)
+void SuggestPage() {
+    Heading(Tr(S::SuggestTitle));
+    Dim(Tr(S::SuggestIntro));
+    ImGui::Spacing();
+    if (Server().empty()) {
+        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(StateColor("soon")), "●");
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", Tr(S::ServerOff));
+        return;
+    }
+    if (g.sug_game >= int(g.games.size())) g.sug_game = -1;
+    RowLabel(Tr(S::SuggestAbout));
+    if (g.focus_page) ImGui::SetKeyboardFocusHere();
+    std::string now = g.sug_game < 0 ? std::string(Tr(S::SuggestLauncher)) : std::string(Tx(g.games[size_t(g.sug_game)]->prof.title));
+    if (ImGui::BeginCombo("##sugjogo", now.c_str(), ImGuiComboFlags_HeightLarge)) {
+        if (ImGui::Selectable(Tr(S::SuggestLauncher), g.sug_game < 0)) g.sug_game = -1;
+        for (int i = 0; i < int(g.games.size()); i++) {
+            if (!g.games[size_t(i)]->ok) continue;
+            if (ImGui::Selectable(Tx(g.games[size_t(i)]->prof.title), i == g.sug_game)) g.sug_game = i;
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::Spacing();
+    ImGui::TextUnformatted(Tr(S::SuggestText));
+    ImGui::InputTextMultiline("##sugdesc", g.sug_desc, sizeof(g.sug_desc), ImVec2(-1, 150 * g.scale));
+    RowLabel(Tr(S::ReportContact));
+    ImGui::InputText("##sugcontact", g.rep_contact, sizeof(g.rep_contact));
+    ImGui::Spacing();
+    HttpResult r;
+    Call::State st = g.suggest_call.Get(&r);
+    if (st == Call::State::Done) {
+        if (r.Ok()) {
+            g.sug_msg = Tr(S::SuggestSent);
+            g.sug_desc[0] = 0;
+        } else {
+            g.sug_msg = std::string(Tr(S::SendFailed)) + ": " + r.error + "\n" + Tr(S::ReportSaved);
+        }
+        g.suggest_call.Reset();
+    }
+    bool busy = st == Call::State::Busy;
+    ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.75f));
+    ImGui::BeginDisabled(busy);
+    if (ImGui::Button(busy ? Tr(S::Sending) : Tr(S::ReportSend), ImVec2(260 * g.scale, 0))) {
+        if (std::string(g.sug_desc).find_first_not_of(" \n\t") == std::string::npos) {
+            g.sug_msg = Tr(S::ReportEmpty);
+        } else {
+            if (g.sysinfo.empty()) g.sysinfo = SystemInfo();
+            std::string id = g.sug_game < 0 ? "launcher" : g.games[size_t(g.sug_game)]->entry.id;
+            std::string title = g.sug_game < 0 ? "Launcher" : Tx(g.games[size_t(g.sug_game)]->prof.title);
+            std::string j = "{";
+            j += "\"launcher\":" + Json(g.hub.version);
+            j += ",\"jogo\":" + Json(id);
+            j += ",\"titulo\":" + Json(title);
+            j += ",\"plataforma\":" + Json(PlatformName(g.view));
+            j += ",\"idioma\":" + Json(LangCode(g.lang));
+            j += ",\"categoria\":" + Json("Sugestão");
+            j += ",\"descricao\":" + Json(g.sug_desc);
+            j += ",\"contato\":" + Json(g.rep_contact);
+            j += ",\"ultima_saida\":" + Json("-");
+            j += ",\"sistema\":{\"os\":" + Json(PlatformName(g.view)) + "}}";
+            // a copy stays on the computer either way
+            std::error_code ec;
+            fs::create_directories(g.hub_dir / "reports", ec);
+            std::ofstream(g.hub_dir / "reports" / FromU8(Stamp() + "_sugestao.json"), std::ios::binary) << j;
+            g.suggest_call.Start("POST", Server() + "/v1/report", ServerHeaders(), j);
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::PopStyleColor();
+    if (!g.sug_msg.empty()) ImGui::TextWrapped("%s", g.sug_msg.c_str());
+    // the owner's answers to the player's suggestions
+    bool heading = false;
+    for (const auto& row : g.answers) {
+        if (Str(row, 3) != "Sugestão" || Str(row, 5).empty()) continue;
+        if (!heading) {
+            ImGui::Dummy(ImVec2(0, 10 * g.scale));
+            ImGui::Separator();
+            ImGui::PushFont(g.bold, 22);
+            ImGui::TextUnformatted(Tr(S::SuggestMine));
+            ImGui::PopFont();
+            heading = true;
+        }
+        ImGui::Spacing();
+        Dim((Str(row, 2) + ": " + Str(row, 4)).c_str());
+        ImGui::TextWrapped("%s", Str(row, 5).c_str());
+    }
+}
+
 void RequestsPage() {
     Heading(Tr(S::Requests));
     Dim(Tr(S::RequestsIntro));
@@ -7072,7 +7169,7 @@ bool Idle() { return !g.cap_slot && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyP
 bool FilterShown() {
     if (!SearchTyped().empty()) return true;
     HubEntry e = HubEntries()[size_t(std::clamp(g.entry, 0, int(HubEntries().size()) - 1))];
-    return !e.settings && !e.requests && !e.tutorial;
+    return !e.settings && !e.requests && !e.tutorial && !e.suggest;
 }
 
 void Keys() {
@@ -7212,6 +7309,8 @@ void Sidebar(float side, float height, float pad) {
                 label = Tr(S::LauncherSettings);
             } else if (e.requests) {
                 label = Tr(S::Requests);
+            } else if (e.suggest) {
+                label = Tr(S::SuggestTitle);
             } else if (e.tutorial) {
                 label = Tr(S::Tutorial);
             } else {
@@ -7298,6 +7397,7 @@ void Frame() {
         if (!SearchTyped().empty()) SearchPage();
         else if (e.settings) SettingsPage();
         else if (e.requests) RequestsPage();
+        else if (e.suggest) SuggestPage();
         else if (e.tutorial) TutorialPage();
         else LibraryPage(e.library);
     } else if (!G().ok) {

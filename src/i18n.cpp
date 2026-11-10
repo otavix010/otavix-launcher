@@ -483,6 +483,13 @@ constexpr Row kRows[] = {
     {"Atualizando os shaders...", "Updating the shaders...", "Actualizando los shaders..."},
     {"Reportar um problema do launcher", "Report a launcher problem", "Reportar un problema del launcher"},
     {"Algo no próprio launcher não funciona (trava, fecha, botão que não responde, texto errado) ou você tem uma sugestão para ele? Conte aqui. Vão junto o modelo do seu PC e a versão do launcher, nada mais. Problemas de um jogo específico se reportam na página do jogo.", "Something in the launcher itself does not work (freezes, closes, a button that does nothing, wrong text) or you have a suggestion for it? Tell us here. Your PC model and the launcher version go along, nothing else. A problem with one game is reported on the game's page.", "¿Algo del propio launcher no funciona (se congela, se cierra, un botón que no responde, texto incorrecto) o tienes una sugerencia? Cuéntalo aquí. Se envían el modelo de tu PC y la versión del launcher, nada más. Los problemas de un juego concreto se reportan en la página del juego."},
+    {"Sugestões", "Suggestions", "Sugerencias"},
+    {"Gostou de algo, tem uma ideia ou quer ver uma coisa nova? Escolha o jogo (ou o próprio launcher) e conte para nós. Lemos tudo e respondemos aqui. Vai só o seu texto, o jogo escolhido e a versão do launcher; o contato é opcional.", "Liked something, have an idea or want to see something new? Pick the game (or the launcher itself) and tell us. We read everything and answer here. Only your text, the chosen game and the launcher version go along; the contact is optional.", "¿Te gustó algo, tienes una idea o quieres ver algo nuevo? Elige el juego (o el propio launcher) y cuéntanos. Leemos todo y respondemos aquí. Solo se envían tu texto, el juego elegido y la versión del launcher; el contacto es opcional."},
+    {"A sugestão é sobre", "The suggestion is about", "La sugerencia es sobre"},
+    {"O launcher", "The launcher", "El launcher"},
+    {"Sua sugestão ou elogio", "Your suggestion or praise", "Tu sugerencia o elogio"},
+    {"Sugestão enviada. Obrigado! Se respondermos, a resposta aparece aqui.", "Suggestion sent. Thank you! If we answer, the answer shows up here.", "Sugerencia enviada. ¡Gracias! Si respondemos, la respuesta aparece aquí."},
+    {"Suas sugestões respondidas", "Your answered suggestions", "Tus sugerencias respondidas"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
