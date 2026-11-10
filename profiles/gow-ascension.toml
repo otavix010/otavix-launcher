@@ -228,10 +228,10 @@ default = "1"
 label = { pt = "Resolução", en = "Resolution", es = "Resolución" }
 help = { pt = "A resolução em que o jogo desenha, em múltiplos dos 720p do PS3; a imagem é ajustada ao tamanho da janela. Mais alto deixa a imagem mais nítida e pede mais da placa de vídeo, não do processador. Numa tela 1080p, 1440p funciona como supersampling: desenha maior e reduz, com bordas mais limpas. Comece em 720p: quem limita este jogo é o processador (veja a página Desempenho), e só suba depois de ver como ele roda no seu PC.", en = "The resolution the game draws at, in multiples of the PS3's 720p; the picture is fitted to the window. Higher is sharper and asks more of the graphics card, not of the processor. On a 1080p screen, 1440p works as supersampling: it draws bigger and scales down, with cleaner edges. Start at 720p: what holds this game back is the processor (see the Performance page), and only go higher once you see how it runs on your PC.", es = "La resolución a la que el juego dibuja, en múltiplos de los 720p de PS3; la imagen se ajusta al tamaño de la ventana. Más alta es más nítida y exige más a la tarjeta gráfica, no al procesador. En una pantalla 1080p, 1440p funciona como supersampling: dibuja más grande y reduce, con bordes más limpios. Empieza en 720p: lo que limita este juego es el procesador (mira la página Rendimiento), y solo sube después de ver cómo corre en tu PC." }
 choices = [
-  { value = "1", label = { pt = "720p (PS3, mais leve)", en = "720p (PS3, lightest)", es = "720p (PS3, más ligera)" } },
-  { value = "2", label = { pt = "1440p (supersampling em telas 1080p)", en = "1440p (supersampling on 1080p screens)", es = "1440p (supersampling en pantallas 1080p)" } },
-  { value = "3", label = "4K (2160p)" },
-  { value = "4", label = "5K (2880p)" },
+  { value = "1", label = { pt = "720p (1x, como no PS3, mais leve)", en = "720p (1x, as on PS3, lightest)", es = "720p (1x, como en PS3, más ligera)" } },
+  { value = "2", label = { pt = "1440p (2x; supersampling em telas 1080p)", en = "1440p (2x; supersampling on 1080p screens)", es = "1440p (2x; supersampling en pantallas 1080p)" } },
+  { value = "3", label = { pt = "4K / 2160p (3x; supersampling em telas 1440p)", en = "4K / 2160p (3x; supersampling on 1440p screens)", es = "4K / 2160p (3x; supersampling en pantallas 1440p)" } },
+  { value = "4", label = { pt = "5K / 2880p (4x; supersampling em telas 4K)", en = "5K / 2880p (4x; supersampling on 4K screens)", es = "5K / 2880p (4x; supersampling en pantallas 4K)" } },
 ]
 
 [[options]]
