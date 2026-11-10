@@ -13,6 +13,7 @@ game_file = "jogo/GOWA.elf"
 args = ["{dir}/jogo/GOWA.elf"]
 env = { PS3_VFS_ROOT = "{dir}/vfs", PS3_LIBSRE_IMAGE = "{dir}/fw/lle/libsre_image.bin", PS3_SAVE_ROOT = "{dir}/saves", GOWA_CACHE_DIR = "{dir}/cache" }
 log_file = "out/jogo.log"
+options_file = "gowa_opcoes.txt"  # the options also go to this file so gowa.exe opened by hand uses them (gowa 0.11.x)
 logs = "out"
 saves = ["saves"]
 accent = [196, 150, 60]

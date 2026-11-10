@@ -1,5 +1,6 @@
 // Where the choices live: the game's settings file, and the launcher's own state beside it.
 #pragma once
+#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -30,6 +31,7 @@ public:
               const std::string& ini_template = {});
     bool Save();  // both files; false when one could not be written
     bool Dirty() const { return dirty_; }
+    std::function<void()> on_saved;  // called after every successful Save()
 
     // an option's value: as stored, else its default
     Value Get(const Option& o) const;

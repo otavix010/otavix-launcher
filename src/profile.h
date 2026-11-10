@@ -172,6 +172,8 @@ struct Profile {
     std::string workdir;              // or a folder in the port to run in ("trabalho/disc": the PS2 ports' disc)
     std::vector<std::pair<std::string, std::string>> env;  // [game] env: variables for the game, {dir} replaced
     std::string log_file;             // the game's output is written there
+    std::string options_file;         // [game] options_file: a file in the port's folder (NOME=valor lines) the launcher keeps with the
+                                      // game's env options, so the exe opened straight from its folder uses them too
     std::vector<std::string> report_files;  // report_files = [...]: files a report carries besides the log (a * in
                                             // the name: the newest that matches), joined into one text attachment
     std::string port_file;            // the file that tells the port's own files are there (default: exe)

@@ -694,6 +694,27 @@ std::string GameExe(Game& gm) {
     return exe;
 }
 
+// the file of the game's options beside the port (profile options_file): the same variables the launcher hands the game
+// when it starts it, so the exe opened straight from its folder uses the player's choices too. Written only when it
+// changed; a variable already in the environment wins over the file on the game's side
+void WriteOptionsFile(Game& gm) {
+    if (gm.prof.options_file.empty() || !Playable(gm, g.here)) return;
+    std::map<std::string, std::string> vars = gm.store.Environment(gm.prof);
+    for (auto& [k, v] : gm.prof.env) vars[k] = U8(FromU8(Expand(gm, v)).make_preferred());
+    std::string text = "# Gravado pelo Otavix Launcher a cada vez que as opcoes sao salvas. Uma opcao por linha: NOME=valor.\n"
+                       "# Variavel ja definida no ambiente vence este arquivo. Apague uma linha para usar o padrao.\n";
+    for (auto& [k, v] : vars)
+        if (!v.empty() && v.find('\n') == std::string::npos) text += k + "=" + v + "\n";
+    fs::path f = gm.entry.dir / FromU8(gm.prof.options_file);
+    std::error_code ec;
+    if (std::ifstream in(f, std::ios::binary); in) {
+        std::string old((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (old == text) return;
+    }
+    if (!fs::is_directory(f.parent_path(), ec)) return;
+    if (std::ofstream out(f, std::ios::binary | std::ios::trunc); out) out << text;
+}
+
 void Launch(int index, bool shaders_done = false) {
     if (g.proc) return;
     int waiting = g.launch_wait;
@@ -707,6 +728,7 @@ void Launch(int index, bool shaders_done = false) {
     }
     gm.store.FillDefaults(gm.prof);
     if (gm.store.Dirty() && !gm.store.Save()) Toast(Tr(S::SaveFailed));
+    WriteOptionsFile(gm);
     if (gm.store.GetOwnBool("auto_backup", true)) {
         std::string err;
         if (MakeBackup(gm.entry.dir, gm.prof, "auto", err)) PruneAutomatic(gm.entry.dir, 10);
@@ -7369,6 +7391,7 @@ void OpenGameFolder(Game& gm) {
     fs::path settings = here ? gm.entry.dir / FromU8(gm.prof.settings) : data / "settings.toml";
     fs::path ini = here && !gm.prof.ini.empty() ? gm.entry.dir / FromU8(gm.prof.ini) : fs::path();
     gm.store.Open(settings, data / "estado.toml", ini, gm.prof.ini_template);
+    gm.store.on_saved = [&gm] { WriteOptionsFile(gm); };
     // a port's first settings: its first preset, the recommended one
     if (here && !fs::exists(settings, ec) && !gm.prof.presets.empty()) {
         for (auto& [k, v] : gm.prof.presets[0].values) {

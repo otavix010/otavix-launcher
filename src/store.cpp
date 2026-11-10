@@ -233,7 +233,10 @@ bool Store::Save() {
         ok = WriteText(ini_file_, ini_.Text());
         if (ok) ini_dirty_ = false;
     }
-    if (ok) dirty_ = false;
+    if (ok) {
+        dirty_ = false;
+        if (on_saved) on_saved();
+    }
     return ok;
 }
 
