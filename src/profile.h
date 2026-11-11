@@ -163,6 +163,7 @@ struct Profile {
     std::string mods_game_id;   // [mods] game_id: the disc's id, for the packages meant for it (PSXRecomp)
     Text mods_help;             // [mods] help: how this port's mods are laid out
     InstallSpec install;
+    std::vector<std::string> wrap;    // the program that runs the exe, before it ("bash" for a script); empty: the exe itself
     std::string exe;                  // beside the launcher
     std::vector<std::string> exes;    // exe = [...]: the first that exists (one build per CPU)
     std::string build_info;           // [game] build_info: a file the generator writes (key=value lines; exe=, escolhida=, usada=, motivo=)

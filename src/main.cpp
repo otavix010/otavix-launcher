@@ -687,7 +687,8 @@ std::string GameExe(Game& gm) {
         exe = ToText(gm.store.Get(*o));
     std::error_code ec;
     // the generator says which build it made for this PC (its exe= line): that one, when it is there
-    if (auto info = ReadBuildInfo(gm); info.count("exe") && !info["exe"].empty() &&
+    // a port started through a wrapper (a script on Linux) runs that, not the exe the generator names
+    if (auto info = ReadBuildInfo(gm); gm.prof.wrap.empty() && info.count("exe") && !info["exe"].empty() &&
                                         fs::is_regular_file(gm.entry.dir / FromU8(info["exe"]), ec))
         return info["exe"];
     for (const std::string& e : gm.prof.exes)
@@ -752,7 +753,8 @@ void Launch(int index, bool shaders_done = false) {
     std::string exe = GameExe(gm);
     std::error_code ec;
     fs::path exe_path = (gm.entry.dir / FromU8(exe)).make_preferred();
-    std::vector<std::string> args{U8(exe_path)};
+    std::vector<std::string> args = gm.prof.wrap;
+    args.push_back(U8(exe_path));
     for (const std::string& a : gm.prof.args) {
         std::string v = Expand(gm, a);
         // an option standing alone that is only a flag ("--windowed" or nothing) leaves no empty argument behind

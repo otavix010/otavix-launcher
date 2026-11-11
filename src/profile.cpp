@@ -176,6 +176,35 @@ bool Profile::Load(const fs::path& file, std::string& error) {
             if (auto s = e.value<std::string>()) saves.push_back(*s);
     if (const toml::array* a = g["accent"].as_array(); a && a->size() == 3)
         for (size_t i = 0; i < 3; i++) accent[i] = float((*a)[i].value_or(int64_t(128))) / 255.0f;
+#ifndef _WIN32
+    // this system's own keys (<key>_linux) replace the Windows ones: a port made on the player's PC has another generator,
+    // marks and way to start on Linux; "wrap_linux" is the program that runs the exe (bash for a script)
+    {
+        auto list = [](const toml::node_view<const toml::node>& n, std::vector<std::string>& to) {
+            to.clear();
+            if (const toml::array* a = n.as_array())
+                for (auto& e : *a)
+                    if (auto s = e.value<std::string>()) to.push_back(*s);
+        };
+        if (g["exe_linux"].as_array()) {
+            list(g["exe_linux"], exes);
+            if (!exes.empty()) exe = exes[0];
+        }
+        if (g["args_linux"].as_array()) list(g["args_linux"], args);
+        if (g["wrap_linux"].as_array()) list(g["wrap_linux"], wrap);
+        if (const toml::table* e = g["env_linux"].as_table()) {
+            env.clear();
+            for (auto& [k, v] : *e)
+                if (auto s = v.value<std::string>()) env.push_back({std::string(k.str()), *s});
+        }
+        if (in["command_linux"].as_array()) list(in["command_linux"], install.command);
+        if (in["redo_linux"].as_array()) list(in["redo_linux"], install.redo);
+        if (auto v = in["done_linux"].value<std::string>()) install.done = *v;
+        if (auto v = in["marks_linux"].value<std::string>()) install.marks = *v;
+        if (auto v = in["needs_linux"].value<std::string>()) install.needs = *v;
+        if (in["skip_prereqs_linux"].value_or(false)) install.prereqs.clear();
+    }
+#endif
     if (exe.empty()) {
         error = "launcher.toml: [game] exe is missing";
         return false;

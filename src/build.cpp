@@ -4,6 +4,10 @@
 #include <fstream>
 #include <thread>
 
+#ifndef _WIN32
+#include <signal.h>
+#endif
+
 #include <SDL3/SDL.h>
 
 #ifdef _WIN32
@@ -106,6 +110,8 @@ bool StartCmd(const std::string& line, HANDLE out, PROCESS_INFORMATION& pi, DWOR
                           env.data(), nullptr, &si, &pi);
 }
 
+#endif
+
 std::string LastLine(const fs::path& log) {
     std::ifstream f(log, std::ios::binary);
     if (!f) return {};
@@ -139,7 +145,6 @@ std::string Tail(const fs::path& log, int lines) {
     for (size_t i = all.size() > size_t(lines) ? all.size() - size_t(lines) : 0; i < all.size(); i++) out += all[i] + "\n";
     return out;
 }
-#endif
 
 }  // namespace
 
@@ -150,6 +155,9 @@ std::string ExpandEnv(const std::string& s) {
     DWORD n = ExpandEnvironmentStringsW(W(s).c_str(), out, 32768);
     return n && n <= 32768 ? N(out) : s;
 #else
+    // %SystemDrive%/OtavixPorts/<game> (a Windows path without spaces) is ports/<game> in the hub's folder here
+    static const std::string drive = "%SystemDrive%/OtavixPorts/";
+    if (s.rfind(drive, 0) == 0) return "ports/" + s.substr(drive.size());
     return s;
 #endif
 }
@@ -282,10 +290,72 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
         st_.step = done;
     }).detach();
 #else
-    (void)args, (void)marks, (void)steps;
-    std::lock_guard lock(m_);
-    st_.stage = Stage::Failed;
-    st_.error = "not on this system yet";
+    std::thread([this, args, marks, steps] {
+        auto fail = [&](const std::string& why, int code) {
+            std::lock_guard lock(m_);
+            st_.stage = Stage::Failed;
+            st_.error = why;
+            st_.code = code;
+        };
+        std::error_code ec;
+        fs::create_directories(marks, ec);
+        fs::path log = marks / "launcher.log";
+        SDL_IOStream* out = SDL_IOFromFile(log.c_str(), "wb");
+        if (!out) return fail(L3("não foi possível criar ", "could not create ", "no se pudo crear ") + U8(log), -1);
+        // its own session and process group (setsid): a cancel ends the generator and everything it started
+        std::vector<const char*> argv{"setsid", "-w"};
+        for (const std::string& a : args) argv.push_back(a.c_str());
+        argv.push_back(nullptr);
+        SDL_PropertiesID props = SDL_CreateProperties();
+        SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
+        SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDIN_NUMBER, SDL_PROCESS_STDIO_NULL);
+        SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_REDIRECT);
+        SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_POINTER, out);
+        SDL_SetBooleanProperty(props, SDL_PROP_PROCESS_CREATE_STDERR_TO_STDOUT_BOOLEAN, true);
+        SDL_Process* proc = SDL_CreateProcessWithProperties(props);
+        SDL_DestroyProperties(props);
+        if (!proc) {
+            SDL_CloseIO(out);
+            return fail(L3("não foi possível iniciar o gerador", "could not start the generator", "no se pudo iniciar el generador") +
+                            std::string(": ") + SDL_GetError(), -1);
+        }
+        {
+            std::lock_guard lock(m_);
+            job_ = reinterpret_cast<void*>(intptr_t(SDL_GetNumberProperty(SDL_GetProcessProperties(proc), SDL_PROP_PROCESS_PID_NUMBER, 0)));
+        }
+        std::string last;
+        fs::path step_log;
+        uintmax_t step_size = 0;
+        int code = 0;
+        for (int tick = 0; !SDL_WaitProcess(proc, false, &code); tick++) {
+            SDL_Delay(500);
+            int done = 0;
+            while (done < int(steps.size()) && fs::exists(marks / (steps[size_t(done)] + ".ok"), ec)) done++;
+            fs::path cur = done < int(steps.size()) ? marks / (steps[size_t(done)] + ".log") : fs::path();
+            if (cur != step_log) step_log = cur, step_size = 0, last.clear();
+            if (tick % 4 == 0) {
+                uintmax_t size = step_log.empty() ? 0 : fs::file_size(step_log, ec);
+                if (ec) size = 0;
+                if (size != step_size) step_size = size, last = LastLine(step_log);
+                if (last.empty()) last = LastLine(log);  // the generator's own messages, through its standard output
+            }
+            std::lock_guard lock(m_);
+            st_.step = done;
+            st_.line = last;
+        }
+        SDL_DestroyProcess(proc);
+        SDL_CloseIO(out);
+        {
+            std::lock_guard lock(m_);
+            job_ = nullptr;
+        }
+        int done = 0;
+        while (done < int(steps.size()) && fs::exists(marks / (steps[size_t(done)] + ".ok"), ec)) done++;
+        if (code != 0 || done < int(steps.size())) return fail(Tail(log, 10), code);
+        std::lock_guard lock(m_);
+        st_.stage = Stage::Done;
+        st_.step = done;
+    }).detach();
 #endif
 }
 
@@ -295,6 +365,18 @@ void GameBuild::Cancel() {
     if (job_) {
         st_.cancelled = true;
         TerminateJobObject(static_cast<HANDLE>(job_), 1);
+    }
+#else
+    std::lock_guard lock(m_);
+    if (job_) {
+        st_.cancelled = true;
+        pid_t group = pid_t(reinterpret_cast<intptr_t>(job_));
+        kill(-group, SIGTERM);
+        // what ignores the polite ending is ended 3 s later
+        std::thread([group] {
+            SDL_Delay(3000);
+            kill(-group, SIGKILL);
+        }).detach();
     }
 #endif
 }

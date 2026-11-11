@@ -13,6 +13,12 @@ game_file = "jogo/GOWA.elf"
 args = ["{dir}/jogo/GOWA.elf"]
 env = { PS3_VFS_ROOT = "{dir}/vfs", PS3_LIBSRE_IMAGE = "{dir}/fw/lle/libsre_image.bin", PS3_SAVE_ROOT = "{dir}/saves", GOWA_CACHE_DIR = "{dir}/cache" }
 log_file = "out/jogo.log"
+# on Linux/SteamOS: the generator wrote jogar.sh, which opens the game (Proton/wine) and reads gowa_opcoes.txt; it is run through
+# bash, never directly (a zip may lose the execute bit), and sets its own paths, so the Windows env is not handed over
+exe_linux = ["jogar.sh"]
+wrap_linux = ["bash"]
+args_linux = []
+env_linux = {}
 options_file = "gowa_opcoes.txt"  # the options also go to this file so gowa.exe opened by hand uses them (gowa 0.11.x)
 logs = "out"
 saves = ["saves"]
@@ -29,6 +35,13 @@ kind = "build"
 done = "out/gerar/7_jogar.ok"
 marks = "out/gerar"
 needs = "vfs/PS3_GAME/PARAM.SFO"  # through the generator's junction to the player's disc: missing, the disc moved
+# on Linux the generator is scripts/linux/gerar.sh (run through bash); it checks the tools itself ("[gerar] ERRO: ...") and
+# marks its steps in out/gerar_linux (the last, 7_jogar.ok), so the launcher has no prerequisites of its own to check
+command_linux = ["bash", "{dir}/scripts/linux/gerar.sh", "--disco", "{disco}", "--update", "{update}", "--firmware", "{firmware}"]
+redo_linux = ["--de", "4_ppu"]
+done_linux = "out/gerar_linux/7_jogar.ok"
+marks_linux = "out/gerar_linux"
+skip_prereqs_linux = true
 command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Disco", "{disco}", "-Update", "{update}", "-Firmware", "{firmware}"]
 redo = ["-RefazerDe", "4"]  # new code of the port: the PPU, SPU and build steps again, not the disc nor the firmware
 version = { pt = "God of War: Ascension dos EUA (BCUS98232), o disco e o update 1.04", en = "God of War: Ascension, US (BCUS98232): the disc and the 1.04 update", es = "God of War: Ascension de EE. UU. (BCUS98232): el disco y el update 1.04" }
