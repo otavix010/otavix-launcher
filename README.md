@@ -30,7 +30,7 @@ Os dois links levam sempre à última versão. Todas as versões ficam em [Relea
 
 1. Baixe o `Otavix-Launcher-<versão>-linux-x64.tar.gz` e extraia numa pasta sua (por exemplo, em `~/Games`).
 2. Execute `./instalar.sh` dentro da pasta para criar a entrada no menu (modo desktop). No Modo Jogo do SteamOS, adicione `Otavix Launcher` como jogo fora da Steam.
-3. Abra o Otavix Launcher, escolha um jogo e siga a página dele. Na versão Linux estão disponíveis o **God of War: Betrayal** e, em breve, o **inFAMOUS Second Son**; os outros jogos ficam como "em breve".
+3. Abra o Otavix Launcher, escolha um jogo e siga a página dele. Na versão Linux estão disponíveis o **God of War: Betrayal** e o **God of War: Ascension (beta)**, este gerado no seu PC pelo launcher (precisa de um Proton instalado na Steam e de uns 15 GB livres); em breve, o **inFAMOUS Second Son**. Os outros jogos ficam como "em breve".
 
 A página **Como usar**, dentro do launcher, explica tudo passo a passo.
 
@@ -69,7 +69,7 @@ A página **Como usar**, dentro do launcher, explica tudo passo a passo.
 |---|---|---|---|
 | [FIFA Street 2](https://github.com/otavix010/fifa-street-2-pc) | Xbox | jogável | em breve |
 | [God of War: Betrayal](https://github.com/otavix010/gow-betrayal-pc) | Celular (Java) | jogável | jogável |
-| [God of War: Ascension](https://github.com/otavix010/gow-ascension-pc) | PlayStation 3 | jogável (gerado no seu PC) | em breve |
+| [God of War: Ascension](https://github.com/otavix010/gow-ascension-pc) | PlayStation 3 | jogável (gerado no seu PC) | beta (gerado no seu PC) |
 | inFAMOUS, inFAMOUS 2 | PlayStation 3 | em desenvolvimento | em breve |
 | Asura's Wrath, Dante's Inferno, DiRT 2, Saints Row | Xbox 360 | em desenvolvimento (já rodam; gerados no seu PC) | em breve |
 | Army of Two (os três) | Xbox 360 | em desenvolvimento | em breve |
