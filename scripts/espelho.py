@@ -32,6 +32,9 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'dirt-2-pc': r'C:\Users\otavi\x360-ports\dirt-2',
     'saints-row-pc': r'C:\Users\otavi\x360-ports\saints-row',
     'silent-hill-pc': r'E:\RecompDev\silent-hill-pc',
+    'god-of-war-pc': r'E:\RecompDev\ps2\repos\god-of-war-pc',
+    'god-of-war-2-pc': r'E:\RecompDev\ps2\repos\god-of-war-2-pc',
+    'spawn-armageddon-pc': r'E:\RecompDev\ps2\repos\spawn-armageddon-pc',
 }
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.14', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),

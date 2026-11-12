@@ -129,13 +129,27 @@ target = "env"
 type = "choice"
 default = "1280x720"
 label = { pt = "Tamanho da janela", en = "Window size", es = "Tamaño de la ventana" }
-help = { pt = "O tamanho em que a janela abre (em tela cheia vale a resolução do monitor). O jogo desenha na resolução do PlayStation 2 e a imagem é ampliada até a janela: para a ampliação ficar mais nítida, use o Escalonador abaixo.", en = "The size the window opens at (in fullscreen, the monitor's resolution is used). The game draws at the PlayStation 2's resolution and the picture is enlarged to the window: for a sharper enlargement, use the Upscaler below.", es = "El tamaño con el que se abre la ventana (en pantalla completa vale la resolución del monitor). El juego dibuja a la resolución de PlayStation 2 y la imagen se amplía hasta la ventana: para una ampliación más nítida, usa el Escalador de abajo." }
+help = { pt = "O tamanho em que a janela abre (em tela cheia vale a resolução do monitor). O jogo desenha na resolução do PlayStation 2 (ou na Resolução interna escolhida abaixo) e a imagem é ampliada até a janela: para a ampliação ficar mais nítida, use o Escalonador abaixo.", en = "The size the window opens at (in fullscreen, the monitor's resolution is used). The game draws at the PlayStation 2's resolution (or at the Internal resolution chosen below) and the picture is enlarged to the window: for a sharper enlargement, use the Upscaler below.", es = "El tamaño con el que se abre la ventana (en pantalla completa vale la resolución del monitor). El juego dibuja a la resolución de PlayStation 2 (o a la Resolución interna elegida abajo) y la imagen se amplía hasta la ventana: para una ampliación más nítida, usa el Escalador de abajo." }
 choices = [
   { value = "1280x720", label = "1280 × 720" },
   { value = "1600x900", label = "1600 × 900" },
   { value = "1920x1080", label = "1920 × 1080" },
   { value = "2560x1440", label = "2560 × 1440" },
   { value = "3840x2160", label = "3840 × 2160" },
+]
+
+[[options]]
+page = "video"
+key = "PS2X_RESOLUCAO"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
+help = { pt = "1x é a resolução original do PlayStation 2. 2x e 4x desenham o jogo com mais pixels: bordas e contornos ficam mais nítidos (as texturas continuam as do jogo). Custa mais da placa de vídeo: 2x serve para a maioria das placas; 4x pede uma placa forte. Precisa do motor 0.1.8 ou mais novo (gere o jogo de novo se ele for mais antigo).", en = "1x is the PlayStation 2's original resolution. 2x and 4x draw the game with more pixels: edges and outlines get sharper (textures stay the game's own). It costs more GPU: 2x suits most graphics cards; 4x needs a strong one. It needs engine 0.1.8 or newer (generate the game again if it is older).", es = "1x es la resolución original de PlayStation 2. 2x y 4x dibujan el juego con más píxeles: los bordes y contornos quedan más nítidos (las texturas siguen siendo las del juego). Cuesta más a la tarjeta de video: 2x sirve para la mayoría de las tarjetas; 4x pide una tarjeta potente. Necesita el motor 0.1.8 o más nuevo (genera el juego de nuevo si es más antiguo)." }
+choices = [
+  { value = "1", label = { pt = "1x (original)", en = "1x (original)", es = "1x (original)" } },
+  { value = "2", label = "2x" },
+  { value = "4", label = "4x" },
 ]
 
 [[options]]
@@ -202,8 +216,8 @@ key = "PS2X_NUCLEOS"
 target = "env"
 type = "choice"
 default = "auto"
-label = { pt = "Fixar as threads nos núcleos", en = "Pin threads to cores", es = "Fijar los hilos a los núcleos" }
-help = { pt = "Em processadores de até 6 núcleos com Hyper-Threading/SMT, põe cada parte pesada do jogo num núcleo físico só dela (num i5 de 4 núcleos, o processamento de geometria ficou 15 a 25% mais rápido). Em processadores maiores não muda nada. Se o jogo travar ou engasgar, teste Desligado.", en = "On processors with up to 6 cores and Hyper-Threading/SMT, puts each heavy part of the game on a physical core of its own (on a 4-core i5, geometry processing got 15 to 25% faster). On bigger processors it changes nothing. If the game stutters, try Off.", es = "En procesadores de hasta 6 núcleos con Hyper-Threading/SMT, pone cada parte pesada del juego en un núcleo físico propio (en un i5 de 4 núcleos, el procesamiento de geometría fue 15 a 25% más rápido). En procesadores más grandes no cambia nada. Si el juego se traba, prueba Desactivado." }
+label = { pt = "Distribuir as threads nos núcleos", en = "Spread threads across cores", es = "Distribuir los hilos en los núcleos" }
+help = { pt = "Em processadores de 4 a 6 núcleos com Hyper-Threading/SMT, indica a cada parte pesada do jogo um núcleo físico preferido, sem prendê-la: se esse núcleo estiver ocupado por outro programa, o Windows a move. Em processadores maiores não muda nada. Se o jogo engasgar, teste Desligado.", en = "On processors with 4 to 6 cores and Hyper-Threading/SMT, gives each heavy part of the game a preferred physical core without pinning it: if that core is busy with another program, Windows moves it. On bigger processors it changes nothing. If the game stutters, try Off.", es = "En procesadores de 4 a 6 núcleos con Hyper-Threading/SMT, indica a cada parte pesada del juego un núcleo físico preferido, sin fijarla: si ese núcleo está ocupado por otro programa, Windows la mueve. En procesadores más grandes no cambia nada. Si el juego se traba, prueba Desactivado." }
 choices = [
   { value = "auto", label = { pt = "Automático (padrão)", en = "Automatic (default)", es = "Automático (por defecto)" } },
   { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
