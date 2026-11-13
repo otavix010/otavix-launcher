@@ -222,6 +222,22 @@ choices = [
 ]
 
 [[options]]
+page = "controls"
+key = "GOWA_VIBRA"
+target = "env"
+type = "choice"
+default = "100"
+label = { pt = "Vibração do controle", en = "Controller vibration", es = "Vibración del mando" }
+help = { pt = "A intensidade da vibração do controle, em porcentagem. Escolha Desligada para tirar a vibração, ou um valor menor se ela estiver forte demais. Precisa da engine 0.12.3 ou mais nova (atualize o port e gere de novo se ele for mais antigo).", en = "The strength of the controller's vibration, as a percentage. Pick Off to remove it, or a lower value if it is too strong. It needs engine 0.12.3 or newer (update the port and generate again if it is older).", es = "La intensidad de la vibración del mando, en porcentaje. Elige Desactivada para quitarla, o un valor menor si es demasiado fuerte. Necesita el motor 0.12.3 o más nuevo (actualiza el port y genera de nuevo si es más antiguo)." }
+choices = [
+  { value = "100", label = { pt = "100% (padrão)", en = "100% (default)", es = "100% (por defecto)" } },
+  { value = "75", label = "75%" },
+  { value = "50", label = "50%" },
+  { value = "25", label = "25%" },
+  { value = "0", label = { pt = "Desligada", en = "Off", es = "Desactivada" } },
+]
+
+[[options]]
 page = "video"
 key = "GOWA_TELA_CHEIA"
 target = "env"
