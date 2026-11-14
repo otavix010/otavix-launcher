@@ -149,6 +149,11 @@ id = "game"
 advanced = true
 label = { pt = "Jogo", en = "Game", es = "Juego" }
 
+[[pages]]
+id = "cheats"
+advanced = true
+label = { pt = "Trapaças (opcional)", en = "Cheats (optional)", es = "Trucos (opcional)" }
+
 [[options]]
 page = "game"
 key = "PS3_IDIOMA"
@@ -368,18 +373,75 @@ choices = [
   { value = "0", label = { pt = "Conferir inteiras (mais lento)", en = "Check whole (slower)", es = "Comprobar enteras (más lento)" } },
 ]
 
+# graphics effects that can be turned off to win fps (engine 0.12.5; the port reads each variable once at boot; absent,
+# empty or "0" = the game as it always was). Measured by the gowa session on the Legion at 15 W.
+[[options]]
+page = "video"
+key = "GOWA_SEM_DOF"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Desligar a profundidade de campo", en = "Disable depth of field", es = "Desactivar la profundidad de campo" }
+help = { pt = "Tira o desfoque do fundo, e a imagem fica mais nítida e um pouco mais leve.", en = "Removes the background blur: a sharper and slightly lighter image.", es = "Quita el desenfoque del fondo: imagen más nítida y algo más ligera." }
+
+[[options]]
+page = "video"
+key = "GOWA_SEM_MBLUR"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Desligar o desfoque de movimento", en = "Disable motion blur", es = "Desactivar el desenfoque de movimiento" }
+help = { pt = "Tira o rastro borrado dos movimentos rápidos, e a imagem fica mais nítida e um pouco mais leve.", en = "Removes the blurred trail of fast movement: a sharper and slightly lighter image.", es = "Quita el rastro borroso de los movimientos rápidos: imagen más nítida y algo más ligera." }
+
+[[options]]
+page = "video"
+key = "GOWA_SEM_SOMBRAS"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Desligar as sombras dinâmicas", en = "Disable dynamic shadows", es = "Desactivar las sombras dinámicas" }
+help = { pt = "Personagens e objetos deixam de projetar sombra. É o que mais poupa processador entre estas opções.", en = "Characters and objects stop casting shadows. The one that saves the most processor of these options.", es = "Los personajes y objetos dejan de proyectar sombra. Es la que más procesador ahorra de estas opciones." }
+
+# cheats (engine 0.12.5): optional, all off by default; a page of its own, the warning is in each help
+[[options]]
+page = "cheats"
+key = "GOWA_FURIA_INF"
+target = "env"
+type = "toggle"
+default = false
+label = { pt = "Fúria sempre cheia", en = "Rage always full", es = "Furia siempre llena" }
+help = { pt = "Trapaça opcional: pode afetar o progresso; use por sua conta e desligue se algo der errado.", en = "Optional cheat: it may affect progress; use at your own risk and turn it off if something goes wrong.", es = "Truco opcional: puede afectar el progreso; úsalo bajo tu responsabilidad y desactívalo si algo sale mal." }
+
+[[options]]
+page = "cheats"
+key = "GOWA_DANO_RECEBIDO"
+target = "env"
+type = "choice"
+default = ""
+label = { pt = "Invencibilidade", en = "Invincibility", es = "Invencibilidad" }
+help = { pt = "Trapaça opcional: o Kratos não perde vida com os golpes. Pode afetar o progresso; use por sua conta e volte para Normal se algo der errado.", en = "Optional cheat: Kratos does not lose health from hits. It may affect progress; use at your own risk and go back to Normal if something goes wrong.", es = "Truco opcional: Kratos no pierde vida con los golpes. Puede afectar el progreso; úsalo bajo tu responsabilidad y vuelve a Normal si algo sale mal." }
+choices = [
+  { value = "", label = { pt = "Normal", en = "Normal", es = "Normal" } },
+  { value = "0", label = { pt = "Invencível", en = "Invincible", es = "Invencible" } },
+]
+
 [[presets]]
-label = { pt = "Leve", en = "Light", es = "Ligero" }
-help = { pt = "720p, como no PS3. Comece por aqui: o que pesa neste jogo é o processador.", en = "720p, as on the PS3. Start here: what weighs in this game is the processor.", es = "720p, como en PS3. Empieza por aquí: lo que pesa en este juego es el procesador." }
+label = { pt = "Simplificado", en = "Simplified", es = "Simplificado" }
+help = { pt = "Para PCs fracos e portáteis. Desliga a profundidade de campo (desfoque do fundo), o desfoque de movimento e as sombras dinâmicas; o resto fica como está. A imagem fica menos bonita e roda mais leve (medido: cerca de +20% na Legion Go a 15 W e +45% num notebook com GTX 1650).", en = "For low-end PCs and handhelds. Turns off depth of field (background blur), motion blur and dynamic shadows; everything else stays as it is. The image looks less pretty and runs lighter (measured: about +20% on a Legion Go at 15 W and +45% on a laptop with a GTX 1650).", es = "Para PCs modestos y portátiles. Desactiva la profundidad de campo (desenfoque del fondo), el desenfoque de movimiento y las sombras dinámicas; lo demás queda como está. La imagen queda menos bonita y rinde más (medido: cerca de +20% en una Legion Go a 15 W y +45% en un portátil con GTX 1650)." }
+values = { GOWA_SEM_DOF = true, GOWA_SEM_MBLUR = true, GOWA_SEM_SOMBRAS = true }
+
+[[presets]]
+label = { pt = "Mínimo", en = "Minimum", es = "Mínimo" }
+help = { pt = "720p, como no PS3: basicamente o jogo original. Comece por aqui: o que pesa neste jogo é o processador.", en = "720p, as on the PS3: basically the original game. Start here: what weighs in this game is the processor.", es = "720p, como en PS3: básicamente el juego original. Empieza por aquí: lo que pesa en este juego es el procesador." }
 values = { GOWA_RES_SCALE = "1" }
 
 [[presets]]
-label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
-help = { pt = "Desenha em 1440p: num monitor 1440p fica nativo e num 1080p é reduzido (supersampling), 60 fps reais, sem quadros intermediários. Só depois de ver o jogo rodar bem em 720p. Os 60 pedem um processador forte; se não segurar, use o Leve.", en = "Draws at 1440p: native on a 1440p monitor, brought down on a 1080p one (supersampling), real 60 fps, no in-between frames. Only once the game runs well at 720p. 60 needs a strong processor; if it doesn't hold, use Light.", es = "Dibuja a 1440p: nativo en un monitor 1440p y reducido en uno 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Solo después de ver el juego ir bien a 720p. Los 60 piden un procesador potente; si no aguanta, usa Ligero." }
+label = { pt = "Médio (1440p)", en = "Medium (1440p)", es = "Medio (1440p)" }
+help = { pt = "Desenha em 1440p: num monitor 1440p fica nativo e num 1080p é reduzido (supersampling), 60 fps reais, sem quadros intermediários. Só depois de ver o jogo rodar bem em 720p. Os 60 pedem um processador forte; se não segurar, use o Mínimo.", en = "Draws at 1440p: native on a 1440p monitor, brought down on a 1080p one (supersampling), real 60 fps, no in-between frames. Only once the game runs well at 720p. 60 needs a strong processor; if it doesn't hold, use Minimum.", es = "Dibuja a 1440p: nativo en un monitor 1440p y reducido en uno 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Solo después de ver el juego ir bien a 720p. Los 60 piden un procesador potente; si no aguanta, usa Mínimo." }
 values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0" }
 
 [[presets]]
-label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
+label = { pt = "Máximo (4K)", en = "Maximum (4K)", es = "Máximo (4K)" }
 help = { pt = "4K: pede processador e placa de vídeo fortes. Num processador mais fraco, só piora.", en = "4K: needs a strong processor and graphics card. On a weaker processor it only gets worse.", es = "4K: pide procesador y tarjeta gráfica potentes. En un procesador más débil solo empeora." }
 values = { GOWA_RES_SCALE = "3" }
 
