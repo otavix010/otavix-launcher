@@ -17,6 +17,7 @@
 #include <numeric>
 #include <random>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -196,6 +197,7 @@ struct App {
     // a ButtonMap entry waiting for a pad button
     const Option* cap_opt = nullptr;
     const ButtonSlot* cap_slot = nullptr;
+    bool cap_cancel = false;  // the mouse is over that entry's cancel button: its click is the button's
     // a file dialog's answer, from its thread
     std::mutex dlg_m;
     std::string dlg_path, dlg_key;
@@ -1257,6 +1259,46 @@ std::string PadName(const std::string& sdl) {
     return sdl;
 }
 
+// The keys of a keyboard ButtonMap, by position (SDL's scan codes), under the names the game's settings use
+const char* KeyName(SDL_Scancode c) {
+    static const std::pair<SDL_Scancode, const char*> kKeys[] = {
+        {SDL_SCANCODE_ESCAPE, "escape"}, {SDL_SCANCODE_MINUS, "minus"}, {SDL_SCANCODE_EQUALS, "equals"},
+        {SDL_SCANCODE_BACKSPACE, "backspace"}, {SDL_SCANCODE_TAB, "tab"}, {SDL_SCANCODE_LEFTBRACKET, "lbracket"},
+        {SDL_SCANCODE_RIGHTBRACKET, "rbracket"}, {SDL_SCANCODE_RETURN, "enter"}, {SDL_SCANCODE_LCTRL, "lctrl"},
+        {SDL_SCANCODE_SEMICOLON, "semicolon"}, {SDL_SCANCODE_APOSTROPHE, "apostrophe"}, {SDL_SCANCODE_GRAVE, "grave"},
+        {SDL_SCANCODE_LSHIFT, "lshift"}, {SDL_SCANCODE_BACKSLASH, "backslash"}, {SDL_SCANCODE_COMMA, "comma"},
+        {SDL_SCANCODE_PERIOD, "period"}, {SDL_SCANCODE_SLASH, "slash"}, {SDL_SCANCODE_RSHIFT, "rshift"},
+        {SDL_SCANCODE_KP_MULTIPLY, "nummul"}, {SDL_SCANCODE_LALT, "lalt"}, {SDL_SCANCODE_SPACE, "space"},
+        {SDL_SCANCODE_CAPSLOCK, "capslock"}, {SDL_SCANCODE_KP_MINUS, "numsub"}, {SDL_SCANCODE_KP_PLUS, "numadd"},
+        {SDL_SCANCODE_KP_PERIOD, "numdec"}, {SDL_SCANCODE_NONUSBACKSLASH, "iso"}, {SDL_SCANCODE_INTERNATIONAL1, "abnt"},
+        {SDL_SCANCODE_KP_ENTER, "numenter"}, {SDL_SCANCODE_RCTRL, "rctrl"}, {SDL_SCANCODE_KP_DIVIDE, "numdiv"},
+        {SDL_SCANCODE_RALT, "ralt"}, {SDL_SCANCODE_HOME, "home"}, {SDL_SCANCODE_UP, "up"}, {SDL_SCANCODE_PAGEUP, "pageup"},
+        {SDL_SCANCODE_LEFT, "left"}, {SDL_SCANCODE_RIGHT, "right"}, {SDL_SCANCODE_END, "end"}, {SDL_SCANCODE_DOWN, "down"},
+        {SDL_SCANCODE_PAGEDOWN, "pagedown"}, {SDL_SCANCODE_INSERT, "insert"}, {SDL_SCANCODE_DELETE, "delete"},
+        {SDL_SCANCODE_KP_0, "num0"}, {SDL_SCANCODE_0, "0"}};
+    static char name[8];
+    if (c >= SDL_SCANCODE_A && c <= SDL_SCANCODE_Z) return SDL_snprintf(name, 8, "%c", 'a' + (c - SDL_SCANCODE_A)), name;
+    if (c >= SDL_SCANCODE_1 && c <= SDL_SCANCODE_9) return SDL_snprintf(name, 8, "%c", '1' + (c - SDL_SCANCODE_1)), name;
+    if (c >= SDL_SCANCODE_F1 && c <= SDL_SCANCODE_F12) return SDL_snprintf(name, 8, "f%d", 1 + (c - SDL_SCANCODE_F1)), name;
+    if (c >= SDL_SCANCODE_KP_1 && c <= SDL_SCANCODE_KP_9) return SDL_snprintf(name, 8, "num%d", 1 + (c - SDL_SCANCODE_KP_1)), name;
+    for (auto [k, v] : kKeys)
+        if (c == k) return v;
+    return nullptr;
+}
+
+// "k enter mouse1" as the player reads it: K / Enter / Mouse 1
+std::string KeysShown(const std::string& keys) {
+    std::string out;
+    std::istringstream words(keys);
+    for (std::string w; words >> w;) {
+        if (w.rfind("mouse", 0) == 0 && w.size() == 6) w = "Mouse " + w.substr(5);
+        else if (w.rfind("num", 0) == 0 && w.size() > 3) w = "Num " + w.substr(3);
+        else w[0] = char(SDL_toupper(w[0]));
+        out += (out.empty() ? "" : " / ") + w;
+    }
+    return out;
+}
+
 void ButtonMapWidget(const Option& o) {
     ImGui::TextUnformatted(Tx(o.label));
     if (!o.help.Empty()) Dim(Tx(o.help));
@@ -1271,6 +1313,7 @@ void ButtonMapWidget(const Option& o) {
             ImGui::AlignTextToFramePadding();
             bool waiting = g.cap_slot == &b;
             if (waiting) ImGui::TextColored(Accent(1.3f), "%s", Tr(S::ButtonWaiting));
+            else if (o.keys) ImGui::TextUnformatted(KeysShown(G().store.GetButton(o, b)).c_str());
             else ImGui::TextUnformatted(PadName(G().store.GetButton(o, b)).c_str());
             ImGui::TableNextColumn();
             if (ImGui::Button(waiting ? Tr(S::ButtonCancel) : Tr(S::Change))) {
@@ -1280,7 +1323,10 @@ void ButtonMapWidget(const Option& o) {
                 } else {
                     g.cap_opt = &o;
                     g.cap_slot = &b;
+                    g.cap_cancel = true;  // until the mouse leaves the button just clicked
                 }
+            } else if (waiting) {
+                g.cap_cancel = ImGui::IsItemHovered();
             }
             ImGui::PopID();
         }
@@ -1307,7 +1353,25 @@ void OptionRow(const Option& o) {
 bool CaptureEvent(const SDL_Event& e) {
     if (!g.cap_slot) return false;
     std::string name;
-    if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+    if (g.cap_opt->keys) {
+        // a keyboard entry takes any key, Esc too (the entry's own button cancels), and a mouse button pressed
+        // anywhere but on that button
+        if (e.type == SDL_EVENT_KEY_DOWN) {
+            if (e.key.repeat) return true;
+            const char* n = KeyName(e.key.scancode);
+            if (n) name = n;
+        } else if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            if (g.cap_cancel) return false;
+            static const int kOrder[] = {0, 1, 3, 2, 4, 5};  // SDL: left, middle, right, x1, x2
+            if (e.button.button >= 1 && e.button.button <= 5) name = "mouse" + std::to_string(kOrder[e.button.button]);
+        } else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN && e.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
+            g.cap_slot = nullptr;
+            g.cap_opt = nullptr;
+            return true;
+        } else {
+            return e.type == SDL_EVENT_KEY_UP || e.type == SDL_EVENT_TEXT_INPUT;
+        }
+    } else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
         const char* n = SDL_GetGamepadStringForButton(SDL_GamepadButton(e.gbutton.button));
         if (n) name = n;
     } else if (e.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && e.gaxis.value > 24000 &&
@@ -3834,7 +3898,7 @@ void OptionsPage(const Page& p, bool heading = true) {
     }
     // controllers plugged in, on the page with the button map
     for (const Option& o : G().prof.options)
-        if (o.page == p.id && o.type == OptType::ButtonMap) {
+        if (o.page == p.id && o.type == OptType::ButtonMap && !o.keys) {
             ImGui::Separator();
             ImGui::TextUnformatted(Tr(S::Controllers));
             int n = 0;

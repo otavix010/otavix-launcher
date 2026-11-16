@@ -244,6 +244,81 @@ buttons = [
   { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "dpright" },
 ]
 
+[[options]]
+page = "controls"
+key = "keyboard"
+type = "toggle"
+default = true
+label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
+help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele.", en = "Play with the keyboard and mouse, with or without a controller.", es = "Juega con el teclado y el ratón, con mando o sin él." }
+
+[[options]]
+page = "controls"
+key = "keyboard_port"
+type = "choice"
+default = 1
+label = { pt = "Jogador do teclado", en = "Keyboard's player", es = "Jugador del teclado" }
+help = { pt = "A porta de controle em que o teclado joga. Para jogar teclado contra controle, deixe o controle na porta 1 e ponha o teclado na 2.", en = "The controller port the keyboard plays on. For keyboard against controller, leave the controller on port 1 and set the keyboard to 2.", es = "El puerto de mando en el que juega el teclado. Para jugar teclado contra mando, deja el mando en el puerto 1 y pon el teclado en el 2." }
+choices = [
+  { value = 1, label = "1" },
+  { value = 2, label = "2" },
+  { value = 3, label = "3" },
+  { value = 4, label = "4" },
+]
+
+[[options]]
+page = "controls"
+key = "mouse"
+type = "toggle"
+default = true
+label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
+help = { pt = "O movimento do mouse é o analógico direito (os dribles) e os botões dele entram no mapa de teclas. Durante o jogo o cursor fica preso na janela; Alt+Tab solta.", en = "The mouse's movement is the right stick (the tricks) and its buttons join the key map. While playing, the cursor stays inside the window; Alt+Tab frees it.", es = "El movimiento del ratón es el stick derecho (los regates) y sus botones entran en el mapa de teclas. Durante el juego el cursor queda dentro de la ventana; Alt+Tab lo suelta." }
+
+[[options]]
+page = "controls"
+key = "mouse_sensitivity"
+type = "slider"
+default = 50
+min = 5
+max = 200
+step = 5
+suffix = "%"
+label = { pt = "Sensibilidade do mouse", en = "Mouse sensitivity", es = "Sensibilidad del ratón" }
+help = { pt = "Quanto o analógico direito inclina com o movimento do mouse.", en = "How far the right stick tilts with the mouse's movement.", es = "Cuánto se inclina el stick derecho con el movimiento del ratón." }
+
+[[options]]
+page = "controls"
+key = "keys"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do controle do Xbox. Clique em Trocar e aperte a tecla nova.", en = "The key (or mouse button) of each button of the Xbox controller. Click Change and press the new key.", es = "La tecla (o botón del ratón) de cada botón del mando de Xbox. Haz clic en Cambiar y pulsa la tecla nueva." }
+buttons = [
+  { key = "stick_up", label = { pt = "Mover para cima", en = "Move up", es = "Mover arriba" }, default = "w" },
+  { key = "stick_down", label = { pt = "Mover para baixo", en = "Move down", es = "Mover abajo" }, default = "s" },
+  { key = "stick_left", label = { pt = "Mover para a esquerda", en = "Move left", es = "Mover a la izquierda" }, default = "a" },
+  { key = "stick_right", label = { pt = "Mover para a direita", en = "Move right", es = "Mover a la derecha" }, default = "d" },
+  { key = "a", label = { pt = "A (passe rasteiro)", en = "A (low pass)", es = "A (pase raso)" }, default = "k enter mouse1" },
+  { key = "b", label = { pt = "B (chute)", en = "B (shoot)", es = "B (tiro)" }, default = "l backspace mouse2" },
+  { key = "x", label = { pt = "X (passe alto)", en = "X (high pass)", es = "X (pase alto)" }, default = "j f" },
+  { key = "y", label = { pt = "Y (exibição)", en = "Y (show off)", es = "Y (lucirse)" }, default = "i r mouse3" },
+  { key = "lt", label = { pt = "Gatilho esquerdo (Trick Shift)", en = "Left trigger (Trick Shift)", es = "Gatillo izquierdo (Trick Shift)" }, default = "space" },
+  { key = "rt", label = { pt = "Gatilho direito (turbo)", en = "Right trigger (turbo)", es = "Gatillo derecho (turbo)" }, default = "lshift" },
+  { key = "white", label = { pt = "Branco", en = "White", es = "Blanco" }, default = "q" },
+  { key = "black", label = { pt = "Preto", en = "Black", es = "Negro" }, default = "e" },
+  { key = "start", label = { pt = "Start (pausa)", en = "Start (pause)", es = "Start (pausa)" }, default = "escape" },
+  { key = "back", label = { pt = "Back (replay)", en = "Back (replay)", es = "Back (repetición)" }, default = "tab" },
+  { key = "up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "up" },
+  { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
+  { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
+  { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+  { key = "rstick_up", label = { pt = "Drible para cima", en = "Trick up", es = "Regate arriba" }, default = "num8" },
+  { key = "rstick_down", label = { pt = "Drible para baixo", en = "Trick down", es = "Regate abajo" }, default = "num2" },
+  { key = "rstick_left", label = { pt = "Drible para a esquerda", en = "Trick left", es = "Regate a la izquierda" }, default = "num4" },
+  { key = "rstick_right", label = { pt = "Drible para a direita", en = "Trick right", es = "Regate a la derecha" }, default = "num6" },
+  { key = "ls", label = { pt = "Analógico esquerdo (clique)", en = "Left stick (click)", es = "Stick izquierdo (clic)" }, default = "z" },
+  { key = "rs", label = { pt = "Analógico direito (clique)", en = "Right stick (click)", es = "Stick derecho (clic)" }, default = "c" },
+]
+
 # ------------------------------------------------------------------------------------------------ game
 
 [[options]]

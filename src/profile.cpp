@@ -44,7 +44,7 @@ OptType ReadType(const std::string& s) {
     if (s == "toggle") return OptType::Toggle;
     if (s == "slider") return OptType::Slider;
     if (s == "resolution") return OptType::Resolution;
-    if (s == "buttons") return OptType::ButtonMap;
+    if (s == "buttons" || s == "keys") return OptType::ButtonMap;
     if (s == "path") return OptType::Path;
     return OptType::Choice;
 }
@@ -259,7 +259,8 @@ bool Profile::Load(const fs::path& file, std::string& error) {
             if (const toml::array* f = v["filters"].as_array())
                 for (auto& fe : *f)
                     if (auto fs = fe.value<std::string>()) op.filters.push_back(*fs);
-            if (op.type == OptType::ButtonMap && op.key.empty()) op.key = "buttons";
+            op.keys = v["type"].value_or(std::string()) == "keys";
+            if (op.type == OptType::ButtonMap && op.key.empty()) op.key = op.keys ? "keys" : "buttons";
             if (op.type == OptType::Path && !std::holds_alternative<std::string>(op.def)) op.def = std::string();
             options.push_back(std::move(op));
         }

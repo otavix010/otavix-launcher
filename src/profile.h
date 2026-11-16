@@ -72,6 +72,8 @@ struct Option {
     std::string width_key = "width", height_key = "height";  // Resolution
     int64_t guest_height = 0;  // Slider of render percent: shows the internal height for this console height
     std::vector<ButtonSlot> buttons;  // ButtonMap
+    bool keys = false;                // ButtonMap of the keyboard and mouse (type "keys"): each entry the names of the
+                                      // keys that give the button, apart by spaces (w, enter, lshift, mouse1...)
     std::string pick = "both";        // Path: folder, file or both
     std::vector<std::string> filters; // Path: file extensions without the dot
 };
