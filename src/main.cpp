@@ -517,11 +517,15 @@ fs::path FindGame(Game& gm) {
         return gm.prof.game_file.empty() ? gm.entry.dir : gm.entry.dir / FromU8(gm.prof.game_file);
     }
     std::string chosen_path = GamePath(gm);
+    // a PS4 game (install.pkg) is a folder with eboot.bin, never a file: a disc image kept as its path (report 1301, a
+    // PS3 .iso) is not the game, and the page asks for it again
+    const bool ps4 = !gm.prof.install.pkg.empty();
     auto holds = [&](const fs::path& p) {
-        if (fs::is_regular_file(p, ec)) return true;  // a disc image or the file itself
+        if (fs::is_regular_file(p, ec)) return !ps4;  // a disc image or the file itself
         return gm.prof.game_file.empty() ? fs::is_directory(p, ec) : fs::is_regular_file(p / FromU8(gm.prof.game_file), ec);
     };
     auto has_image = [&](const fs::path& d) -> fs::path {
+        if (ps4) return {};
         for (auto& e : fs::directory_iterator(d, ec)) {
             std::string ext = U8(e.path().extension());
             std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char ch) { return char(std::tolower(ch)); });
@@ -1653,6 +1657,10 @@ void PickInstall(Pick what) {
     } else if (what == Pick::Image) {
         static const SDL_DialogFileFilter kImage[] = {{"Imagem do disco (.iso)", "iso;xiso"}};
         SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kImage, 1, start.c_str(), false);
+    } else if (!G().prof.install.pkg.empty()) {
+        // a PS4 game: its .pkg files or an archive, never a disc image (report 1301: a PS3 .iso was picked)
+        static const SDL_DialogFileFilter kPs4[] = {{"Jogo de PS4 (.pkg, .7z, .zip, .rar)", "pkg;7z;zip;rar"}};
+        SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kPs4, 1, start.c_str(), false);
     } else {
         static const SDL_DialogFileFilter kGame[] = {{"Jogo baixado (.7z, .zip, .rar, .iso, .pkg)", "7z;zip;rar;iso;xiso;pkg"}};
         SDL_ShowOpenFileDialog(InstallPicked, nullptr, g.win, kGame, 1, start.c_str(), false);
@@ -3728,7 +3736,20 @@ void HomePage() {
             }
             ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s", Tr(S::GameNotInstalled));
             bool one_file = !gm.prof.install.files.empty();
-            ImGui::TextWrapped("%s", one_file && !gm.prof.install.help.Empty() ? Tx(gm.prof.install.help) : Tr(S::InstallHelp));
+            // a PS4 game (install.pkg) takes no disc image: its own words, without ".iso" (report 1301: a PS3 .iso was picked)
+            const bool ps4 = !gm.prof.install.pkg.empty();
+            const std::string ps4_help =
+                L3("Escolha os arquivos .pkg do jogo de PS4 ou o arquivo que você baixou (.7z, .zip ou .rar). O launcher extrai, confere a versão e "
+                   "deixa tudo pronto sozinho. Imagem de disco (.iso) e jogos de outros consoles não servem.",
+                   "Pick the PS4 game's .pkg files or the file you downloaded (.7z, .zip or .rar). The launcher extracts it, checks the release and "
+                   "sets it all up by itself. Disc images (.iso) and other consoles' games do not work.",
+                   "Elige los archivos .pkg del juego de PS4 o el archivo que descargaste (.7z, .zip o .rar). El launcher lo extrae, comprueba la "
+                   "versión y deja todo listo solo. Las imágenes de disco (.iso) y los juegos de otras consolas no sirven.");
+            const std::string ps4_auto =
+                L3("Os .pkg do jogo de PS4, ou um .7z, .zip ou .rar. O launcher extrai, acha o jogo e deixa pronto sozinho.",
+                   "The PS4 game's .pkg files, or a .7z, .zip or .rar. The launcher extracts it, finds the game and sets it up by itself.",
+                   "Los .pkg del juego de PS4, o un .7z, .zip o .rar. El launcher lo extrae, encuentra el juego y lo deja listo solo.");
+            ImGui::TextWrapped("%s", one_file && !gm.prof.install.help.Empty() ? Tx(gm.prof.install.help) : ps4 ? ps4_help.c_str() : Tr(S::InstallHelp));
             if (!gm.prof.install.version.Empty()) {
                 ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
                 ImGui::SameLine();
@@ -3759,7 +3780,7 @@ void HomePage() {
                 w = ImGui::GetContentRegionAvail().x;
                 if (way("##file", Tr(S::InstallFile), Tr(S::InstallFileText), true)) PickInstall(Pick::File);
             } else {
-                if (way("##auto", Tr(S::InstallAuto), Tr(S::InstallAutoText), true)) PickInstall(Pick::Download);
+                if (way("##auto", Tr(S::InstallAuto), ps4 ? ps4_auto.c_str() : Tr(S::InstallAutoText), true)) PickInstall(Pick::Download);
                 ImGui::SameLine(0, gap);
                 if (way("##manual", Tr(S::InstallManual), Tr(S::InstallManualText), true)) PickInstall(Pick::Folder);
                 if (gm.manual_open) {
@@ -3775,8 +3796,11 @@ void HomePage() {
                     if (ImGui::Button(Tr(S::HaveFolder))) PickInstall(Pick::Folder);
                 }
             }
-            if (is.stage == Installer::Stage::Failed)
-                ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s: %s", Tr(S::InstallFailed), is.error.c_str());
+            if (is.stage == Installer::Stage::Failed) {  // wrapped: the reason can be long (report 1301: another console's game)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.45f, 0.4f, 1));
+                ImGui::TextWrapped("%s: %s", Tr(S::InstallFailed), is.error.c_str());
+                ImGui::PopStyleColor();
+            }
         }
         if (gm.last_exit != INT_MIN) {
             ImGui::Spacing();

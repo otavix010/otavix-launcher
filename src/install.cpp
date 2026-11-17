@@ -430,6 +430,61 @@ std::string DiscId(const fs::path& p) {
     return {};
 }
 
+namespace {
+
+// a PS4 port (its game given by title id, spec.pkg) never takes a disc image nor another console's game: PS4 games come
+// as .pkg files or a folder with eboot.bin (report 1301: a PS3 .iso of inFamous 2 became the game's path, and the
+// emulator could only say it was not a game folder). A PS3 game's folder holds PARAM.SFO (or PS3_GAME\PARAM.SFO): its
+// PS3_GAME\USRDIR passes for a game folder, as EBOOT.BIN matches eboot.bin on Windows
+std::string Ps3FolderId(const fs::path& dir) {
+    fs::path a = dir;
+    for (int up = 0; up < 3 && !a.empty(); up++, a = a.parent_path()) {
+        if (std::string id = FolderId(a); !id.empty()) return id;
+        if (!a.has_parent_path() || a.parent_path() == a) break;
+    }
+    return {};
+}
+
+bool NotPs4Game(const fs::path& p) {
+    std::error_code ec;
+    if (fs::is_regular_file(p, ec)) return IsDiscImage(p);
+    return fs::is_directory(p, ec) && !Ps3FolderId(p).empty();
+}
+
+// what the player picked instead, and what the port needs
+std::string NotPs4Why(const fs::path& p, const InstallSpec& spec) {
+    std::error_code ec;
+    std::string id;
+    try {
+        id = fs::is_regular_file(p, ec) ? IsoId(p) : Ps3FolderId(p);
+    } catch (...) {
+    }
+    std::string what;
+    if (!id.empty() && (id[0] == 'B' || id[0] == 'N'))  // PS3 discs: BCES, BLUS...; PSN: NPEB...
+        what = L3("isso é um jogo de PS3 (", "this is a PS3 game (", "esto es un juego de PS3 (") + id + "), " +
+               L3("outro console", "another console", "otra consola");
+    else if (!id.empty() && id[0] == 'S')  // PS2: SCES_123.45, SLUS...
+        what = L3("isso é um jogo de PS2 (", "this is a PS2 game (", "esto es un juego de PS2 (") + id + "), " +
+               L3("outro console", "another console", "otra consola");
+    else
+        what = L3("isso é uma imagem de disco (.iso), que o port não usa", "this is a disc image (.iso), which the port does not use",
+                  "esto es una imagen de disco (.iso), que el port no usa");
+    return what + L3(": este port é de PS4 e precisa do jogo de PS4 (", ": this port is for PS4 and needs the PS4 game (",
+                     ": este port es de PS4 y necesita el juego de PS4 (") +
+           spec.pkg +
+           L3("), nos arquivos .pkg ou já extraído numa pasta com o eboot.bin", "), as its .pkg files or already extracted into a folder with eboot.bin",
+              "), en sus archivos .pkg o ya extraído en una carpeta con eboot.bin");
+}
+
+// a .pkg of the PS3, PSP or Vita starts with 0x7F "PKG"; the PS4's with 0x7F "CNT"
+bool IsOldPkg(const fs::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    char m[4] = {};
+    return f.read(m, 4) && m[0] == 0x7F && m[1] == 'P' && m[2] == 'K' && m[3] == 'G';
+}
+
+}  // namespace
+
 bool IsGameFile(const fs::path& p, const InstallSpec& spec) {
     std::string e = Ext(p);
     for (const std::string& f : spec.files)
@@ -623,6 +678,17 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     if (!spec.pkg.empty() && !(fs::is_directory(search, ec) && !Candidates(search, spec).empty())) {
         std::vector<fs::path> pkgs = FindPkgs(search);
         if (!pkgs.empty()) {
+            // another console's .pkg (PS3, PSP, Vita) said as such, before downloading the tool that would only find it is
+            // not a PS4 one (report 1301)
+            for (const fs::path& k : pkgs)
+                if (IsOldPkg(k)) {
+                    if (!work.empty()) fs::remove_all(work, ec);
+                    return fail(L3("o arquivo ", "the file ", "el archivo ") + U8(k.filename()) +
+                                L3(" é um .pkg de PS3 (ou PSP/Vita), outro console: este port é de PS4 e precisa dos .pkg do jogo de PS4 (",
+                                   " is a PS3 (or PSP/Vita) .pkg, another console: this port is for PS4 and needs the PS4 game's .pkg files (",
+                                   " es un .pkg de PS3 (o PSP/Vita), otra consola: este port es de PS4 y necesita los .pkg del juego de PS4 (") +
+                                spec.pkg + ")");
+                }
             std::string why;
             fs::path tool = PkgTool(dest.parent_path() / "ferramentas", cancel_, why);
             if (tool.empty()) {
@@ -700,6 +766,20 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
     std::vector<fs::path> found;
     if (fs::is_regular_file(search, ec)) found.push_back(search);
     else found = Candidates(search, spec);
+    if (!spec.pkg.empty()) {  // a PS4 game: no disc image, no PS3 game's folder (report 1301)
+        fs::path other;
+        found.erase(std::remove_if(found.begin(), found.end(),
+                                   [&](const fs::path& c) {
+                                       const bool no = NotPs4Game(c);
+                                       if (no && other.empty()) other = c;
+                                       return no;
+                                   }),
+                    found.end());
+        if (found.empty() && !other.empty()) {
+            if (!work.empty()) fs::remove_all(work, ec);
+            return fail(U8(other.filename()) + ": " + NotPs4Why(other, spec));
+        }
+    }
     if (found.empty()) {
         if (!work.empty()) fs::remove_all(work, ec);
         return fail(L3("nenhuma imagem do disco (.iso) ou pasta do jogo encontrada", "no disc image (.iso) or game folder found", "no se encontró ninguna imagen del disco (.iso) ni carpeta del juego"));
