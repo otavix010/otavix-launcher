@@ -1392,6 +1392,44 @@ bool CaptureEvent(const SDL_Event& e) {
     return true;
 }
 
+// tests: LAUNCHER_CAPTURE="a=14;b=m3;x=m1!" changes entries of the open game's keyboard map as the player would, one
+// each 300 ms from 1.5 s on: the entry waits and the event (a key's SDL scan code, or m and a mouse button of SDL's;
+// with ! the mouse is over the entry's cancel button) goes through the queue
+void TestCapture() {
+    static const char* list = SDL_getenv("LAUNCHER_CAPTURE");
+    static Uint64 next = 1500;
+    if (!list || g.cur < 0 || SDL_GetTicks() < next) return;
+    next = SDL_GetTicks() + 300;
+    std::string item = list;
+    item = item.substr(0, item.find(';'));
+    list = SDL_strchr(list, ';');
+    if (list) list++;
+    size_t eq = item.find('=');
+    if (eq == std::string::npos) return;
+    g.cap_slot = nullptr;
+    g.cap_opt = nullptr;
+    for (const Option& o : G().prof.options)
+        if (o.keys)
+            for (const ButtonSlot& b : o.buttons)
+                if (b.key == item.substr(0, eq)) {
+                    g.cap_opt = &o;
+                    g.cap_slot = &b;
+                }
+    if (!g.cap_slot) return;
+    g.cap_cancel = item.back() == '!';
+    SDL_Event e{};
+    if (item[eq + 1] == 'm') {
+        e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+        e.button.button = Uint8(std::atoi(item.c_str() + eq + 2));
+        e.button.down = true;
+    } else {
+        e.type = SDL_EVENT_KEY_DOWN;
+        e.key.scancode = SDL_Scancode(std::atoi(item.c_str() + eq + 1));
+        e.key.down = true;
+    }
+    SDL_PushEvent(&e);
+}
+
 // ---------------------------------------------------------------------------------------------- the art behind
 
 // the game's icon (its window's and its shortcut's), in the background: from the player's game, else the web
@@ -3888,6 +3926,9 @@ void HomePage() {
 
 void OptionsPage(const Page& p, bool heading = true) {
     if (heading) Heading(Tx(p.label));
+    // tests: LAUNCHER_SCROLL=pixels, the options' page scrolled down that much
+    static const char* scroll = SDL_getenv("LAUNCHER_SCROLL");
+    if (scroll) ImGui::SetScrollY(float(std::atof(scroll)));
     bool first = true;
     for (const Option& o : G().prof.options) {
         if (o.page != p.id) continue;
@@ -7741,6 +7782,11 @@ int main(int argc, char** argv) {
         g.settings_tab = std::atoi(t);
         g.focus_tab = true;
     }
+    // tests: LAUNCHER_TAB=n, the open game's advanced options open on that tab
+    if (const char* t = SDL_getenv("LAUNCHER_TAB"); t && g.cur >= 0) {
+        G().tab = std::atoi(t);
+        g.focus_tab = true;
+    }
     // tests: LAUNCHER_SHADERS_APPLY=1 merges the open game's shader pack now, LAUNCHER_SHADERS_SEND=1 sends its cache's
     // new shaders now (as when a session ends with sharing on)
     if (g.cur >= 0 && !G().shader_spec.Empty()) {
@@ -7787,6 +7833,7 @@ int main(int argc, char** argv) {
         SDL_Event e;
         // while the game runs the launcher only waits for it
         if (g.proc && (SDL_GetWindowFlags(g.win) & SDL_WINDOW_MINIMIZED)) SDL_WaitEventTimeout(nullptr, 250);
+        TestCapture();
         while (SDL_PollEvent(&e)) {
             if (CaptureEvent(e)) continue;
             ImGui_ImplSDL3_ProcessEvent(&e);
