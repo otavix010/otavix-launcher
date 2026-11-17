@@ -258,3 +258,8 @@ buttons = [
   { key = "select", label = "Select", default = "back" },
 ]
 
+
+[icon]
+# the window's and the desktop shortcut's: the game's box (public picture, downloaded once)
+kind = "image"
+web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Boxarts/Silent%20Hill%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png"]
