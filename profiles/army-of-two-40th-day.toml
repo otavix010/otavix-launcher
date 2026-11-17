@@ -22,5 +22,7 @@ web = [
 ]
 
 [icon]
-# the window's and the desktop shortcut's: the game's tile in the Xbox 360 store
+# the window's and the desktop shortcut's: the game's own icon, which the port's generator writes from the player's
+# copy (generated/default/icone.png); before the game is made, its tile in the Xbox 360 store
+files = ["{dir}/generated/default/icone.png"]
 web = ["http://download.xbox.com/content/images/66acd000-77fe-1000-9115-d802454108d8/1033/tile.png"]
