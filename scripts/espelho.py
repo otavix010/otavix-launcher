@@ -37,7 +37,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'spawn-armageddon-pc': r'E:\RecompDev\ps2\repos\spawn-armageddon-pc',
 }
 RELEASE = {  # repository: (tag, package)
-    'fifa-street-2-pc': ('v1.0.15', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
+    'fifa-street-2-pc': ('v1.0.16', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.1', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip', r'C:\Users\otavi\gowb-port\gowb-port-linux-x64.tar.gz'),
     'infamous-second-son-pc': ('v1.0.16', r'C:\infamous\pacote-v1016\infamous-second-son-windows-x64.zip', r'C:\infamous\pacote-v1011\infamous-second-son-linux-x64.tar.gz'),
 }
