@@ -277,9 +277,16 @@ void Store::Set(const Option& o, const Value& v) {
     dirty_ = true;
 }
 
-// a ButtonMap's table: o.key (a table in the settings, or a section of the .ini), one entry per button
+// a ButtonMap's table: o.key (a table in the settings, or a section of the .ini), one entry per button; one that goes
+// to the game by the environment is kept in the launcher's own file, a table under env
 std::string Store::GetButton(const Option& o, const ButtonSlot& b) const {
     if (o.target == Target::Ini) return ini_.Get(o.key, b.key).value_or(b.def);
+    if (o.target == Target::Env) {
+        if (const toml::table* env = own_["env"].as_table())
+            if (const toml::table* tb = (*env)[o.key].as_table())
+                if (auto s = (*tb)[b.key].value<std::string>()) return *s;
+        return b.def;
+    }
     if (const toml::table* tb = game_.at_path(o.key).as_table())
         if (auto s = (*tb)[b.key].value<std::string>()) return *s;
     return b.def;
@@ -289,6 +296,14 @@ void Store::SetButton(const Option& o, const ButtonSlot& b, const std::string& n
     if (o.target == Target::Ini) {
         ini_.Set(o.key, b.key, name);
         ini_dirty_ = dirty_ = true;
+        return;
+    }
+    if (o.target == Target::Env) {
+        if (!own_["env"].is_table()) own_.insert_or_assign("env", toml::table{});
+        toml::table& env = *own_["env"].as_table();
+        if (!env[o.key].is_table()) env.insert_or_assign(o.key, toml::table{});
+        env[o.key].as_table()->insert_or_assign(b.key, name);
+        dirty_ = true;
         return;
     }
     PutPath(game_, o.key + "." + b.key, name);
@@ -347,9 +362,17 @@ std::map<std::string, std::string> Store::Environment(const Profile& p) const {
     std::map<std::string, std::string> env;
     // an empty value leaves the variable unset: the game's own default (GOWA_PIN="" read as "on" forced the
     // pinning that its unset default decides by the CPU)
-    for (const Option& o : p.options)
-        if (o.target == Target::Env)
-            if (std::string v = ToText(Get(o)); !v.empty()) env[o.key] = v;
+    for (const Option& o : p.options) {
+        if (o.target != Target::Env) continue;
+        if (o.type == OptType::ButtonMap) {
+            // a map of buttons or keys: one variable, "id=names;id=names", every entry of the profile
+            std::string all;
+            for (const ButtonSlot& b : o.buttons) all += (all.empty() ? "" : ";") + b.key + "=" + GetButton(o, b);
+            if (!all.empty()) env[o.key] = all;
+            continue;
+        }
+        if (std::string v = ToText(Get(o)); !v.empty()) env[o.key] = v;
+    }
     return env;
 }
 
