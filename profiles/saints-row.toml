@@ -337,7 +337,7 @@ help = { pt = "O movimento do mouse é o analógico direito e os botões dele en
 page = "controls"
 key = "mnk_sensitivity_percent"
 type = "slider"
-default = 50
+default = 100
 min = 5
 max = 200
 step = 5
