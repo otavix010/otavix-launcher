@@ -318,6 +318,69 @@ suffix = "%"
 label = { pt = "Zona morta do analógico direito", en = "Right stick dead zone", es = "Zona muerta del stick derecho" }
 help = { pt = "Aumente se a câmera se move sozinha com o analógico solto. 0% é o original.", en = "Raise it if the camera moves by itself with the stick released. 0% is the original.", es = "Súbela si la cámara se mueve sola con el stick suelto. 0% es el original." }
 
+# >>> teclado e mouse (gerado por teclas_360.py)
+[[options]]
+page = "controls"
+key = "mnk_mode"
+type = "toggle"
+default = true
+label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
+help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele.", en = "Play with the keyboard and mouse, with or without a controller.", es = "Juega con el teclado y el ratón, con mando o sin él." }
+
+[[options]]
+page = "controls"
+key = "mnk_mouse"
+type = "toggle"
+default = false
+label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
+help = { pt = "O movimento do mouse é o analógico direito e os botões dele entram no mapa de teclas. O cursor fica preso na janela depois que você usa uma tecla do jogo; Alt+Tab solta.", en = "The mouse's movement is the right stick and its buttons join the key map. The cursor stays in the window once you use one of the game's keys; Alt+Tab lets it go.", es = "El movimiento del ratón es el stick derecho y sus botones entran en el mapa de teclas. El cursor queda atrapado en la ventana cuando usas una tecla del juego; Alt+Tab lo suelta." }
+
+[[options]]
+page = "controls"
+key = "mnk_sensitivity_percent"
+type = "slider"
+default = 50
+min = 5
+max = 200
+step = 5
+suffix = "%"
+label = { pt = "Sensibilidade do mouse", en = "Mouse sensitivity", es = "Sensibilidad del ratón" }
+help = { pt = "Quanto o analógico direito inclina com o movimento do mouse.", en = "How far the right stick tilts with the mouse's movement.", es = "Cuánto se inclina el stick derecho con el movimiento del ratón." }
+
+[[options]]
+page = "controls"
+key = "keybind"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do controle do Xbox 360. Clique em Trocar e aperte a tecla nova.", en = "The key (or mouse button) of each button of the Xbox 360 controller. Click Change and press the new key.", es = "La tecla (o botón del ratón) de cada botón del mando de Xbox 360. Haz clic en Cambiar y pulsa la tecla nueva." }
+buttons = [
+  { key = "lstick_up", label = { pt = "Analógico esquerdo ↑", en = "Left stick ↑", es = "Stick izquierdo ↑" }, default = "" },
+  { key = "lstick_down", label = { pt = "Analógico esquerdo ↓", en = "Left stick ↓", es = "Stick izquierdo ↓" }, default = "" },
+  { key = "lstick_left", label = { pt = "Analógico esquerdo ← (virar)", en = "Left stick ← (steer)", es = "Stick izquierdo ← (girar)" }, default = "a" },
+  { key = "lstick_right", label = { pt = "Analógico esquerdo → (virar)", en = "Left stick → (steer)", es = "Stick izquierdo → (girar)" }, default = "d" },
+  { key = "a", label = { pt = "A (freio de mão)", en = "A (handbrake)", es = "A (freno de mano)" }, default = "space enter" },
+  { key = "b", label = "B", default = "e backspace" },
+  { key = "x", label = "X", default = "q" },
+  { key = "y", label = "Y", default = "c" },
+  { key = "left_shoulder", label = "LB", default = "lctrl" },
+  { key = "right_shoulder", label = "RB", default = "lshift" },
+  { key = "left_trigger", label = { pt = "LT (freio e ré)", en = "LT (brake and reverse)", es = "LT (freno y marcha atrás)" }, default = "s" },
+  { key = "right_trigger", label = { pt = "RT (acelerar)", en = "RT (accelerate)", es = "RT (acelerar)" }, default = "w" },
+  { key = "start", label = { pt = "Start (pausa)", en = "Start (pause)", es = "Start (pausa)" }, default = "escape" },
+  { key = "back", label = "Back", default = "tab" },
+  { key = "dpad_up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "up" },
+  { key = "dpad_down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
+  { key = "dpad_left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
+  { key = "dpad_right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+  { key = "rstick_up", label = { pt = "Analógico direito ↑ (câmera)", en = "Right stick ↑ (camera)", es = "Stick derecho ↑ (cámara)" }, default = "num8" },
+  { key = "rstick_down", label = { pt = "Analógico direito ↓ (câmera)", en = "Right stick ↓ (camera)", es = "Stick derecho ↓ (cámara)" }, default = "num2" },
+  { key = "rstick_left", label = { pt = "Analógico direito ← (câmera)", en = "Right stick ← (camera)", es = "Stick derecho ← (cámara)" }, default = "num4" },
+  { key = "rstick_right", label = { pt = "Analógico direito → (câmera)", en = "Right stick → (camera)", es = "Stick derecho → (cámara)" }, default = "num6" },
+  { key = "lstick_press", label = { pt = "Analógico esquerdo (clique)", en = "Left stick (click)", es = "Stick izquierdo (clic)" }, default = "z" },
+  { key = "rstick_press", label = { pt = "Analógico direito (clique)", en = "Right stick (click)", es = "Stick derecho (clic)" }, default = "x" },
+]
+# <<< teclado e mouse
+
 # ------------------------------------------------------------------------------------------------ game
 
 [[options]]
