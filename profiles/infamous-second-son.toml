@@ -305,3 +305,71 @@ kind = "shadps4"
 folder = "user/cache"
 pack_folder = "user/shaders_comunidade"
 files = ["*.spv", "*.meta", "*.key", "profile.bin"]
+
+# inFAMOUS Second Son: teclado e mouse (contrato de 18/11). Acrescentar em launcher/profiles/infamous-second-son.toml,
+# na secao de controles. O emulador (ifpc-gpucomm) le estas variaveis; os padroes embutidos sao os mesmos daqui.
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_KEYBOARD"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
+help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele. Desligado, o teclado volta a seguir o arquivo user/input_config do emulador.", en = "Play with the keyboard and mouse, with or without a controller. When off, the keyboard goes back to the emulator's user/input_config file.", es = "Juega con el teclado y el ratón, con o sin mando. Apagado, el teclado vuelve a seguir el archivo user/input_config del emulador." }
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_MOUSE"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
+help = { pt = "O movimento do mouse é o analógico direito (a câmera e a mira) e os botões dele entram no mapa de teclas. Durante o jogo o cursor fica preso na janela; Alt+Tab solta.", en = "The mouse's movement is the right stick (camera and aim) and its buttons join the key map. While playing, the cursor stays inside the window; Alt+Tab frees it.", es = "El movimiento del ratón es el stick derecho (cámara y puntería) y sus botones entran en el mapa de teclas. Durante el juego el cursor queda dentro de la ventana; Alt+Tab lo suelta." }
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_MOUSE_SENS"
+target = "env"
+type = "slider"
+default = 50
+min = 5
+max = 200
+step = 5
+suffix = "%"
+label = { pt = "Sensibilidade do mouse", en = "Mouse sensitivity", es = "Sensibilidad del ratón" }
+help = { pt = "Quanto a câmera gira com o movimento do mouse.", en = "How far the camera turns with the mouse's movement.", es = "Cuánto gira la cámara con el movimiento del ratón." }
+
+[[options]]
+page = "controls"
+key = "SHADPS4_CFG_KEYS"
+target = "env"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do controle do PlayStation. Clique em Trocar e aperte a tecla nova. F1 a F12 e Delete são atalhos do port.", en = "The key (or mouse button) of each PlayStation controller button. Click Change and press the new key. F1 to F12 and Delete are port shortcuts.", es = "La tecla (o botón del ratón) de cada botón del mando de PlayStation. Haz clic en Cambiar y pulsa la tecla nueva. F1 a F12 y Supr son atajos del port." }
+buttons = [
+  { key = "stick_up", label = { pt = "Andar para a frente", en = "Move forward", es = "Avanzar" }, default = "w" },
+  { key = "stick_down", label = { pt = "Andar para trás", en = "Move back", es = "Retroceder" }, default = "s" },
+  { key = "stick_left", label = { pt = "Andar para a esquerda", en = "Move left", es = "Ir a la izquierda" }, default = "a" },
+  { key = "stick_right", label = { pt = "Andar para a direita", en = "Move right", es = "Ir a la derecha" }, default = "d" },
+  { key = "cross", label = { pt = "X (pular e planar)", en = "X (jump and hover)", es = "X (saltar y planear)" }, default = "space" },
+  { key = "circle", label = { pt = "Círculo (arrancada do poder)", en = "Circle (power dash)", es = "Círculo (impulso del poder)" }, default = "lshift" },
+  { key = "square", label = { pt = "Quadrado (golpe corpo a corpo)", en = "Square (melee)", es = "Cuadrado (cuerpo a cuerpo)" }, default = "f" },
+  { key = "triangle", label = { pt = "Triângulo (ação especial)", en = "Triangle (special action)", es = "Triángulo (acción especial)" }, default = "e" },
+  { key = "r2", label = { pt = "R2 (atirar)", en = "R2 (shoot)", es = "R2 (disparar)" }, default = "mouse1" },
+  { key = "l2", label = { pt = "L2 (mirar)", en = "L2 (aim)", es = "L2 (apuntar)" }, default = "mouse2" },
+  { key = "r1", label = { pt = "R1 (tiro pesado)", en = "R1 (heavy shot)", es = "R1 (disparo pesado)" }, default = "r" },
+  { key = "l1", label = { pt = "L1 (arremessar)", en = "L1 (throw)", es = "L1 (lanzar)" }, default = "q" },
+  { key = "touchpad", label = { pt = "Touchpad (absorver energia e interagir)", en = "Touchpad (drain energy and interact)", es = "Panel táctil (absorber energía e interactuar)" }, default = "t" },
+  { key = "l3", label = { pt = "L3 (procurar fontes de energia)", en = "L3 (find power sources)", es = "L3 (buscar fuentes de energía)" }, default = "c" },
+  { key = "r3", label = { pt = "R3 (clique do analógico direito)", en = "R3 (right stick click)", es = "R3 (clic del stick derecho)" }, default = "mouse3" },
+  { key = "options", label = { pt = "Options (mapa e menu)", en = "Options (map and menu)", es = "Options (mapa y menú)" }, default = "escape enter" },
+  { key = "up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "up" },
+  { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
+  { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
+  { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+  { key = "rstick_up", label = { pt = "Câmera para cima", en = "Camera up", es = "Cámara arriba" }, default = "i" },
+  { key = "rstick_down", label = { pt = "Câmera para baixo", en = "Camera down", es = "Cámara abajo" }, default = "k" },
+  { key = "rstick_left", label = { pt = "Câmera para a esquerda", en = "Camera left", es = "Cámara a la izquierda" }, default = "j" },
+  { key = "rstick_right", label = { pt = "Câmera para a direita", en = "Camera right", es = "Cámara a la derecha" }, default = "l" },
+]

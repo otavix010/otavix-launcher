@@ -224,3 +224,71 @@ values = { PS2X_JANELA_TAM = "1920x1080", PS2X_ESCALA = "fsr", PS2X_NITIDEZ_PCT 
 label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
 help = { pt = "Tela cheia, com anti-serrilhamento FXAA e ampliação NVIDIA Image Scaling.", en = "Fullscreen, with FXAA anti-aliasing and NVIDIA Image Scaling upscaling.", es = "Pantalla completa, con antialiasing FXAA y ampliación NVIDIA Image Scaling." }
 values = { PS2X_TELA_CHEIA = "1", PS2X_ESCALA = "nis", PS2X_NITIDEZ_PCT = 60, PS2X_FXAA = "1" }
+
+# Bloco da página Controles para o perfil spawn-armageddon.toml (motor PS2 0.1.22+). Tudo por ambiente; os padrões
+# são os mesmos embutidos no motor. Rótulos só com o nome do botão do PlayStation 2 (as ações do Spawn não foram conferidas).
+
+[[options]]
+page = "controls"
+key = "PS2X_TECLADO"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
+help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele.", en = "Play with the keyboard and mouse, with or without a controller.", es = "Juega con el teclado y el ratón, con mando o sin él." }
+
+[[options]]
+page = "controls"
+key = "PS2X_MOUSE"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
+help = { pt = "O movimento do mouse é o analógico direito e os botões dele entram no mapa de teclas. O cursor fica preso na janela depois da primeira tecla do jogo; Alt+Tab solta.", en = "The mouse's movement is the right stick and its buttons join the key map. The cursor stays inside the window after the first game key; Alt+Tab frees it.", es = "El movimiento del ratón es el stick derecho y sus botones entran en el mapa de teclas. El cursor queda dentro de la ventana tras la primera tecla del juego; Alt+Tab lo suelta." }
+
+[[options]]
+page = "controls"
+key = "PS2X_MOUSE_SENS"
+target = "env"
+type = "slider"
+default = 50
+min = 5
+max = 200
+step = 5
+suffix = "%"
+label = { pt = "Sensibilidade do mouse", en = "Mouse sensitivity", es = "Sensibilidad del ratón" }
+help = { pt = "Quanto o analógico direito inclina com o movimento do mouse.", en = "How far the right stick tilts with the mouse's movement.", es = "Cuánto se inclina el stick derecho con el movimiento del ratón." }
+
+[[options]]
+page = "controls"
+key = "PS2X_TECLAS"
+target = "env"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do controle do PlayStation 2. Clique em Trocar e aperte a tecla nova.", en = "The key (or mouse button) of each PlayStation 2 controller button. Click Change and press the new key.", es = "La tecla (o botón del ratón) de cada botón del mando de PlayStation 2. Haz clic en Cambiar y pulsa la tecla nueva." }
+buttons = [
+  { key = "lstick_up", label = { pt = "Analógico esquerdo ↑", en = "Left stick ↑", es = "Stick izquierdo ↑" }, default = "w" },
+  { key = "lstick_down", label = { pt = "Analógico esquerdo ↓", en = "Left stick ↓", es = "Stick izquierdo ↓" }, default = "s" },
+  { key = "lstick_left", label = { pt = "Analógico esquerdo ←", en = "Left stick ←", es = "Stick izquierdo ←" }, default = "a" },
+  { key = "lstick_right", label = { pt = "Analógico esquerdo →", en = "Left stick →", es = "Stick izquierdo →" }, default = "d" },
+  { key = "cross", label = "X", default = "space x" },
+  { key = "square", label = { pt = "Quadrado", en = "Square", es = "Cuadrado" }, default = "mouse1 z" },
+  { key = "triangle", label = { pt = "Triângulo", en = "Triangle", es = "Triángulo" }, default = "mouse2 v" },
+  { key = "circle", label = { pt = "Bola", en = "Circle", es = "Círculo" }, default = "c escape" },
+  { key = "l1", label = "L1", default = "q" },
+  { key = "r1", label = "R1", default = "e" },
+  { key = "l2", label = "L2", default = "lshift" },
+  { key = "r2", label = "R2", default = "rshift" },
+  { key = "l3", label = { pt = "L3 (clique do analógico esquerdo)", en = "L3 (left stick click)", es = "L3 (clic del stick izquierdo)" }, default = "f" },
+  { key = "r3", label = { pt = "R3 (clique do analógico direito)", en = "R3 (right stick click)", es = "R3 (clic del stick derecho)" }, default = "mouse3" },
+  { key = "start", label = "START", default = "enter" },
+  { key = "select", label = "SELECT", default = "tab" },
+  { key = "up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "up" },
+  { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
+  { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
+  { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+  { key = "rstick_up", label = { pt = "Analógico direito ↑", en = "Right stick ↑", es = "Stick derecho ↑" }, default = "i" },
+  { key = "rstick_down", label = { pt = "Analógico direito ↓", en = "Right stick ↓", es = "Stick derecho ↓" }, default = "k" },
+  { key = "rstick_left", label = { pt = "Analógico direito ←", en = "Right stick ←", es = "Stick derecho ←" }, default = "j" },
+  { key = "rstick_right", label = { pt = "Analógico direito →", en = "Right stick →", es = "Stick derecho →" }, default = "l" },
+]
