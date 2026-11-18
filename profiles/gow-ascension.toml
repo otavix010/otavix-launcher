@@ -220,10 +220,70 @@ target = "env"
 type = "choice"
 default = "1"
 label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
-help = { pt = "Funciona junto com o controle, com a janela do jogo em foco. WASD move; espaço pula (✕); mouse esquerdo = ataque leve (□), direito = forte (△); E agarra (○); Shift + WASD esquiva; Q, F, C e R = L1, R1, L2 e R2; setas = direcional; Esc pausa; Tab = Select; Backspace volta nos menus. No jogo, F1 mostra e esconde a legenda das teclas. Para fechar: o X da janela ou Alt+F4.", en = "Works together with the controller, with the game's window focused. WASD moves; space jumps (✕); left mouse = light attack (□), right = heavy (△); E grabs (○); Shift + WASD dodges; Q, F, C and R = L1, R1, L2 and R2; arrows = d-pad; Esc pauses; Tab = Select; Backspace goes back in menus. In the game, F1 shows and hides the keys' legend. To close: the window's X or Alt+F4.", es = "Funciona junto con el mando, con la ventana del juego en foco. WASD mueve; espacio salta (✕); ratón izquierdo = ataque ligero (□), derecho = fuerte (△); E agarra (○); Shift + WASD esquiva; Q, F, C y R = L1, R1, L2 y R2; flechas = cruceta; Esc pausa; Tab = Select; Retroceso vuelve en los menús. En el juego, F1 muestra y oculta la leyenda de las teclas. Para cerrar: la X de la ventana o Alt+F4." }
+help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele, com a janela do jogo em foco. As teclas de cada botão ficam na lista abaixo. No jogo, F1 mostra e esconde a legenda das teclas.", en = "Play with the keyboard and mouse, with or without a controller, while the game window has focus. The keys for each button are in the list below. In the game, F1 shows and hides the key legend.", es = "Juega con el teclado y el ratón, con mando o sin él, con la ventana del juego en primer plano. Las teclas de cada botón están en la lista de abajo. En el juego, F1 muestra y oculta la leyenda de las teclas." }
 choices = [
   { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
   { value = "0", label = { pt = "Desligado (só controle)", en = "Off (controller only)", es = "Desactivado (solo mando)" } },
+]
+
+[[options]]
+page = "controls"
+key = "GOWA_MOUSE"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
+help = { pt = "O movimento do mouse é o analógico direito (a esquiva) e os botões dele entram no mapa de teclas. Depois da primeira tecla ou clique no jogo, o cursor fica preso na janela e escondido; Alt+Tab solta.", en = "The mouse's movement is the right stick (the dodge) and its buttons join the key map. After the first key or click in the game, the cursor is held inside the window and hidden; Alt+Tab releases it.", es = "El movimiento del ratón es el stick derecho (la esquiva) y sus botones entran en el mapa de teclas. Tras la primera tecla o clic en el juego, el cursor queda retenido en la ventana y oculto; Alt+Tab lo suelta." }
+choices = [
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+]
+
+[[options]]
+page = "controls"
+key = "GOWA_MOUSE_SENS"
+target = "env"
+type = "slider"
+default = 50
+min = 5
+max = 200
+step = 5
+suffix = "%"
+label = { pt = "Sensibilidade do mouse", en = "Mouse sensitivity", es = "Sensibilidad del ratón" }
+help = { pt = "Quanto o analógico direito inclina com o movimento do mouse.", en = "How far the right stick tilts with the mouse's movement.", es = "Cuánto se inclina el stick derecho con el movimiento del ratón." }
+
+[[options]]
+page = "controls"
+key = "GOWA_TECLAS"
+target = "env"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do controle. Clique em Trocar e aperte a tecla nova. Enquanto o Shift não for usado aqui, Shift + as teclas de andar também movem o analógico direito.", en = "The key (or mouse button) for each controller button. Click Change and press the new key. While Shift is not used here, Shift + the movement keys also move the right stick.", es = "La tecla (o botón del ratón) de cada botón del mando. Haz clic en Cambiar y pulsa la tecla nueva. Mientras Shift no se use aquí, Shift + las teclas de moverse también mueven el stick derecho." }
+buttons = [
+  { key = "stick_up", label = { pt = "Andar para cima", en = "Move up", es = "Moverse arriba" }, default = "w" },
+  { key = "stick_down", label = { pt = "Andar para baixo", en = "Move down", es = "Moverse abajo" }, default = "s" },
+  { key = "stick_left", label = { pt = "Andar para a esquerda", en = "Move left", es = "Moverse a la izquierda" }, default = "a" },
+  { key = "stick_right", label = { pt = "Andar para a direita", en = "Move right", es = "Moverse a la derecha" }, default = "d" },
+  { key = "cross", label = { pt = "✕ (pular)", en = "✕ (jump)", es = "✕ (saltar)" }, default = "space" },
+  { key = "square", label = { pt = "□ (ataque leve)", en = "□ (light attack)", es = "□ (ataque ligero)" }, default = "mouse1" },
+  { key = "triangle", label = { pt = "△ (ataque forte)", en = "△ (heavy attack)", es = "△ (ataque fuerte)" }, default = "mouse2" },
+  { key = "circle", label = { pt = "○ (agarrar)", en = "○ (grab)", es = "○ (agarrar)" }, default = "e backspace mouse3" },
+  { key = "l1", label = "L1", default = "q" },
+  { key = "r1", label = "R1", default = "f" },
+  { key = "l2", label = "L2", default = "c" },
+  { key = "r2", label = "R2", default = "r" },
+  { key = "l3", label = "L3", default = "z" },
+  { key = "r3", label = "R3", default = "v" },
+  { key = "rstick_up", label = { pt = "Analógico direito para cima (esquiva)", en = "Right stick up (dodge)", es = "Stick derecho arriba (esquiva)" }, default = "i" },
+  { key = "rstick_down", label = { pt = "Analógico direito para baixo", en = "Right stick down", es = "Stick derecho abajo" }, default = "k" },
+  { key = "rstick_left", label = { pt = "Analógico direito para a esquerda", en = "Right stick left", es = "Stick derecho a la izquierda" }, default = "j" },
+  { key = "rstick_right", label = { pt = "Analógico direito para a direita", en = "Right stick right", es = "Stick derecho a la derecha" }, default = "l" },
+  { key = "up", label = { pt = "Direcional para cima", en = "D-pad up", es = "Cruceta arriba" }, default = "up" },
+  { key = "down", label = { pt = "Direcional para baixo", en = "D-pad down", es = "Cruceta abajo" }, default = "down" },
+  { key = "left", label = { pt = "Direcional para a esquerda", en = "D-pad left", es = "Cruceta izquierda" }, default = "left" },
+  { key = "right", label = { pt = "Direcional para a direita", en = "D-pad right", es = "Cruceta derecha" }, default = "right" },
+  { key = "start", label = { pt = "Start (pausa)", en = "Start (pause)", es = "Start (pausa)" }, default = "escape enter" },
+  { key = "select", label = "Select", default = "tab" },
 ]
 
 [[options]]
