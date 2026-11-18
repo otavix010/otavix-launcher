@@ -39,7 +39,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.16', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.2', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip', r'C:\Users\otavi\gowb-port\gowb-port-linux-x64.tar.gz'),
-    'infamous-second-son-pc': ('v1.0.16', r'C:\infamous\pacote-v1016\infamous-second-son-windows-x64.zip', r'C:\infamous\pacote-v1016\infamous-second-son-linux-x64.tar.gz'),
+    'infamous-second-son-pc': ('v1.0.17', r'C:\infamous\pacote-v1017\infamous-second-son-windows-x64.zip', r'C:\infamous\pacote-v1017\infamous-second-son-linux-x64.tar.gz'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
@@ -64,6 +64,7 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.13.zip': r'C:\infamous\pacote-v1013\infamous-second-son-fonte-ifpc-v1.0.13.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.15.zip': r'C:\infamous\pacote-v1015\infamous-second-son-fonte-ifpc-v1.0.15.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.16.zip': r'C:\infamous\pacote-v1016\infamous-second-son-fonte-ifpc-v1.0.16.zip',
+    'arquivos/infamous-second-son-fonte-ifpc-v1.0.17.zip': r'C:\infamous\pacote-v1017\infamous-second-son-fonte-ifpc-v1.0.17.zip',
     'arquivos/fsr-vulkan-fonte.zip': r'C:\infamous\pacote-windows-v10\fsr-vulkan-fonte.zip',
 }
 ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles' [art] web: every player sees the game's photo
