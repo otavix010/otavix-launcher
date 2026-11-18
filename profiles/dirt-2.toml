@@ -321,7 +321,7 @@ help = { pt = "Aumente se a câmera se move sozinha com o analógico solto. 0% �
 # >>> teclado e mouse (gerado por teclas_360.py)
 [[options]]
 page = "controls"
-key = "mnk_mode"
+key = "kbm"
 type = "toggle"
 default = true
 label = { pt = "Teclado e mouse", en = "Keyboard and mouse", es = "Teclado y ratón" }
@@ -329,7 +329,7 @@ help = { pt = "Joga com o teclado e o mouse, junto com o controle ou sem ele.", 
 
 [[options]]
 page = "controls"
-key = "mnk_mouse"
+key = "kbm_mouse"
 type = "toggle"
 default = false
 label = { pt = "Mouse", en = "Mouse", es = "Ratón" }
