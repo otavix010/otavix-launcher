@@ -3151,7 +3151,7 @@ bool UnpackCard(Game& gm) {
                                                                     : Tr(S::ReadingArchive);
         ImGui::TextColored(Accent(1.3f), "● %s", what);
         char pct[16];
-        std::snprintf(pct, sizeof(pct), "%.0f%%", st.progress * 100);
+        std::snprintf(pct, sizeof(pct), "%d%%", int(st.progress * 100));  // floor: 99.6% must not read as 100% (report 1377)
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
         ImGui::ProgressBar(st.stage == Installer::Stage::Extracting ? st.progress : -float(ImGui::GetTime()), ImVec2(-1, 0),
                            st.stage == Installer::Stage::Extracting ? pct : "");
@@ -3680,7 +3680,7 @@ void HomePage() {
                                                                         : Tr(S::ReadingArchive);
             ImGui::TextColored(Accent(1.3f), "● %s", what);
             char pct[16];
-            std::snprintf(pct, sizeof(pct), "%.0f%%", is.progress * 100);
+            std::snprintf(pct, sizeof(pct), "%d%%", int(is.progress * 100));  // floor: 99.6% must not read as 100% (report 1377)
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Accent(0.8f));
             ImGui::ProgressBar(is.stage == Installer::Stage::Extracting ? is.progress : -float(ImGui::GetTime()), ImVec2(-1, 0),
                                is.stage == Installer::Stage::Extracting ? pct : "");
