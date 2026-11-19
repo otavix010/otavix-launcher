@@ -37,6 +37,7 @@
 #include "icon.h"
 #include "build.h"
 #include "install.h"
+#include "unpack.h"
 #include "i18n.h"
 #include "mods.h"
 #include "notas.h"
@@ -6974,18 +6975,9 @@ void InstallZip(Game& gm, const fs::path& zip, bool keep_zip_aside) {
         fs::path dest = dir / zip.stem();
         for (int i = 2; fs::exists(dest, ec); i++) dest = dir / FromU8(U8(zip.stem()) + " (" + std::to_string(i) + ")");
         fs::create_directories(dest, ec);
-        std::string z = U8(zip), d = U8(dest);
-        char tar[512];
-        const char* sysroot = SDL_getenv("SystemRoot");
-        std::snprintf(tar, sizeof(tar), "%s\\System32\\tar.exe", sysroot ? sysroot : "C:\\Windows");
-        const char* argv[] = {tar, "-xf", z.c_str(), "-C", d.c_str(), nullptr};
-        SDL_Process* p = SDL_CreateProcess(argv, false);
-        int code = -1;
-        if (p) {
-            SDL_WaitProcess(p, true, &code);
-            SDL_DestroyProcess(p);
-        }
-        bool ok = code == 0 && !fs::is_empty(dest, ec);
+        std::string z = U8(zip), d = U8(dest), why;
+        // the system's tar (it was always tar.exe, also on Linux; report 1367)
+        bool ok = unpack::Extract(z, d, why) && !fs::is_empty(dest, ec);
         if (ok) {
             FlattenMod(dest);
             // a .zip that sat in the mods folder goes aside once unpacked
@@ -6996,7 +6988,7 @@ void InstallZip(Game& gm, const fs::path& zip, bool keep_zip_aside) {
         } else {
             fs::remove_all(dest, ec);
         }
-        gm.mods_msg = ok ? Tr(S::ModInstalled) : std::string(Tr(S::ModInstallFailed)) + " (tar " + std::to_string(code) + ")";
+        gm.mods_msg = ok ? Tr(S::ModInstalled) : std::string(Tr(S::ModInstallFailed)) + " (" + why + ")";
         gm.mods_stale = true;
         gm.mods_busy = false;
     }).detach();

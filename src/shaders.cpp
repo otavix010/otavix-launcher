@@ -1,4 +1,5 @@
 #include "shaders.h"
+#include "unpack.h"
 
 #include <SDL3/SDL.h>
 
@@ -129,10 +130,6 @@ int MergeXenos(const fs::path& mine, const std::string& pack, bool shaders, size
     return int(theirs.size());
 }
 
-std::string Tar() {
-    const char* root = SDL_getenv("SystemRoot");
-    return std::string(root ? root : "C:\\Windows") + "\\System32\\tar.exe";
-}
 
 std::string Today() {
     SDL_Time now = 0;
@@ -341,11 +338,8 @@ void ShaderShare::Apply(const std::string& repo, const ShaderSpec& spec, const f
         }
         fs::remove_all(tmp, ec);
         fs::create_directories(tmp, ec);
-        std::string tar = Tar(), src = U8(zip), to = U8(tmp);
-        const char* args[] = {tar.c_str(), "-xf", src.c_str(), "-C", to.c_str(), nullptr};
-        SDL_Process* p = SDL_CreateProcess(args, false);
-        int code = -1;
-        if (p) SDL_WaitProcess(p, true, &code), SDL_DestroyProcess(p);
+        std::string src = U8(zip), to = U8(tmp), why;
+        int code = unpack::Extract(src, to, why) ? 0 : -1;  // the system's tar (on Linux without bsdtar: unzip, report 1367)
         fs::remove(zip, ec);
         if (code != 0) {
             fs::remove_all(tmp, ec);

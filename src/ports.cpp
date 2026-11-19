@@ -1,5 +1,6 @@
 #include "ports.h"
 #include "i18n.h"
+#include "unpack.h"
 
 #include <SDL3/SDL.h>
 
@@ -201,26 +202,13 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         }
         fs::remove_all(work, ec);
         fs::create_directories(work, ec);
-#ifdef _WIN32
-        char sys[512];
-        const char* root = SDL_getenv("SystemRoot");
-        std::snprintf(sys, sizeof(sys), "%s\\System32\\tar.exe", root ? root : "C:\\Windows");
-#else
-        const char* sys = "bsdtar";  // libarchive's, as on Windows: reads .zip and .tar.gz and keeps the permissions
-#endif
+        // the system's tar (bsdtar on Linux; without it GNU tar or unzip, report 1367); why = what failed (reports 985 and 994)
         std::string z = U8(zip), w = U8(work);
-        const char* args[] = {sys, "-xf", z.c_str(), "-C", w.c_str(), nullptr};
-        SDL_Process* p = SDL_CreateProcess(args, false);
-        int code = -1;
         std::string why;
-        if (p) {
-            SDL_WaitProcess(p, true, &code);
-            SDL_DestroyProcess(p);
-        } else {
-            why = SDL_GetError();  // tar did not even start (reports 985 and 994: "tar -1")
-        }
+        int code = unpack::Extract(z, w, why) ? 0 : -1;
 #ifdef _WIN32
         // tar.exe missing, blocked or failing on this PC: the .zip is unpacked by PowerShell instead
+        const char* root = SDL_getenv("SystemRoot");
         if (code != 0 && !tgz) {
             fs::remove_all(work, ec);
             fs::create_directories(work, ec);
@@ -244,7 +232,7 @@ void PortFetcher::Install(const std::string& repo, const fs::path& dir) {
         fs::remove(zip, ec);
         if (code != 0) {
             fs::remove_all(work, ec);
-            return fail(std::string("falha ao descompactar o port (") + (p ? "tar saiu com " + std::to_string(code) : "tar.exe não abriu: " + why) + ")");
+            return fail(L3("falha ao descompactar o port (", "could not unpack the port (", "no se pudo descomprimir el port (") + why + ")");
         }
         // a package wrapped in one folder: that folder's contents
         fs::path top = work;

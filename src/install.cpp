@@ -1,4 +1,5 @@
 #include "install.h"
+#include "unpack.h"
 #include "i18n.h"
 
 #include <SDL3/SDL.h>
@@ -108,16 +109,11 @@ uint64_t FolderBytes(const fs::path& d) {
     return n;
 }
 
-// the system's tar: Windows 10 and 11 carry libarchive's, which reads 7z, zip and rar
+// the system's tar: Windows 10 and 11 carry libarchive's, which reads 7z, zip and rar; on Linux bsdtar, else GNU tar (which reads
+// only the tar formats: the error then says to install bsdtar, report 1367)
 std::string Tar() {
-#ifdef _WIN32
-    char sys[512] = {};
-    const char* root = SDL_getenv("SystemRoot");
-    std::snprintf(sys, sizeof(sys), "%s\\System32\\tar.exe", root ? root : "C:\\Windows");
-    return sys;
-#else
-    return "bsdtar";
-#endif
+    std::string t = unpack::Tar();
+    return t.empty() ? "tar" : t;
 }
 
 // a program's output with its errors in it, and how it ended (-1: it did not start)
@@ -573,7 +569,7 @@ void Installer::Run(fs::path source, fs::path dest, InstallSpec spec) {
         std::string src = U8(source);
         const char* list_args[] = {tar.c_str(), "-tvf", src.c_str(), nullptr};
         SDL_Process* lp = SDL_CreateProcess(list_args, true);
-        if (!lp) return fail("tar");
+        if (!lp) return fail(unpack::Tar().empty() ? unpack::MissingBsdtarHint() : std::string("tar"));
         size_t got = 0;
         int code = -1;
         char* out = static_cast<char*>(SDL_ReadProcess(lp, &got, &code));
