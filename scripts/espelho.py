@@ -39,7 +39,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.16', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
     'gow-betrayal-pc': ('v1.0.2', r'C:\Users\otavi\gowb-port\gowb-port-windows-x64.zip', r'C:\Users\otavi\gowb-port\gowb-port-linux-x64.tar.gz'),
-    'infamous-second-son-pc': ('v1.0.18', r'C:\infamous\pacote-v1018\infamous-second-son-windows-x64.zip', r'C:\infamous\pacote-v1018\infamous-second-son-linux-x64.tar.gz'),
+    'infamous-second-son-pc': ('v1.0.19', r'C:\infamous\pacote-v1019\infamous-second-son-windows-x64.zip', r'C:\infamous\pacote-v1019\infamous-second-son-linux-x64.tar.gz'),
 }
 FIXOS = {  # key: local file; files the ports' generators download (the 360 ports' comum/gerar.ps1: the SDK)
     'releases/otavix010/rexglue-sdk-ffx/v0.10.0.24-ffx2/rexglue-sdk-0.10.0.24-ffx2-win-amd64.zip':
@@ -73,7 +73,7 @@ ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles'
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.103', '1.0.102', '1.0.101', '1.0.100', '1.0.99', '1.0.98', '1.0.97', '1.0.96', '1.0.95', '1.0.94', '1.0.93', '1.0.92', '1.0.91', '1.0.90', '1.0.89', '1.0.88', '1.0.87', '1.0.86', '1.0.85', '1.0.84', '1.0.83', '1.0.82', '1.0.81', '1.0.80', '1.0.79', '1.0.78', '1.0.77', '1.0.76', '1.0.75', '1.0.74', '1.0.73', '1.0.72', '1.0.71', '1.0.70', '1.0.69', '1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.104', '1.0.103', '1.0.102', '1.0.101', '1.0.100', '1.0.99', '1.0.98', '1.0.97', '1.0.96', '1.0.95', '1.0.94', '1.0.93', '1.0.92', '1.0.91', '1.0.90', '1.0.89', '1.0.88', '1.0.87', '1.0.86', '1.0.85', '1.0.84', '1.0.83', '1.0.82', '1.0.81', '1.0.80', '1.0.79', '1.0.78', '1.0.77', '1.0.76', '1.0.75', '1.0.74', '1.0.73', '1.0.72', '1.0.71', '1.0.70', '1.0.69', '1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}
