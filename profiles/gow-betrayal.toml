@@ -179,6 +179,41 @@ values = { largura = "auto", janela = "--windowed" }
 
 # ------------------------------------------------------------------------------------------------ credits
 
+[[options]]
+page = "controls"
+key = "GOWB_TECLADO"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Teclado", en = "Keyboard", es = "Teclado" }
+help = { pt = "Joga com o teclado, junto com o controle ou sem ele. As teclas de cada botão ficam na lista abaixo. O teclado numérico e as teclas Q e W continuam fazendo as teclas do celular.", en = "Play with the keyboard, with or without a controller. The keys for each button are in the list below. The numeric keypad and the Q and W keys still act as the phone keys.", es = "Juega con el teclado, con mando o sin él. Las teclas de cada botón están en la lista de abajo. El teclado numérico y las teclas Q y W siguen haciendo de teclas del móvil." }
+choices = [
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+  { value = "0", label = { pt = "Desligado (só controle)", en = "Off (controller only)", es = "Desactivado (solo mando)" } },
+]
+
+[[options]]
+page = "controls"
+key = "GOWB_TECLAS"
+target = "env"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão. Clique em Trocar e aperte a tecla nova.", en = "The key (or mouse button) for each button. Click Change and press the new key.", es = "La tecla (o botón del ratón) de cada botón. Haz clic en Cambiar y pulsa la tecla nueva." }
+buttons = [
+  { key = "left", label = { pt = "Esquerda", en = "Left", es = "Izquierda" }, default = "left" },
+  { key = "right", label = { pt = "Direita", en = "Right", es = "Derecha" }, default = "right" },
+  { key = "up", label = { pt = "Cima (nos menus)", en = "Up (in menus)", es = "Arriba (en los menús)" }, default = "up" },
+  { key = "down", label = { pt = "Baixo (nos menus; no jogo, defender)", en = "Down (in menus; in game, block)", es = "Abajo (en los menús; en el juego, bloquear)" }, default = "down" },
+  { key = "a", label = { pt = "Pular / confirmar", en = "Jump / confirm", es = "Saltar / confirmar" }, default = "z space" },
+  { key = "x", label = { pt = "Atacar", en = "Attack", es = "Atacar" }, default = "x" },
+  { key = "lb", label = { pt = "Defender / agarrar", en = "Block / grab", es = "Bloquear / agarrar" }, default = "c" },
+  { key = "b", label = { pt = "Voltar (nos menus; no jogo, defender)", en = "Back (in menus; in game, block)", es = "Volver (en los menús; en el juego, bloquear)" }, default = "escape backspace" },
+  { key = "y", label = { pt = "Trocar arma ou magia", en = "Switch weapon or magic", es = "Cambiar arma o magia" }, default = "a" },
+  { key = "rb", label = { pt = "Atacar (segunda tecla)", en = "Attack (second key)", es = "Atacar (segunda tecla)" }, default = "" },
+  { key = "back", label = { pt = "Menu de evolução", en = "Upgrade menu", es = "Menú de mejoras" }, default = "s" },
+  { key = "start", label = { pt = "Pausa / confirmar", en = "Pause / confirm", es = "Pausa / confirmar" }, default = "enter" },
+]
+
 [[credits]]
 name = "LWJGL"
 what = { pt = "janela, OpenGL, áudio e controles (BSD)", en = "window, OpenGL, audio and controllers (BSD)", es = "ventana, OpenGL, audio y mandos (BSD)" }
