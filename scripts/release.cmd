@@ -17,7 +17,7 @@ copy /y profiles\*.toml "%P%\perfis\" >nul
 copy /y LICENSE "%P%\LICENSE.txt" >nul
 copy /y THIRD_PARTY.md "%P%\THIRD_PARTY.txt" >nul
 rem the public hub.toml, with this release's version
-powershell -NoProfile -Command "(Get-Content -Raw hub\hub.toml) -replace '(?m)^version = \".*\"', 'version = \"%~1\"' | Set-Content -NoNewline -Encoding utf8 '%P%\hub.toml'"
+powershell -NoProfile -Command "(Get-Content -Raw -Encoding utf8 hub\hub.toml) -replace '(?m)^version = \".*\"', 'version = \"%~1\"' | Set-Content -NoNewline -Encoding utf8 '%P%\hub.toml'"
 rem the catalogs: fresh from libretro, GameTDB and Redump
 py -3 -I scripts\catalogo.py "%P%\catalogo" || exit /b 1
 set "ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
