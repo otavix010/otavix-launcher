@@ -362,7 +362,7 @@ repo = "otavix010/castlevania-lament-of-innocence-pc"
 
 branch = "main"
 
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "beta", linux = "soon" }
 
 [[games]]
 
@@ -378,7 +378,7 @@ repo = "otavix010/castlevania-curse-of-darkness-pc"
 
 branch = "main"
 
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "beta", linux = "soon" }
 
 [[games]]
 

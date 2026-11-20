@@ -35,6 +35,8 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'god-of-war-pc': r'E:\RecompDev\ps2\repos\god-of-war-pc',
     'god-of-war-2-pc': r'E:\RecompDev\ps2\repos\god-of-war-2-pc',
     'spawn-armageddon-pc': r'E:\RecompDev\ps2\repos\spawn-armageddon-pc',
+    'castlevania-curse-of-darkness-pc': r'E:\RecompDev\ps2\repos\castlevania-curse-of-darkness-pc',
+    'castlevania-lament-of-innocence-pc': r'E:\RecompDev\ps2\repos\castlevania-lament-of-innocence-pc',
 }
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.16', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),
