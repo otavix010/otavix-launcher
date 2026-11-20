@@ -49,15 +49,6 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
         r'C:\infamous\pacote-linux\infamous-second-son-linux-x64.tar.gz',
     # the PS4 .pkg extractor the launcher downloads once (ShadPs4Plus PkgExtractor 1.1, built from shadPS4's package code)
     'ferramentas/ps4-pkg-extractor.zip': r'C:/infamous/tools/ps4-pkg-extractor.zip',
-    'arquivos/infamous-second-son-fonte-6cec83cc.zip': r'C:\infamous\pacote-windows\infamous-second-son-fonte-6cec83cc.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.1.zip': r'C:\infamous\pacote-windows-v2\infamous-second-son-fonte-ifpc-v1.0.1.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.2.zip': r'C:\infamous\pacote-windows-v3\infamous-second-son-fonte-ifpc-v1.0.2.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.3.zip': r'C:\infamous\pacote-windows-v4\infamous-second-son-fonte-ifpc-v1.0.3.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.4.zip': r'C:\infamous\pacote-windows-v5\infamous-second-son-fonte-ifpc-v1.0.4.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.5.zip': r'C:\infamous\pacote-windows-v6\infamous-second-son-fonte-ifpc-v1.0.5.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.6.zip': r'C:\infamous\pacote-windows-v7\infamous-second-son-fonte-ifpc-v1.0.6.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.8.zip': r'C:\infamous\pacote-windows-v10\infamous-second-son-fonte-ifpc-v1.0.8.zip',
-    'arquivos/infamous-second-son-fonte-ifpc-v1.0.9.zip': r'C:\infamous\pacote-v109\infamous-second-son-fonte-ifpc-v1.0.9.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.10.zip': r'C:\infamous\pacote-v1010\infamous-second-son-fonte-ifpc-v1.0.10.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.11.zip': r'C:\infamous\pacote-v1011\infamous-second-son-fonte-ifpc-v1.0.11.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.12.zip': r'C:\infamous\pacote-v1012\infamous-second-son-fonte-ifpc-v1.0.12.zip',
@@ -66,14 +57,13 @@ FIXOS = {  # key: local file; files the ports' generators download (the 360 port
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.16.zip': r'C:\infamous\pacote-v1016\infamous-second-son-fonte-ifpc-v1.0.16.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.17.zip': r'C:\infamous\pacote-v1017\infamous-second-son-fonte-ifpc-v1.0.17.zip',
     'arquivos/infamous-second-son-fonte-ifpc-v1.0.18.zip': r'C:\infamous\pacote-v1018\infamous-second-son-fonte-ifpc-v1.0.18.zip',
-    'arquivos/fsr-vulkan-fonte.zip': r'C:\infamous\pacote-windows-v10\fsr-vulkan-fonte.zip',
 }
 ARTE = {  # game: its pictures on the server (arte/<game>/<file>), the profiles' [art] web: every player sees the game's photo
     'infamous-second-son': ['icon0.png', 'pic1.png'],
     'gow-betrayal': ['capa.png', 'fundo.png'],
 }
 ARTE_LOCAL = Path(r'C:\Users\otavi\Otavix Launcher\arte')
-LAUNCHER = ['1.0.107', '1.0.106', '1.0.105', '1.0.104', '1.0.103', '1.0.102', '1.0.101', '1.0.100', '1.0.99', '1.0.98', '1.0.97', '1.0.96', '1.0.95', '1.0.94', '1.0.93', '1.0.92', '1.0.91', '1.0.90', '1.0.89', '1.0.88', '1.0.87', '1.0.86', '1.0.85', '1.0.84', '1.0.83', '1.0.82', '1.0.81', '1.0.80', '1.0.79', '1.0.78', '1.0.77', '1.0.76', '1.0.75', '1.0.74', '1.0.73', '1.0.72', '1.0.71', '1.0.70', '1.0.69', '1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
+LAUNCHER = ['1.0.108', '1.0.107', '1.0.106', '1.0.105', '1.0.104', '1.0.103', '1.0.102', '1.0.101', '1.0.100', '1.0.99', '1.0.98', '1.0.97', '1.0.96', '1.0.95', '1.0.94', '1.0.93', '1.0.92', '1.0.91', '1.0.90', '1.0.89', '1.0.88', '1.0.87', '1.0.86', '1.0.85', '1.0.84', '1.0.83', '1.0.82', '1.0.81', '1.0.80', '1.0.79', '1.0.78', '1.0.77', '1.0.76', '1.0.75', '1.0.74', '1.0.73', '1.0.72', '1.0.71', '1.0.70', '1.0.69', '1.0.68', '1.0.67', '1.0.66', '1.0.65', '1.0.64', '1.0.63', '1.0.62', '1.0.61', '1.0.60', '1.0.59', '1.0.58', '1.0.57', '1.0.56', '1.0.55', '1.0.54', '1.0.53', '1.0.52', '1.0.51', '1.0.50']  # newest first; notes in docs/notas/<version>.md, installer in out
 SHADERS = SCRATCH / 'f30c7acd-0366-4290-94ef-e4dec4da0c98' / 'scratchpad' / 'pacotes'
 SHADERS_REPOS = {'gow-ascension': 'gow-ascension-pc', 'asuras-wrath': 'asuras-wrath-pc', 'dantes-inferno': 'dantes-inferno-pc',
                  'dirt-2': 'dirt-2-pc', 'saints-row': 'saints-row-pc'}

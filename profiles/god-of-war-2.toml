@@ -53,7 +53,7 @@ help = { pt = "Compila o jogo (uns 6 GB). Se o Build Tools já estiver instalado
 [[install.inputs]]
 key = "iso"
 pick = "both"
-filters = ["7z", "zip", "rar", "iso"]
+filters = ["7z", "zip", "rar", "iso", "bin", "img"]
 unpack = "*.iso"
 disc_id = "SCUS-97481"
 label = { pt = "A imagem do DVD (.iso, ou o .7z/.zip/.rar baixado)", en = "The DVD image (.iso, or the downloaded .7z/.zip/.rar)", es = "La imagen del DVD (.iso, o el .7z/.zip/.rar descargado)" }
