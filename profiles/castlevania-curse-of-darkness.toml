@@ -96,6 +96,11 @@ id = "game"
 advanced = true
 label = { pt = "Jogo", en = "Game", es = "Juego" }
 
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
 [[options]]
 page = "video"
 key = "PS2X_TELA_CHEIA"

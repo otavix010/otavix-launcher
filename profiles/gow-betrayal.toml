@@ -53,6 +53,11 @@ label = { pt = "Áudio", en = "Audio", es = "Audio" }
 
 # ------------------------------------------------------------------------------------------------ game
 
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
 [[options]]
 page = "game"
 key = "idioma"
