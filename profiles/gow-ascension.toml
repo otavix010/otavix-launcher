@@ -506,8 +506,8 @@ values = { GOWA_RES_SCALE = "1", GOWA_MODO_LEVE = "auto", GOWA_SEM_DOF = false, 
 
 [[presets]]
 label = { pt = "Simplificado", en = "Simplified", es = "Simplificado" }
-help = { pt = "Para PCs fracos e portáteis. Liga o modo leve em qualquer placa (sem sombras dinâmicas e sem desfoque de movimento) e tira a profundidade de campo: cerca de 20% mais leve. A imagem fica menos bonita.", en = "For low-end PCs and handhelds. Turns on light mode on any graphics card (no dynamic shadows and no motion blur) and removes depth of field: about 20% lighter. The image looks less pretty.", es = "Para PCs modestos y portátiles. Activa el modo ligero en cualquier gráfica (sin sombras dinámicas y sin desenfoque de movimiento) y quita la profundidad de campo: cerca de un 20% más ligero. La imagen queda menos bonita." }
-values = { GOWA_MODO_LEVE = "1", GOWA_SEM_DOF = true, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
+help = { pt = "Para PCs fracos e portáteis. Desenha em 720p, liga o modo leve em qualquer placa (sem sombras dinâmicas e sem desfoque de movimento) e tira a profundidade de campo: cerca de 20% mais leve. A imagem fica menos bonita.", en = "For low-end PCs and handhelds. Draws at 720p, turns on light mode on any graphics card (no dynamic shadows and no motion blur) and removes depth of field: about 20% lighter. The image looks less pretty.", es = "Para PCs modestos y portátiles. Dibuja a 720p, activa el modo ligero en cualquier gráfica (sin sombras dinámicas y sin desenfoque de movimiento) y quita la profundidad de campo: cerca de un 20% más ligero. La imagen queda menos bonita." }
+values = { GOWA_RES_SCALE = "1", GOWA_MODO_LEVE = "1", GOWA_SEM_DOF = true, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
 
 [[presets]]
 label = { pt = "Médio (1440p)", en = "Medium (1440p)", es = "Medio (1440p)" }
