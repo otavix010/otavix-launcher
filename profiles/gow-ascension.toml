@@ -432,6 +432,21 @@ choices = [
   { value = "0", label = { pt = "Conferir inteiras (mais lento)", en = "Check whole (slower)", es = "Comprobar enteras (más lento)" } },
 ]
 
+# light mode (engine 0.13.3 + port 0.13.3): automatic on integrated graphics
+[[options]]
+page = "video"
+key = "GOWA_MODO_LEVE"
+target = "env"
+type = "choice"
+default = "auto"
+label = { pt = "Modo leve", en = "Light mode", es = "Modo ligero" }
+help = { pt = "Tira as sombras dinâmicas e o desfoque de movimento, os efeitos que mais pesam: na luta, o jogo fica cerca de 20% mais rápido numa gráfica integrada. Em Automático, ele liga sozinho quando a placa de vídeo é integrada (gráficas Intel, processadores AMD com gráfico Radeon, portáteis como o Steam Deck e o Legion Go) e fica desligado nas placas dedicadas. As opções abaixo continuam valendo por cima.", en = "Removes dynamic shadows and motion blur, the heaviest effects: in combat, the game runs about 20% faster on integrated graphics. On Automatic, it turns on by itself when the graphics are integrated (Intel graphics, AMD processors with Radeon graphics, handhelds such as the Steam Deck and Legion Go) and stays off on dedicated graphics cards. The options below still apply on top of it.", es = "Quita las sombras dinámicas y el desenfoque de movimiento, los efectos que más pesan: en combate, el juego va cerca de un 20% más rápido con una gráfica integrada. En Automático, se activa solo cuando la gráfica es integrada (gráficas Intel, procesadores AMD con gráfica Radeon, portátiles como Steam Deck y Legion Go) y queda desactivado con tarjetas gráficas dedicadas. Las opciones de abajo siguen valiendo por encima." }
+choices = [
+  { value = "auto", label = { pt = "Automático (recomendado)", en = "Automatic (recommended)", es = "Automático (recomendado)" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+]
+
 # graphics effects that can be turned off to win fps (engine 0.12.5; the port reads each variable once at boot; absent,
 # empty or "0" = the game as it always was). Measured by the gowa session on the Legion at 15 W.
 [[options]]
