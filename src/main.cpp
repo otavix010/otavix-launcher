@@ -3826,14 +3826,44 @@ void HomePage() {
         ImGui::PopFont();
         badge = ImVec2(badge.x + 16 * g.scale, badge.y + 6 * g.scale);
         bool badge_below = false;
-        ImGui::PushFont(g.bold, 22);
-        for (const Preset& p : gm.prof.presets)
-            badge_below |= pad + ImGui::CalcTextSize(Tx(p.label)).x + 8 * g.scale + badge.x + pad > w;
+        // a name "Equilibrado · 720p" is drawn as the name over its internal resolution, wrapped inside the card; all
+        // at one size, smaller (down to 14) when a single word of one would not fit a narrow card (five cards at the
+        // default window); the help starts below the tallest name
+        std::vector<std::string> names;
+        for (const Preset& p : gm.prof.presets) {
+            std::string s = Tx(p.label);
+            for (size_t k; (k = s.find(" \xC2\xB7 ")) != std::string::npos;) s.replace(k, 4, "\n");
+            names.push_back(s);
+        }
+        float wrap = w - pad * 2, label_size = 22, label_h = 0;
+        auto widest_word = [](const std::string& s) {
+            float m = 0;
+            for (size_t a = 0; a < s.size();) {
+                size_t b = s.find_first_of(" \n", a);
+                if (b == std::string::npos) b = s.size();
+                m = std::max(m, ImGui::CalcTextSize(s.data() + a, s.data() + b).x);
+                a = b + 1;
+            }
+            return m;
+        };
+        for (; label_size > 14; label_size -= 1) {
+            ImGui::PushFont(g.bold, label_size);
+            float widest = 0;
+            for (const std::string& s : names) widest = std::max(widest, widest_word(s));
+            ImGui::PopFont();
+            if (widest <= wrap) break;
+        }
+        ImGui::PushFont(g.bold, label_size);
+        for (const std::string& s : names) {
+            badge_below |= pad + ImGui::CalcTextSize(s.c_str()).x + 8 * g.scale + badge.x + pad > w;
+            label_h = std::max(label_h, ImGui::CalcTextSize(s.c_str(), nullptr, false, wrap).y);
+        }
         ImGui::PopFont();
+        float help_y = std::max(34 * g.scale, label_h + 8 * g.scale);
         // every card as tall as the longest help wrapped to a card's width: four of them leave each one narrow
         ImGui::PushFont(g.body, 16);
         for (const Preset& p : gm.prof.presets)
-            h = std::max(h, pad + 34 * g.scale + ImGui::CalcTextSize(Tx(p.help), nullptr, false, w - pad * 2).y + pad +
+            h = std::max(h, pad + help_y + ImGui::CalcTextSize(Tx(p.help), nullptr, false, wrap).y + pad +
                                 (badge_below ? badge.y + 8 * g.scale : 0));
         ImGui::PopFont();
         bool any = false;
@@ -3859,8 +3889,9 @@ void HomePage() {
             // the card's words over the button
             ImDrawList* dl = ImGui::GetWindowDrawList();
             dl->PushClipRect(at, ImVec2(at.x + w, at.y + h), true);
-            ImGui::PushFont(g.bold, 22);
-            dl->AddText(ImVec2(at.x + pad, at.y + pad), IM_COL32(255, 255, 255, 255), Tx(p.label));
+            ImGui::PushFont(g.bold, label_size);
+            dl->AddText(nullptr, 0, ImVec2(at.x + pad, at.y + pad), IM_COL32(255, 255, 255, 255), names[i].c_str(),
+                        nullptr, wrap);
             ImGui::PopFont();
             if (active) {
                 ImGui::PushFont(g.bold, 15);
@@ -3870,8 +3901,8 @@ void HomePage() {
                 ImGui::PopFont();
             }
             ImGui::PushFont(g.body, 16);
-            dl->AddText(nullptr, 0, ImVec2(at.x + pad, at.y + pad + 34 * g.scale), IM_COL32(205, 205, 212, 255), Tx(p.help),
-                        nullptr, w - pad * 2);
+            dl->AddText(nullptr, 0, ImVec2(at.x + pad, at.y + pad + help_y), IM_COL32(205, 205, 212, 255), Tx(p.help),
+                        nullptr, wrap);
             ImGui::PopFont();
             dl->PopClipRect();
             ImGui::PopID();

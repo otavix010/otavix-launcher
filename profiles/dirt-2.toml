@@ -50,7 +50,7 @@ label = { pt = "Jogo", en = "Game", es = "Juego" }
 [defaults]
 fullscreen = true
 fps = 60
-resolution_scale = 2
+resolution_scale = 1
 filtro = "fsr"
 nitidez = 70
 swap_post_effect = "none"
@@ -195,9 +195,9 @@ help = { pt = "A taxa de quadros do jogo no canto da tela.", en = "The game's fr
 page = "graphics"
 key = "resolution_scale"
 type = "choice"
-default = 2
+default = 1
 label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
-help = { pt = "O Xbox 360 desenha o jogo em 720p. Aqui ele pode desenhar em 2x ou 3x isso: a imagem fica bem mais nítida e pede mais da placa de vídeo. Não existe 1080p interno (só múltiplos de 720p); num monitor 1080p, 720p é ampliado para 1080p pelo filtro da tela e 1440p é reduzido para 1080p (supersampling, mais nítido).", en = "The Xbox 360 draws the game at 720p. Here it can draw at 2x or 3x that: a much sharper picture that asks more of the graphics card. There is no internal 1080p (only multiples of 720p); on a 1080p monitor, 720p is scaled up to 1080p by the screen filter and 1440p is brought down to 1080p (supersampling, sharper).", es = "La Xbox 360 dibuja el juego a 720p. Aquí puede dibujarlo a 2x o 3x eso: la imagen queda mucho más nítida y exige más a la tarjeta gráfica. No existe 1080p interno (solo múltiplos de 720p); en un monitor 1080p, 720p se amplía a 1080p con el filtro de pantalla y 1440p se reduce a 1080p (supersampling, más nítido)." }
+help = { pt = "O Xbox 360 desenha o jogo em 720p. Aqui ele pode desenhar em 2x ou 3x isso: a imagem fica bem mais nítida e pede mais da placa de vídeo. Não existe 1080p interno (só múltiplos de 720p); num monitor 1080p, 720p é ampliado para 1080p pelo filtro da tela e 1440p é reduzido para 1080p (supersampling, mais nítido). O padrão é 720p: 1440p e 4K pedem uma placa de vídeo forte.", en = "The Xbox 360 draws the game at 720p. Here it can draw at 2x or 3x that: a much sharper picture that asks more of the graphics card. There is no internal 1080p (only multiples of 720p); on a 1080p monitor, 720p is scaled up to 1080p by the screen filter and 1440p is brought down to 1080p (supersampling, sharper). The default is 720p: 1440p and 4K need a strong graphics card.", es = "La Xbox 360 dibuja el juego a 720p. Aquí puede dibujarlo a 2x o 3x eso: la imagen queda mucho más nítida y exige más a la tarjeta gráfica. No existe 1080p interno (solo múltiplos de 720p); en un monitor 1080p, 720p se amplía a 1080p con el filtro de pantalla y 1440p se reduce a 1080p (supersampling, más nítido). El predeterminado es 720p: 1440p y 4K exigen una tarjeta gráfica potente." }
 choices = [
   { value = 1, label = "720p (Xbox 360)" },
   { value = 2, label = "1440p (2x)" },
@@ -401,28 +401,28 @@ choices = [
 # ------------------------------------------------------------------------------------------------ presets
 
 [[presets]]
-label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
-help = { pt = "Recomendado. 60 fps, resolução interna 1440p, FSR 1 e filtro 16x.", en = "Recommended. 60 fps, 1440p internal resolution, FSR 1 and 16x filtering.", es = "Recomendado. 60 fps, resolución interna 1440p, FSR 1 y filtro 16x." }
-values = { fps = 60, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
+label = { pt = "Equilibrado · 720p", en = "Balanced · 720p", es = "Equilibrado · 720p" }
+help = { pt = "Recomendado. 60 fps, 720p interno (o do Xbox 360) ampliado até a tela com FSR 1, e filtro 16x. Pede pouco da placa de vídeo.", en = "Recommended. 60 fps, internal 720p (the Xbox 360's) scaled to the screen with FSR 1, and 16x filtering. Light on the graphics card.", es = "Recomendado. 60 fps, 720p interno (los de Xbox 360) ampliados a la pantalla con FSR 1, y filtro 16x. Exige poco a la tarjeta gráfica." }
+values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[presets]]
-label = { pt = "Leve", en = "Light", es = "Ligero" }
+label = { pt = "Leve · 720p", en = "Light · 720p", es = "Ligero · 720p" }
 help = { pt = "Para GPUs de entrada e notebooks: 720p do Xbox 360 com FSR 1 e FXAA, 60 fps.", en = "For entry GPUs and laptops: the Xbox 360's 720p with FSR 1 and FXAA, 60 fps.", es = "Para GPUs de entrada y portátiles: los 720p de Xbox 360 con FSR 1 y FXAA, 60 fps." }
 values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 80, swap_post_effect = "fxaa", anisotropic_override = 3 }
 
 [[presets]]
-label = { pt = "Máximo", en = "Maximum", es = "Máximo" }
+label = { pt = "Máximo · 4K", en = "Maximum · 4K", es = "Máximo · 4K" }
 help = { pt = "4K interno, 120 fps e filtro 16x. Para GPUs e processadores fortes, com monitor de 120 Hz.", en = "Internal 4K, 120 fps and 16x filtering. For strong GPUs and processors, with a 120 Hz monitor.", es = "4K interno, 120 fps y filtro 16x. Para GPUs y procesadores potentes, con monitor de 120 Hz." }
 values = { fps = 120, resolution_scale = 3, filtro = "fsr", nitidez = 60, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[presets]]
-label = { pt = "1080p (60 fps)", en = "1080p (60 fps)", es = "1080p (60 fps)" }
+label = { pt = "Monitor 1080p · 720p", en = "1080p monitor · 720p", es = "Monitor 1080p · 720p" }
 help = { pt = "Para monitor 1080p: 720p do Xbox 360 ampliado para 1080p com FSR 1 e FXAA, 60 fps. Neste jogo o 2x só segura 60 em GPUs fortes.", en = "For a 1080p monitor: the Xbox 360's 720p brought up to 1080p with FSR 1 and FXAA, 60 fps. In this game 2x only holds 60 on strong GPUs.", es = "Para monitor 1080p: los 720p de Xbox 360 ampliados a 1080p con FSR 1 y FXAA, 60 fps. En este juego el 2x solo aguanta 60 en GPUs potentes." }
 values = { fps = 60, resolution_scale = 1, filtro = "fsr", nitidez = 70, swap_post_effect = "fxaa", anisotropic_override = 5 }
 
 [[presets]]
-label = { pt = "4K (60 fps)", en = "4K (60 fps)", es = "4K (60 fps)" }
-help = { pt = "Para monitor 4K: 1440p (2x) com FSR 1, 60 fps. O 4K nativo não segura 60 numa RTX 5080.", en = "For a 4K monitor: 1440p (2x) with FSR 1, 60 fps. Native 4K misses 60 on an RTX 5080.", es = "Para monitor 4K: 1440p (2x) con FSR 1, 60 fps. El 4K nativo no aguanta 60 en una RTX 5080." }
+label = { pt = "Alto · 1440p", en = "High · 1440p", es = "Alto · 1440p" }
+help = { pt = "Para GPU forte: 1440p interno (2x) com FSR 1, 60 fps. Imagem bem mais nítida, também em monitor 4K. O 4K nativo não segura 60 numa RTX 5080.", en = "For a strong GPU: internal 1440p (2x) with FSR 1, 60 fps. A much sharper picture, on a 4K monitor too. Native 4K misses 60 on an RTX 5080.", es = "Para GPU potente: 1440p interno (2x) con FSR 1, 60 fps. Imagen mucho más nítida, también en monitor 4K. El 4K nativo no aguanta 60 en una RTX 5080." }
 values = { fps = 60, resolution_scale = 2, filtro = "fsr", nitidez = 70, swap_post_effect = "none", anisotropic_override = 5 }
 
 [[credits]]
