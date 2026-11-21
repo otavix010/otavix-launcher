@@ -500,24 +500,24 @@ choices = [
 ]
 
 [[presets]]
-label = { pt = "Simplificado", en = "Simplified", es = "Simplificado" }
-help = { pt = "Para PCs fracos e portáteis. Desliga a profundidade de campo (desfoque do fundo), o desfoque de movimento e as sombras dinâmicas; o resto fica como está. A imagem fica menos bonita e roda mais leve (medido: cerca de +20% na Legion Go a 15 W e +45% num notebook com GTX 1650).", en = "For low-end PCs and handhelds. Turns off depth of field (background blur), motion blur and dynamic shadows; everything else stays as it is. The image looks less pretty and runs lighter (measured: about +20% on a Legion Go at 15 W and +45% on a laptop with a GTX 1650).", es = "Para PCs modestos y portátiles. Desactiva la profundidad de campo (desenfoque del fondo), el desenfoque de movimiento y las sombras dinámicas; lo demás queda como está. La imagen queda menos bonita y rinde más (medido: cerca de +20% en una Legion Go a 15 W y +45% en un portátil con GTX 1650)." }
-values = { GOWA_SEM_DOF = true, GOWA_SEM_MBLUR = true, GOWA_SEM_SOMBRAS = true }
-
-[[presets]]
 label = { pt = "Mínimo", en = "Minimum", es = "Mínimo" }
 help = { pt = "720p, como no PS3: basicamente o jogo original. Comece por aqui: o que pesa neste jogo é o processador.", en = "720p, as on the PS3: basically the original game. Start here: what weighs in this game is the processor.", es = "720p, como en PS3: básicamente el juego original. Empieza por aquí: lo que pesa en este juego es el procesador." }
-values = { GOWA_RES_SCALE = "1" }
+values = { GOWA_RES_SCALE = "1", GOWA_MODO_LEVE = "auto", GOWA_SEM_DOF = false, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
+
+[[presets]]
+label = { pt = "Simplificado", en = "Simplified", es = "Simplificado" }
+help = { pt = "Para PCs fracos e portáteis. Liga o modo leve em qualquer placa (sem sombras dinâmicas e sem desfoque de movimento) e tira a profundidade de campo: cerca de 20% mais leve. A imagem fica menos bonita.", en = "For low-end PCs and handhelds. Turns on light mode on any graphics card (no dynamic shadows and no motion blur) and removes depth of field: about 20% lighter. The image looks less pretty.", es = "Para PCs modestos y portátiles. Activa el modo ligero en cualquier gráfica (sin sombras dinámicas y sin desenfoque de movimiento) y quita la profundidad de campo: cerca de un 20% más ligero. La imagen queda menos bonita." }
+values = { GOWA_MODO_LEVE = "1", GOWA_SEM_DOF = true, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
 
 [[presets]]
 label = { pt = "Médio (1440p)", en = "Medium (1440p)", es = "Medio (1440p)" }
 help = { pt = "Desenha em 1440p: num monitor 1440p fica nativo e num 1080p é reduzido (supersampling), 60 fps reais, sem quadros intermediários. Só depois de ver o jogo rodar bem em 720p. Os 60 pedem um processador forte; se não segurar, use o Mínimo.", en = "Draws at 1440p: native on a 1440p monitor, brought down on a 1080p one (supersampling), real 60 fps, no in-between frames. Only once the game runs well at 720p. 60 needs a strong processor; if it doesn't hold, use Minimum.", es = "Dibuja a 1440p: nativo en un monitor 1440p y reducido en uno 1080p (supersampling), 60 fps reales, sin fotogramas intermedios. Solo después de ver el juego ir bien a 720p. Los 60 piden un procesador potente; si no aguanta, usa Mínimo." }
-values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0" }
+values = { GOWA_RES_SCALE = "2", GOWA_FLIP_HZ = "60", GOWA_FRAMEGEN = "0", GOWA_MODO_LEVE = "auto", GOWA_SEM_DOF = false, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
 
 [[presets]]
 label = { pt = "Máximo (4K)", en = "Maximum (4K)", es = "Máximo (4K)" }
 help = { pt = "4K: pede processador e placa de vídeo fortes. Num processador mais fraco, só piora.", en = "4K: needs a strong processor and graphics card. On a weaker processor it only gets worse.", es = "4K: pide procesador y tarjeta gráfica potentes. En un procesador más débil solo empeora." }
-values = { GOWA_RES_SCALE = "3" }
+values = { GOWA_RES_SCALE = "3", GOWA_MODO_LEVE = "auto", GOWA_SEM_DOF = false, GOWA_SEM_MBLUR = false, GOWA_SEM_SOMBRAS = false }
 
 [[credits]]
 name = "ps3recomp"
