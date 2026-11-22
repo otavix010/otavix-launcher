@@ -305,8 +305,9 @@ namespace {
 
 uint32_t Le32(const uint8_t* p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
 
-// the id inside a PARAM.SFO (TITLE_ID), empty when it is not one
-std::string SfoTitleId(const std::vector<uint8_t>& d) {
+// the id inside a PARAM.SFO (TITLE_ID; a PSP UMD has none and keeps it in DISC_ID), empty when it is not one
+std::string SfoTitleId(const std::vector<uint8_t>& d, const char* name = "TITLE_ID") {
+    size_t name_len = std::strlen(name) + 1;
     if (d.size() < 20 || d[0] != 0 || d[1] != 'P' || d[2] != 'S' || d[3] != 'F') return {};
     uint32_t keys = Le32(&d[8]), data = Le32(&d[12]), count = Le32(&d[16]);
     if (count > 256) return {};
@@ -315,7 +316,7 @@ std::string SfoTitleId(const std::vector<uint8_t>& d) {
         if (e + 16 > d.size()) return {};
         size_t k = keys + (d[e] | (d[e + 1] << 8));
         uint32_t len = Le32(&d[e + 4]), off = data + Le32(&d[e + 12]);
-        if (k + 9 > d.size() || std::memcmp(&d[k], "TITLE_ID", 9) != 0) continue;
+        if (k + name_len > d.size() || std::memcmp(&d[k], name, name_len) != 0) continue;
         if ((size_t)off + len > d.size()) return {};
         std::string id((const char*)&d[off], len);
         id.erase(std::find(id.begin(), id.end(), '\0'), id.end());
@@ -394,11 +395,14 @@ std::string IsoId(const fs::path& p) {
         std::string id = BootId(std::string((const char*)data.data(), ln));
         if (!id.empty()) return id;
     }
-    uint32_t dx = 0, dl = 0;
-    if (iso.Find(root, rootLen, "PS3_GAME", true, dx, dl) && iso.Find(dx, dl, "PARAM.SFO", false, ex, ln) && ln <= 65536 &&
-        iso.Read(ex, (ln + 2047) / 2048 * 2048, data)) {
-        data.resize(ln);
-        return SfoTitleId(data);
+    // PS3 (PS3_GAME, TITLE_ID) and PSP (PSP_GAME, a UMD: DISC_ID "UCUS98653") keep the id in a PARAM.SFO
+    for (auto [folder, key] : {std::pair{"PS3_GAME", "TITLE_ID"}, std::pair{"PSP_GAME", "DISC_ID"}}) {
+        uint32_t dx = 0, dl = 0;
+        if (iso.Find(root, rootLen, folder, true, dx, dl) && iso.Find(dx, dl, "PARAM.SFO", false, ex, ln) && ln <= 65536 &&
+            iso.Read(ex, (ln + 2047) / 2048 * 2048, data)) {
+            data.resize(ln);
+            return SfoTitleId(data, key);
+        }
     }
     return {};
 }
