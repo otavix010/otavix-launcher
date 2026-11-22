@@ -479,6 +479,43 @@ void Dim(const char* text) {
     ImGui::PopStyleColor();
 }
 
+// ImGui's own wrap also breaks right after a '.', which split "a imagem .iso do UMD" as "a imagem ." / "iso do UMD":
+// this one breaks only at spaces (a single word wider than the line, such as a long path, falls back to ImGui's)
+void TextWrappedAtSpaces(const char* text) {
+    float w = ImGui::GetContentRegionAvail().x;
+    std::string out, line;
+    for (const char* p = text; *p;) {
+        const char* e = p;
+        while (*e && *e != ' ' && *e != '\n') e++;
+        std::string word(p, e);
+        if (ImGui::CalcTextSize(word.c_str()).x > w) {
+            ImGui::TextWrapped("%s", text);
+            return;
+        }
+        std::string tried = line.empty() ? word : line + " " + word;
+        if (!line.empty() && ImGui::CalcTextSize(tried.c_str()).x > w) {
+            out += line + "\n";
+            line = word;
+        } else {
+            line = tried;
+        }
+        if (*e == '\n') {
+            out += line + "\n";
+            line.clear();
+        }
+        p = *e ? e + 1 : e;
+    }
+    out += line;
+    ImGui::TextUnformatted(out.c_str());
+}
+
+// an error in red that wraps at the window's edge (TextColored keeps it on one line and the end is cut off)
+void ErrorText(const char* text) {
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.45f, 0.4f, 1));
+    TextWrappedAtSpaces(text);
+    ImGui::PopStyleColor();
+}
+
 // ---------------------------------------------------------------------------------------------- game files
 
 std::string GamePath(Game& gm) {
@@ -1890,7 +1927,7 @@ bool PortCard(Game& gm) {
         ImGui::EndDisabled();
         ImGui::PopStyleColor();
         if (ps.stage == PortFetcher::Stage::Failed)
-            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s: %s", Tr(S::PortFailed), ps.error.c_str());
+            ErrorText((std::string(Tr(S::PortFailed)) + ": " + ps.error).c_str());
         return false;
     }
     // installed: its version, and a newer one when there is
@@ -3436,7 +3473,7 @@ void BuildCard(Game& gm) {
     if (!in.version.Empty()) {
         ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
         ImGui::SameLine();
-        ImGui::TextWrapped("%s", Tx(in.version));
+        TextWrappedAtSpaces(Tx(in.version));
     }
     ImGui::Spacing();
     bool tools_ok = true;
@@ -3495,8 +3532,10 @@ void BuildCard(Game& gm) {
             ImGui::TextWrapped("%s", Tx(b.auto_text));
             ImGui::PopStyleColor();
         } else {
-            ImGui::TextColored(v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1), "%s",
-                               v.empty() ? Tr(S::NotChosen) : v.c_str());
+            // the chosen path wraps at the window's edge (a long one was cut off)
+            ImGui::PushStyleColor(ImGuiCol_Text, v.empty() ? ImVec4(0.95f, 0.45f, 0.4f, 1) : ImVec4(0.85f, 0.85f, 0.88f, 1));
+            ImGui::TextWrapped("%s", v.empty() ? Tr(S::NotChosen) : v.c_str());
+            ImGui::PopStyleColor();
             if (!v.empty() && found_there.count(id)) Dim(Tr(S::DiscFoundThere));
         }
         if (auto note = g_pick_note.find(id); note != g_pick_note.end() && note->second) {
@@ -3546,7 +3585,7 @@ void BuildCard(Game& gm) {
                 ImGui::PushStyleColor(ImGuiCol_Button, Accent(0.6f));
                 if (ImGui::SmallButton(Tx(b.download_label))) StartInputFetch(gm, b);
                 ImGui::PopStyleColor();
-                if (!error.empty()) ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", error.c_str());
+                if (!error.empty()) ErrorText(error.c_str());
             }
         }
         ImGui::Spacing();
@@ -3567,9 +3606,9 @@ void BuildCard(Game& gm) {
     ImGui::EndDisabled();
     ImGui::PopStyleColor();
     if (!gm.unpack_error.empty()) {
-        char b[600];
+        char b[2000];
         std::snprintf(b, sizeof(b), Tr(S::UnpackFailed), gm.unpack_error.c_str());
-        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "%s", b);
+        ErrorText(b);
     }
     if (bs.stage == GameBuild::Stage::Failed) {
         ImGui::Spacing();
@@ -3754,7 +3793,7 @@ void HomePage() {
             if (!gm.prof.install.version.Empty()) {
                 ImGui::TextDisabled("%s:", Tr(S::NeededVersion));
                 ImGui::SameLine();
-                ImGui::TextWrapped("%s", Tx(gm.prof.install.version));
+                TextWrappedAtSpaces(Tx(gm.prof.install.version));
             }
             ImGui::Spacing();
             // two ways: the launcher does it all, or the player unpacks and points
@@ -5042,7 +5081,7 @@ void SettingsUpdates() {
             break;
         case UpdateCheck::State::NoRepo: Dim(Tr(S::NoRepo)); break;
         case UpdateCheck::State::Failed:
-            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s: %s", Tr(S::UpdateFailed), u.error.c_str());
+            ErrorText((std::string("● ") + Tr(S::UpdateFailed) + ": " + u.error).c_str());
             break;
     }
 
@@ -5106,7 +5145,7 @@ void SettingsUpdates() {
             } else if (ps.stage == PortFetcher::Stage::Downloading || ps.stage == PortFetcher::Stage::Unpacking) {
                 ImGui::TextColored(Accent(1.3f), "● %s", ps.stage == PortFetcher::Stage::Unpacking ? Tr(S::UnpackingPort) : Tr(S::DownloadingPort));
             } else if (ps.stage == PortFetcher::Stage::Failed) {
-                ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1), "● %s: %s", Tr(S::PortFailed), ps.error.c_str());
+                ErrorText((std::string("● ") + Tr(S::PortFailed) + ": " + ps.error).c_str());
             } else if (ps.stage == PortFetcher::Stage::Done) {
                 ImGui::TextColored(ImVec4(0.45f, 0.85f, 0.5f, 1), "● %s", Tr(S::PortUpdated));
             } else if (PortHasUpdate(gm, latest)) {

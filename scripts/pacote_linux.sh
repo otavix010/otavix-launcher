@@ -5,7 +5,7 @@
 set -e
 v="$1"; [ -n "$v" ] || { echo "uso: pacote_linux.sh <versão>"; exit 1; }
 cd "$(dirname "$0")/.."
-tar -cf - src CMakeLists.txt profiles hub docs/notas assets | ssh legion 'rm -rf ~/launcher-linux/src ~/launcher-linux/profiles && mkdir -p ~/launcher-linux && cd ~/launcher-linux && tar -xf -'
+tar -cf - src third_party CMakeLists.txt profiles hub docs/notas assets | ssh legion 'rm -rf ~/launcher-linux/src ~/launcher-linux/third_party ~/launcher-linux/profiles && mkdir -p ~/launcher-linux && cd ~/launcher-linux && tar -xf -'
 ssh legion 'cd ~/launcher-linux && distrobox enter shadbuild -- bash -c "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null && ninja -C build" 2>&1 | tail -3'
 ssh legion 'rm -rf ~/launcher-pacote && mkdir -p ~/launcher-pacote'
 tar -C out/pacote --exclude='*.exe' -cf - . | ssh legion 'cd ~/launcher-pacote && tar -xf -'
