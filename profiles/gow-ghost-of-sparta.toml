@@ -1,0 +1,201 @@
+# God of War: Ghost of Sparta (PSP) port: made on the player's PC by the port's generator (gerar.ps1 of otavix010/gow-chains-pc, the same
+# repository for Chains of Olympus and Ghost of Sparta: -Jogo picks it), from their own UMD image (.iso, US UCUS-98737).
+# The Otavix Engine PSP (private) comes compiled; the game's code is translated and compiled on the PC. Beta (0.1.0).
+# Everything goes by environment: PSP_* (engine 0.1.1+). The game reads the ISO while it runs.
+[game]
+title = "God of War: Ghost of Sparta"
+subtitle = { pt = "Port nativo do PSP · recompilação estática", en = "Native PSP port · static recompilation", es = "Port nativo de PSP · recompilación estática" }
+status = "beta"
+status_text = { pt = "Beta", en = "Beta", es = "Beta" }
+exe = "bin/gow-ghost-of-sparta.exe"
+port_file = "gerar.ps1"
+args = ["{iso}", "{dir}/bin/imagem.bin"]
+env = { PSP_LOG = "{dir}/out/psp.log", PSP_MS0 = "{dir}/ms0", PSP_PGD = "{dir}/bin/pgd" }
+log_file = "out/jogo.log"  # the console (stdout/stderr); the engine's own log is out/psp.log (PSP_LOG)
+logs = "out"
+saves = ["ms0"]
+accent = [160, 120, 50]
+legal = { pt = "O port lê a sua própria cópia do jogo: nada do jogo vem com ele, o código é gerado no seu PC. God of War é marca da Sony Interactive Entertainment; este projeto não tem relação com ela.", en = "The port reads your own copy of the game: none of the game ships with it, the code is made on your PC. God of War is a trademark of Sony Interactive Entertainment; this project is not affiliated with it.", es = "El port lee tu propia copia del juego: nada del juego viene con él, el código se genera en tu PC. God of War es marca de Sony Interactive Entertainment; este proyecto no tiene relación con ella." }
+
+[performance]
+note = { pt = "God of War: Ghost of Sparta roda a 60 quadros por segundo num PC atual, num notebook com GTX 1650 e na Legion Go S pelo Proton. O desenho é pela placa de vídeo (Direct3D 11): a resolução interna é o que mais pesa nela.", en = "God of War: Ghost of Sparta runs at 60 frames per second on a current PC, on a laptop with a GTX 1650 and on the Legion Go S through Proton. Drawing is done by the graphics card (Direct3D 11): the internal resolution is what weighs most on it.", es = "God of War: Ghost of Sparta va a 60 cuadros por segundo en un PC actual, en un portátil con GTX 1650 y en la Legion Go S mediante Proton. El dibujo lo hace la tarjeta gráfica (Direct3D 11): la resolución interna es lo que más le pesa." }
+
+# pictures in arte/gow-ghost-of-sparta when there are (capa, the library card; fundo, the page), else the public ones (libretro)
+[art]
+kind = "image"
+folder = "../arte/gow-ghost-of-sparta"
+include = ["capa.png", "capa.jpg", "fundo.png", "fundo.jpg", "fundo1.png", "fundo2.png", "fundo3.png", "fundo4.png"]
+card_only = 1
+seconds = 12
+trim = false
+web = [
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%20Portable/Named_Boxarts/God%20of%20War%20-%20Ghost%20of%20Sparta%20%28USA%29%20%28En%2CFr%2CEs%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%20Portable/Named_Titles/God%20of%20War%20-%20Ghost%20of%20Sparta%20%28USA%29%20%28En%2CFr%2CEs%29.png",
+  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%20Portable/Named_Snaps/God%20of%20War%20-%20Ghost%20of%20Sparta%20%28USA%29%20%28En%2CFr%2CEs%29.png",
+]
+
+[install]
+kind = "build"
+done = "out/gerar/6_jogar.ok"
+marks = "out/gerar"
+command = ["%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{dir}/gerar.ps1", "-Iso", "{iso}", "-Jogo", "gos"]
+redo = ["-RefazerDe", "3"]  # new engine or port code: the engine, the translation and the build again, not the disc
+version = { pt = "God of War: Ghost of Sparta dos EUA (UCUS-98737, inglês/francês/espanhol): a imagem .iso do UMD", en = "God of War: Ghost of Sparta, US (UCUS-98737, English/French/Spanish): the UMD's .iso image", es = "God of War: Ghost of Sparta de EE. UU. (UCUS-98737, inglés/francés/español): la imagen .iso del UMD" }
+time = { pt = "Leva menos de um minuto num PC atual (alguns minutos num mais fraco), e só uma vez. Baixa o Python embutido (11 MB), o FFmpeg (75 MB) e a engine do port (menos de 1 MB); não instala Python nem Git.", en = "It takes under a minute on a current PC (a few minutes on a weaker one), and only once. It downloads an embedded Python (11 MB), FFmpeg (75 MB) and the port's engine (under 1 MB); it installs neither Python nor Git.", es = "Tarda menos de un minuto en un PC actual (unos minutos en uno más débil), y solo una vez. Descarga un Python integrado (11 MB), FFmpeg (75 MB) y el motor del port (menos de 1 MB); no instala Python ni Git." }
+
+[[install.prereqs]]
+name = "Visual Studio Build Tools (C++ e Clang)"
+# a Visual Studio with the full C++ tools AND Clang (a VS 2026 with only the Clang component is not enough): encoded PowerShell, no quoting trouble
+check = "powershell -NoProfile -EncodedCommand JAB2ACAAPQAgACYAIAAiACQAewBlAG4AdgA6AFAAcgBvAGcAcgBhAG0ARgBpAGwAZQBzACgAeAA4ADYAKQB9AFwATQBpAGMAcgBvAHMAbwBmAHQAIABWAGkAcwB1AGEAbAAgAFMAdAB1AGQAaQBvAFwASQBuAHMAdABhAGwAbABlAHIAXAB2AHMAdwBoAGUAcgBlAC4AZQB4AGUAIgAgAC0AYQBsAGwAIAAtAHAAcgBvAGQAdQBjAHQAcwAgACoAIAAtAHIAZQBxAHUAaQByAGUAcwAgAE0AaQBjAHIAbwBzAG8AZgB0AC4AVgBpAHMAdQBhAGwAUwB0AHUAZABpAG8ALgBDAG8AbQBwAG8AbgBlAG4AdAAuAFYAQwAuAEwAbAB2AG0ALgBDAGwAYQBuAGcAIAAtAHAAcgBvAHAAZQByAHQAeQAgAGkAbgBzAHQAYQBsAGwAYQB0AGkAbwBuAFAAYQB0AGgACgBpAGYAIAAoAEAAKAAkAHYAIAB8ACAAVwBoAGUAcgBlAC0ATwBiAGoAZQBjAHQAIAB7ACAAKABUAGUAcwB0AC0AUABhAHQAaAAgACIAJABfAFwAVgBDAFwAQQB1AHgAaQBsAGkAYQByAHkAXABCAHUAaQBsAGQAXAB2AGMAdgBhAHIAcwA2ADQALgBiAGEAdAAiACkAIAAtAGEAbgBkACAAKABUAGUAcwB0AC0AUABhAHQAaAAgACIAJABfAFwAVgBDAFwAVABvAG8AbABzAFwATABsAHYAbQBcAHgANgA0AFwAYgBpAG4AXABjAGwAYQBuAGcALQBjAGwALgBlAHgAZQAiACkAIAB9ACkALgBDAG8AdQBuAHQAKQAgAHsAIABlAHgAaQB0ACAAMAAgAH0AIABlAGwAcwBlACAAewAgAGUAeABpAHQAIAAxACAAfQA="
+output = true
+install = "powershell -NoProfile -EncodedCommand JAB2AHcAIAA9ACAAIgAkAHsAZQBuAHYAOgBQAHIAbwBnAHIAYQBtAEYAaQBsAGUAcwAoAHgAOAA2ACkAfQBcAE0AaQBjAHIAbwBzAG8AZgB0ACAAVgBpAHMAdQBhAGwAIABTAHQAdQBkAGkAbwBcAEkAbgBzAHQAYQBsAGwAZQByAFwAdgBzAHcAaABlAHIAZQAuAGUAeABlACIADQAKACQAcwB0ACAAPQAgACIAJAB7AGUAbgB2ADoAUAByAG8AZwByAGEAbQBGAGkAbABlAHMAKAB4ADgANgApAH0AXABNAGkAYwByAG8AcwBvAGYAdAAgAFYAaQBzAHUAYQBsACAAUwB0AHUAZABpAG8AXABJAG4AcwB0AGEAbABsAGUAcgBcAHMAZQB0AHUAcAAuAGUAeABlACIADQAKAGkAZgAgACgALQBuAG8AdAAgACgAKABUAGUAcwB0AC0AUABhAHQAaAAgACQAdgB3ACkAIAAtAGEAbgBkACAAKABUAGUAcwB0AC0AUABhAHQAaAAgACQAcwB0ACkAKQApACAAewAgAGUAeABpAHQAIAAxACAAfQANAAoAJABwACAAPQAgACYAIAAkAHYAdwAgAC0AbABhAHQAZQBzAHQAIAAtAHAAcgBvAGQAdQBjAHQAcwAgACoAIAAtAHAAcgBvAHAAZQByAHQAeQAgAGkAbgBzAHQAYQBsAGwAYQB0AGkAbwBuAFAAYQB0AGgAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0ARgBpAHIAcwB0ACAAMQANAAoAaQBmACAAKAAtAG4AbwB0ACAAJABwACkAIAB7ACAAZQB4AGkAdAAgADEAIAB9AA0ACgBXAHIAaQB0AGUALQBIAG8AcwB0ACAAIgBWAGkAcwB1AGEAbAAgAFMAdAB1AGQAaQBvACAAQgB1AGkAbABkACAAVABvAG8AbABzACAAagBhACAAaQBuAHMAdABhAGwAYQBkAG8AOgAgAGEAYwByAGUAcwBjAGUAbgB0AGEAbgBkAG8AIABvAHMAIABjAG8AbQBwAG8AbgBlAG4AdABlAHMAIABxAHUAZQAgAGYAYQBsAHQAYQBtAC4ALgAuACIADQAKACQAYQAgAD0AIABAACgAJwBtAG8AZABpAGYAeQAnACwAJwAtAC0AaQBuAHMAdABhAGwAbABQAGEAdABoACcALAAoACcAIgAnACAAKwAgACQAcAAgACsAIAAnACIAJwApACwAJwAtAC0AcABhAHMAcwBpAHYAZQAnACwAJwAtAC0AdwBhAGkAdAAnACwAJwAtAC0AbgBvAHIAZQBzAHQAYQByAHQAJwApAA0ACgBmAG8AcgBlAGEAYwBoACAAKAAkAGMAIABpAG4AIABAACgAJwBNAGkAYwByAG8AcwBvAGYAdAAuAFYAaQBzAHUAYQBsAFMAdAB1AGQAaQBvAC4AVwBvAHIAawBsAG8AYQBkAC4AVgBDAFQAbwBvAGwAcwAnACwAJwBNAGkAYwByAG8AcwBvAGYAdAAuAFYAaQBzAHUAYQBsAFMAdAB1AGQAaQBvAC4AQwBvAG0AcABvAG4AZQBuAHQALgBWAEMALgBMAGwAdgBtAC4AQwBsAGEAbgBnACcALAAnAE0AaQBjAHIAbwBzAG8AZgB0AC4AVgBpAHMAdQBhAGwAUwB0AHUAZABpAG8ALgBDAG8AbQBwAG8AbgBlAG4AdAAuAFYAQwAuAEMATQBhAGsAZQAuAFAAcgBvAGoAZQBjAHQAJwApACkAIAB7ACAAJABhACAAKwA9ACAAJwAtAC0AYQBkAGQAJwA7ACAAJABhACAAKwA9ACAAJABjACAAfQANAAoAJAByACAAPQAgAFMAdABhAHIAdAAtAFAAcgBvAGMAZQBzAHMAIAAtAEYAaQBsAGUAUABhAHQAaAAgACQAcwB0ACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACQAYQAgAC0AVgBlAHIAYgAgAFIAdQBuAEEAcwAgAC0AVwBhAGkAdAAgAC0AUABhAHMAcwBUAGgAcgB1AA0ACgBpAGYAIAAoACQAcgAuAEUAeABpAHQAQwBvAGQAZQAgAC0AZQBxACAAMAAgAC0AbwByACAAJAByAC4ARQB4AGkAdABDAG8AZABlACAALQBlAHEAIAAzADAAMQAwACkAIAB7ACAAZQB4AGkAdAAgADAAIAB9ACAAZQBsAHMAZQAgAHsAIABlAHgAaQB0ACAAMQAgAH0ADQAKAA== || (where winget >nul 2>&1 && winget install -e --id Microsoft.VisualStudio.2022.BuildTools --accept-package-agreements --accept-source-agreements --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended\") || (echo Sem o winget: baixando o instalador oficial da Microsoft... && curl -L --fail -o \"%TEMP%\\vs_BuildTools.exe\" https://aka.ms/vs/17/release/vs_BuildTools.exe && \"%TEMP%\\vs_BuildTools.exe\" --passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.CMake.Project --includeRecommended)"
+help = { pt = "Compila o jogo (o Build Tools ocupa uns 6 GB). Se ele já estiver instalado sem o Clang: abra o Visual Studio Installer, clique em Modificar e marque \"C++ Clang tools for Windows\".", en = "It compiles the game (Build Tools takes about 6 GB). If it is installed without Clang: open the Visual Studio Installer, click Modify and tick \"C++ Clang tools for Windows\".", es = "Compila el juego (Build Tools ocupa unos 6 GB). Si ya está instalado sin Clang: abre el Visual Studio Installer, haz clic en Modificar y marca \"C++ Clang tools for Windows\"." }
+
+[[install.inputs]]
+key = "iso"
+pick = "both"
+filters = ["7z", "zip", "rar", "iso"]
+unpack = "*.iso"
+disc_id = "UCUS-98737"
+label = { pt = "A imagem do UMD (.iso, ou o .7z/.zip/.rar baixado)", en = "The UMD image (.iso, or the downloaded .7z/.zip/.rar)", es = "La imagen del UMD (.iso, o el .7z/.zip/.rar descargado)" }
+help = { pt = "Tem que ser a versão dos EUA (UCUS-98737). O gerador confere o disco e o executável do jogo e avisa se for outra versão. Um .cso comprimido não serve: descomprima para .iso. O jogo lê a ISO enquanto roda: deixe-a onde está. Um arquivo .7z, .zip ou .rar com a .iso dentro também serve: o launcher extrai a .iso na pasta do port antes de gerar.", en = "It must be the US release (UCUS-98737). The generator checks the disc and the game's executable and says so when it is another version. A compressed .cso does not work: decompress it to .iso. The game reads the ISO while it runs: leave it where it is. A .7z, .zip or .rar holding the .iso works too: the launcher unpacks the .iso into the port's folder before making the game.", es = "Tiene que ser la versión de EE. UU. (UCUS-98737). El generador comprueba el disco y el ejecutable del juego y avisa si es otra versión. Un .cso comprimido no sirve: descomprímelo a .iso. El juego lee la ISO mientras se ejecuta: déjala donde está. Un archivo .7z, .zip o .rar con la .iso dentro también sirve: el launcher extrae la .iso en la carpeta del port antes de generar." }
+
+[[install.steps]]
+id = "1_ferramentas"
+label = { pt = "ferramentas", en = "tools", es = "herramientas" }
+[[install.steps]]
+id = "2_disco"
+label = { pt = "conferindo e decifrando o disco", en = "checking and decrypting the disc", es = "comprobando y descifrando el disco" }
+[[install.steps]]
+id = "3_engine"
+label = { pt = "baixando a engine", en = "downloading the engine", es = "descargando el motor" }
+[[install.steps]]
+id = "4_traduzir"
+label = { pt = "tradução do código", en = "translating the code", es = "traducción del código" }
+[[install.steps]]
+id = "5_compilar"
+label = { pt = "compilando", en = "compiling", es = "compilando" }
+[[install.steps]]
+id = "6_jogar"
+label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar" }
+
+# the window's and the shortcut's icon: the public box art
+[icon]
+kind = "image"
+web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%20Portable/Named_Boxarts/God%20of%20War%20-%20Ghost%20of%20Sparta%20%28USA%29%20%28En%2CFr%2CEs%29.png"]
+
+[[pages]]
+id = "video"
+advanced = true
+label = { pt = "Vídeo", en = "Video", es = "Vídeo" }
+
+[[pages]]
+id = "controls"
+advanced = true
+label = { pt = "Controles", en = "Controls", es = "Controles" }
+
+[[options]]
+page = "video"
+key = "PSP_TELA_CHEIA"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Modo de tela", en = "Display mode", es = "Modo de pantalla" }
+help = { pt = "Janela ou tela cheia sem bordas. No jogo, F11 ou Alt+Enter alternam entre os dois.", en = "A window or borderless fullscreen. In game, F11 or Alt+Enter switch between them.", es = "Ventana o pantalla completa sin bordes. En el juego, F11 o Alt+Enter alternan entre los dos." }
+choices = [
+  { value = "0", label = { pt = "Janela", en = "Window", es = "Ventana" } },
+  { value = "1", label = { pt = "Tela cheia", en = "Fullscreen", es = "Pantalla completa" } },
+]
+
+[[options]]
+page = "video"
+key = "PSP_JANELA_TAM"
+target = "env"
+type = "choice"
+default = "1280x720"
+label = { pt = "Tamanho da janela", en = "Window size", es = "Tamaño de la ventana" }
+help = { pt = "O tamanho da imagem quando o jogo abre em janela (em tela cheia vale o monitor). A tela do PSP é quase 16:9: o que sobrar fica com faixas pretas finas.", en = "The picture's size when the game opens in a window (in fullscreen, the monitor's). The PSP's screen is almost 16:9: what is left over gets thin black bars.", es = "El tamaño de la imagen cuando el juego se abre en ventana (en pantalla completa, el del monitor). La pantalla de PSP es casi 16:9: lo que sobra queda con franjas negras finas." }
+choices = [
+  { value = "960x544", label = { pt = "960 × 544 (o dobro do PSP)", en = "960 × 544 (twice the PSP)", es = "960 × 544 (el doble de PSP)" } },
+  { value = "1280x720", label = "1280 × 720" },
+  { value = "1600x900", label = "1600 × 900" },
+  { value = "1920x1080", label = "1920 × 1080" },
+  { value = "2560x1440", label = "2560 × 1440" },
+]
+
+[[options]]
+page = "video"
+key = "PSP_ESCALA"
+target = "env"
+type = "choice"
+default = "2"
+label = { pt = "Resolução interna", en = "Internal resolution", es = "Resolución interna" }
+help = { pt = "1x é a resolução do PSP (480 × 272). 2x, 3x e 4x desenham o jogo com mais pixels: bordas e contornos ficam mais nítidos (as texturas continuam as do jogo). Custa mais da placa de vídeo: 2x serve para quase todas, inclusive as integradas; 4x pede uma placa dedicada.", en = "1x is the PSP's resolution (480 × 272). 2x, 3x and 4x draw the game with more pixels: edges and outlines get sharper (textures stay the game's own). It costs more GPU: 2x suits almost every card, integrated ones included; 4x needs a dedicated card.", es = "1x es la resolución de PSP (480 × 272). 2x, 3x y 4x dibujan el juego con más píxeles: los bordes y contornos quedan más nítidos (las texturas siguen siendo las del juego). Cuesta más a la tarjeta de video: 2x sirve para casi todas, incluso las integradas; 4x pide una tarjeta dedicada." }
+choices = [
+  { value = "1", label = { pt = "1x (original)", en = "1x (original)", es = "1x (original)" } },
+  { value = "2", label = { pt = "2x (padrão)", en = "2x (default)", es = "2x (por defecto)" } },
+  { value = "3", label = "3x" },
+  { value = "4", label = "4x" },
+]
+
+[[presets]]
+label = { pt = "Notebook / PC fraco", en = "Laptop / weak PC", es = "Portátil / PC débil" }
+help = { pt = "Janela 1280 × 720 e resolução 1x: o mais leve.", en = "A 1280 × 720 window and 1x resolution: the lightest.", es = "Ventana 1280 × 720 y resolución 1x: lo más ligero." }
+values = { PSP_TELA_CHEIA = "0", PSP_JANELA_TAM = "1280x720", PSP_ESCALA = "1" }
+
+[[presets]]
+label = { pt = "Equilibrado", en = "Balanced", es = "Equilibrado" }
+help = { pt = "Janela 1920 × 1080 e resolução 2x.", en = "A 1920 × 1080 window and 2x resolution.", es = "Ventana 1920 × 1080 y resolución 2x." }
+values = { PSP_TELA_CHEIA = "0", PSP_JANELA_TAM = "1920x1080", PSP_ESCALA = "2" }
+
+[[presets]]
+label = { pt = "Qualidade", en = "Quality", es = "Calidad" }
+help = { pt = "Tela cheia com resolução 4x (placa de vídeo dedicada).", en = "Fullscreen at 4x resolution (dedicated graphics card).", es = "Pantalla completa con resolución 4x (tarjeta gráfica dedicada)." }
+values = { PSP_TELA_CHEIA = "1", PSP_ESCALA = "4" }
+
+# Página Controles (engine PSP 0.1.1+): tudo por ambiente; os padrões são os MESMOS embutidos na engine (hle_tela.c).
+# O PSP só tem um analógico: o mouse entra com os botões (o movimento não move nada).
+
+[[options]]
+page = "controls"
+key = "PSP_TECLADO"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Teclado", en = "Keyboard", es = "Teclado" }
+help = { pt = "Joga com o teclado, junto com o controle ou sem ele.", en = "Play with the keyboard, with or without a controller.", es = "Juega con el teclado, con mando o sin él." }
+
+[[options]]
+page = "controls"
+key = "PSP_MOUSE"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Botões do mouse", en = "Mouse buttons", es = "Botones del ratón" }
+help = { pt = "Os botões do mouse entram no mapa de teclas (o esquerdo é o ataque fraco e o direito o forte, por padrão).", en = "The mouse buttons join the key map (left is the light attack and right the heavy one, by default).", es = "Los botones del ratón entran en el mapa de teclas (el izquierdo es el ataque débil y el derecho el fuerte, por defecto)." }
+
+[[options]]
+page = "controls"
+key = "PSP_TECLAS"
+target = "env"
+type = "keys"
+label = { pt = "Teclas", en = "Keys", es = "Teclas" }
+help = { pt = "A tecla (ou botão do mouse) de cada botão do PSP. Clique em Trocar e aperte a tecla nova.", en = "The key (or mouse button) of each PSP button. Click Change and press the new key.", es = "La tecla (o botón del ratón) de cada botón de PSP. Haz clic en Cambiar y pulsa la tecla nueva." }
+buttons = [
+  { key = "lstick_up", label = { pt = "Mover para cima", en = "Move up", es = "Mover arriba" }, default = "w" },
+  { key = "lstick_down", label = { pt = "Mover para baixo", en = "Move down", es = "Mover abajo" }, default = "s" },
+  { key = "lstick_left", label = { pt = "Mover para a esquerda", en = "Move left", es = "Mover a la izquierda" }, default = "a" },
+  { key = "lstick_right", label = { pt = "Mover para a direita", en = "Move right", es = "Mover a la derecha" }, default = "d" },
+  { key = "square", label = { pt = "Quadrado (ataque fraco)", en = "Square (light attack)", es = "Cuadrado (ataque débil)" }, default = "j mouse1" },
+  { key = "triangle", label = { pt = "Triângulo (ataque forte)", en = "Triangle (heavy attack)", es = "Triángulo (ataque fuerte)" }, default = "i mouse2" },
+  { key = "cross", label = { pt = "X (pular)", en = "Cross (jump)", es = "X (saltar)" }, default = "k space" },
+  { key = "circle", label = { pt = "Bola (agarrar)", en = "Circle (grab)", es = "Círculo (agarrar)" }, default = "l" },
+  { key = "l", label = { pt = "L (bloquear)", en = "L (block)", es = "L (bloquear)" }, default = "q" },
+  { key = "r", label = { pt = "R (magia e ações)", en = "R (magic and actions)", es = "R (magia y acciones)" }, default = "e" },
+  { key = "start", label = { pt = "START (pausa)", en = "START (pause)", es = "START (pausa)" }, default = "enter" },
+  { key = "select", label = "SELECT", default = "backspace" },
+  { key = "up", label = { pt = "Direcional ↑", en = "D-pad ↑", es = "Cruceta ↑" }, default = "up" },
+  { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
+  { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
+  { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+]

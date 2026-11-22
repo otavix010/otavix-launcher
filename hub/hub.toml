@@ -38,6 +38,11 @@ name = "PlayStation 3"
 accent = [0, 112, 209]
 
 [[libraries]]
+id = "psp"
+name = "PSP"
+accent = [40, 40, 50]
+
+[[libraries]]
 id = "ps4"
 name = "PlayStation 4"
 accent = [0, 112, 209]
@@ -411,3 +416,23 @@ repo = "otavix010/shadow-of-the-colossus-pc"
 branch = "main"
 
 platforms = { windows = "wip", linux = "soon" }
+
+[[games]]
+id = "gow-chains-of-olympus"
+library = "psp"
+# made on each PC from the port's code (gerar.ps1 -Iso -Jogo coo); beta, the repository is PRIVATE until the user releases it
+path = "%SystemDrive%/OtavixPorts/gow-chains-of-olympus"
+profile = "perfis/gow-chains-of-olympus.toml"
+repo = "otavix010/gow-chains-pc"
+branch = "main"
+platforms = { windows = "beta", linux = "soon" }
+
+[[games]]
+id = "gow-ghost-of-sparta"
+library = "psp"
+# made on each PC from the port's code (gerar.ps1 -Iso -Jogo gos); beta, the repository is PRIVATE until the user releases it
+path = "%SystemDrive%/OtavixPorts/gow-ghost-of-sparta"
+profile = "perfis/gow-ghost-of-sparta.toml"
+repo = "otavix010/gow-chains-pc"
+branch = "main"
+platforms = { windows = "beta", linux = "soon" }
