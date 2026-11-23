@@ -39,6 +39,7 @@ BRANCH = {  # repository: local clone (origin/main is what was published)
     'castlevania-lament-of-innocence-pc': r'E:\RecompDev\ps2\repos\castlevania-lament-of-innocence-pc',
     # PSP (Chains of Olympus and Ghost of Sparta, one repo): private on GitHub, served from here
     'gow-chains-pc': r'C:\Users\otavi\gow-chains-pc',
+    'tekken-5-pc': r'E:\RecompDev\ps2\repos\tekken-5-pc',
 }
 RELEASE = {  # repository: (tag, package)
     'fifa-street-2-pc': ('v1.0.16', r'C:\Users\otavi\fifast2-port\fifast2\FIFAStreet2.zip'),

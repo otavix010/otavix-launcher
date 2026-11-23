@@ -387,6 +387,22 @@ platforms = { windows = "beta", linux = "soon" }
 
 [[games]]
 
+id = "tekken-5"
+
+library = "ps2"
+
+path = "%SystemDrive%/OtavixPorts/tekken-5"
+
+profile = "perfis/tekken-5.toml"
+
+repo = "otavix010/tekken-5-pc"
+
+branch = "main"
+
+platforms = { windows = "beta", linux = "soon" }
+
+[[games]]
+
 id = "blade-2"
 
 library = "ps2"
