@@ -70,9 +70,9 @@ trim = false
 
 # public pictures (a store's box and background), until the player's copy gives its own
 web = [
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Boxarts/Silent%20Hill%20%28USA%29.png",
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Titles/Silent%20Hill%20%28USA%29.png",
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Snaps/Silent%20Hill%20%28USA%29.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/silent-hill/capa.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/silent-hill/titulo.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/silent-hill/cena.png",
 ]
 
 # PSXRecomp's mods: packages in mods/bundled (with the build) and mods/installed, choices in mods/state.toml
@@ -262,4 +262,4 @@ buttons = [
 [icon]
 # the window's and the desktop shortcut's: the game's box (public picture, downloaded once)
 kind = "image"
-web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation/Named_Boxarts/Silent%20Hill%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%2CIt%29.png"]
+web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/silent-hill/icone.png"]

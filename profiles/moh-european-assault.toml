@@ -26,9 +26,9 @@ card_only = 1
 seconds = 12
 trim = false
 web = [
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Medal%20of%20Honor%20-%20European%20Assault%20%28USA%29.png",
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Titles/Medal%20of%20Honor%20-%20European%20Assault%20%28USA%29.png",
-  "https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Snaps/Medal%20of%20Honor%20-%20European%20Assault%20%28USA%29.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/moh-european-assault/capa.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/moh-european-assault/titulo.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/moh-european-assault/cena.png",
 ]
 
 [install]
@@ -80,4 +80,4 @@ label = { pt = "pronto para jogar", en = "ready to play", es = "listo para jugar
 # the window's and the shortcut's icon: the public box art
 [icon]
 kind = "image"
-web = ["https://thumbnails.libretro.com/Sony%20-%20PlayStation%202/Named_Boxarts/Medal%20of%20Honor%20-%20European%20Assault%20%28USA%29.png"]
+web = ["https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/moh-european-assault/capa.png"]

@@ -62,8 +62,8 @@ include = ["f_bg_press_w", "f_bg_main_w", "f_bg_RTS_w", "f_bg_juggling_w", "f_bg
 seconds = 9
 # public pictures (a store's box and background), until the player's copy gives its own
 web = [
-  "https://thumbnails.libretro.com/Microsoft%20-%20Xbox/Named_Titles/FIFA%20Street%202%20%28USA%29.png",
-  "https://thumbnails.libretro.com/Microsoft%20-%20Xbox/Named_Snaps/FIFA%20Street%202%20%28USA%29.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/fifa-street-2/titulo.png",
+  "https://otavix-launcher.otavix-launcher-servidor.workers.dev/v1/arquivos/arte/fifa-street-2/cena.png",
 ]
 
 [icon]
