@@ -5,7 +5,7 @@
 
 [hub]
 name = "Otavix Launcher"
-version = "1.0.113"
+version = "1.0.114"
 update_repo = "otavix010/otavix-launcher"
 accent = [220, 30, 38]
 
@@ -420,7 +420,7 @@ platforms = { windows = "wip", linux = "soon" }
 [[games]]
 id = "gow-chains-of-olympus"
 library = "psp"
-# made on each PC from the port's code (gerar.ps1 -Iso -Jogo coo); beta, the repository is PRIVATE until the user releases it
+# made on each PC from the port's code (gerar.ps1 -Iso -Jogo coo); beta: published 22/11 before the owner tested it; the repository stays private on GitHub, the server serves its code
 path = "%SystemDrive%/OtavixPorts/gow-chains-of-olympus"
 profile = "perfis/gow-chains-of-olympus.toml"
 repo = "otavix010/gow-chains-pc"
@@ -430,7 +430,7 @@ platforms = { windows = "beta", linux = "soon" }
 [[games]]
 id = "gow-ghost-of-sparta"
 library = "psp"
-# made on each PC from the port's code (gerar.ps1 -Iso -Jogo gos); beta, the repository is PRIVATE until the user releases it
+# made on each PC from the port's code (gerar.ps1 -Iso -Jogo gos); beta: published 22/11 before the owner tested it; the repository stays private on GitHub, the server serves its code
 path = "%SystemDrive%/OtavixPorts/gow-ghost-of-sparta"
 profile = "perfis/gow-ghost-of-sparta.toml"
 repo = "otavix010/gow-chains-pc"

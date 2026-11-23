@@ -138,6 +138,60 @@ choices = [
   { value = "4", label = "4x" },
 ]
 
+[[options]]
+page = "video"
+key = "PSP_ESCALONADOR"
+target = "env"
+type = "choice"
+default = "nenhum"
+label = { pt = "Ampliação", en = "Upscaling", es = "Escalado" }
+help = { pt = "Como a imagem interna é esticada até a janela. FSR 1 (AMD FidelityFX) deixa bordas e texto mais nítidos sem pesar: vale mais com a resolução interna baixa (1x ou 2x) numa tela grande.", en = "How the internal picture is stretched to the window. FSR 1 (AMD FidelityFX) makes edges and text sharper at almost no cost: it helps most with a low internal resolution (1x or 2x) on a big screen.", es = "Cómo se estira la imagen interna hasta la ventana. FSR 1 (AMD FidelityFX) deja bordes y texto más nítidos casi sin costo: ayuda más con resolución interna baja (1x o 2x) en una pantalla grande." }
+choices = [
+  { value = "nenhum", label = { pt = "Bilinear (padrão)", en = "Bilinear (default)", es = "Bilineal (por defecto)" } },
+  { value = "fsr", label = "FSR 1" },
+]
+
+[[options]]
+page = "video"
+key = "PSP_FXAA"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Antisserrilhado (FXAA)", en = "Anti-aliasing (FXAA)", es = "Antialiasing (FXAA)" }
+help = { pt = "Suaviza os degraus nas bordas; leve. Soma com o FSR 1.", en = "Smooths the stair steps on edges; light. Works together with FSR 1.", es = "Suaviza los escalones en los bordes; ligero. Se suma al FSR 1." }
+choices = [
+  { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+]
+
+[[options]]
+page = "video"
+key = "PSP_ANISO"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Filtro anisotrópico", en = "Anisotropic filtering", es = "Filtrado anisotrópico" }
+help = { pt = "Deixa o chão e as paredes vistos de lado mais limpos ao longe (menos cintilação em movimento). Só nos cenários 3D; o resto da imagem fica como no jogo.", en = "Makes floors and walls seen at an angle cleaner in the distance (less shimmering in motion). Only on 3D scenery; the rest of the picture stays as in the game.", es = "Deja el suelo y las paredes vistos de lado más limpios a lo lejos (menos parpadeo en movimiento). Solo en los escenarios 3D; el resto de la imagen queda como en el juego." }
+choices = [
+  { value = "0", label = { pt = "Desligado (original)", en = "Off (original)", es = "Desactivado (original)" } },
+  { value = "4", label = "4x" },
+  { value = "8", label = "8x" },
+  { value = "16", label = "16x" },
+]
+
+[[options]]
+page = "video"
+key = "PSP_VSYNC"
+target = "env"
+type = "choice"
+default = "1"
+label = { pt = "Sincronia vertical", en = "Vertical sync", es = "Sincronización vertical" }
+help = { pt = "O jogo sempre roda no ritmo do PSP (60 quadros por segundo). Ligada, a imagem nunca rasga. Desligada, cada quadro vai para a tela na hora: com monitor G-Sync/FreeSync fica sem tremida num monitor de 144 Hz ou mais; sem isso a imagem pode rasgar.", en = "The game always runs at the PSP's pace (60 frames per second). On, the picture never tears. Off, each frame goes to the screen at once: with a G-Sync/FreeSync monitor it has no judder on a 144 Hz or faster monitor; without one the picture may tear.", es = "El juego siempre va al ritmo de PSP (60 cuadros por segundo). Activada, la imagen nunca se rasga. Desactivada, cada cuadro va a la pantalla al instante: con un monitor G-Sync/FreeSync no hay tirones en un monitor de 144 Hz o más; sin eso la imagen puede rasgarse." }
+choices = [
+  { value = "1", label = { pt = "Ligada (padrão)", en = "On (default)", es = "Activada (por defecto)" } },
+  { value = "0", label = { pt = "Desligada (G-Sync/FreeSync)", en = "Off (G-Sync/FreeSync)", es = "Desactivada (G-Sync/FreeSync)" } },
+]
+
 [[presets]]
 label = { pt = "Notebook / PC fraco", en = "Laptop / weak PC", es = "Portátil / PC débil" }
 help = { pt = "Janela 1280 × 720 e resolução 1x: o mais leve.", en = "A 1280 × 720 window and 1x resolution: the lightest.", es = "Ventana 1280 × 720 y resolución 1x: lo más ligero." }
@@ -198,4 +252,47 @@ buttons = [
   { key = "down", label = { pt = "Direcional ↓", en = "D-pad ↓", es = "Cruceta ↓" }, default = "down" },
   { key = "left", label = { pt = "Direcional ←", en = "D-pad ←", es = "Cruceta ←" }, default = "left" },
   { key = "right", label = { pt = "Direcional →", en = "D-pad →", es = "Cruceta →" }, default = "right" },
+]
+
+[[options]]
+page = "cheats"
+key = "PSP_TRAPACA_VIDA"
+target = "env"
+type = "choice"
+default = ""
+label = { pt = "Invencibilidade", en = "Invincibility", es = "Invencibilidad" }
+help = { pt = "Trapaça opcional: o Kratos não perde vida com os golpes. Pode afetar o progresso; use por sua conta e volte para Normal se algo der errado.", en = "Optional cheat: Kratos does not lose health from hits. It may affect progress; use at your own risk and go back to Normal if something goes wrong.", es = "Truco opcional: Kratos no pierde vida con los golpes. Puede afectar el progreso; úsalo bajo tu responsabilidad y vuelve a Normal si algo sale mal." }
+choices = [
+  { value = "", label = { pt = "Normal", en = "Normal", es = "Normal" } },
+  { value = "08B65C84=0", label = { pt = "Invencível", en = "Invincible", es = "Invencible" } },
+]
+
+[[options]]
+page = "cheats"
+key = "PSP_TRAPACA_DANO"
+target = "env"
+type = "choice"
+default = ""
+label = { pt = "Dano do Kratos", en = "Kratos's damage", es = "Daño de Kratos" }
+help = { pt = "Trapaça opcional: multiplica o dano dos golpes do Kratos. Pode afetar o progresso; use por sua conta e volte para Normal se algo der errado.", en = "Optional cheat: multiplies the damage of Kratos's attacks. It may affect progress; use at your own risk and go back to Normal if something goes wrong.", es = "Truco opcional: multiplica el daño de los golpes de Kratos. Puede afectar el progreso; úsalo bajo tu responsabilidad y vuelve a Normal si algo sale mal." }
+choices = [
+  { value = "", label = { pt = "Normal", en = "Normal", es = "Normal" } },
+  { value = "08B65C88=f2", label = "2x" },
+  { value = "08B65C88=f5", label = "5x" },
+  { value = "08B65C88=f100", label = { pt = "Um golpe derruba", en = "One-hit kills", es = "Un golpe derriba" } },
+]
+
+[[options]]
+page = "cheats"
+key = "PSP_TRAPACA_ORBES"
+target = "env"
+type = "choice"
+default = ""
+label = { pt = "Orbes vermelhos", en = "Red orbs", es = "Orbes rojos" }
+help = { pt = "Trapaça opcional: multiplica os orbes vermelhos que o Kratos recolhe (para evoluir armas e magias mais rápido). Pode afetar o progresso; use por sua conta e volte para Normal se algo der errado.", en = "Optional cheat: multiplies the red orbs Kratos collects (to upgrade weapons and magic faster). It may affect progress; use at your own risk and go back to Normal if something goes wrong.", es = "Truco opcional: multiplica los orbes rojos que recoge Kratos (para mejorar armas y magias más rápido). Puede afectar el progreso; úsalo bajo tu responsabilidad y vuelve a Normal si algo sale mal." }
+choices = [
+  { value = "", label = { pt = "Normal", en = "Normal", es = "Normal" } },
+  { value = "08B65C80=f2", label = "2x" },
+  { value = "08B65C80=f5", label = "5x" },
+  { value = "08B65C80=f10", label = "10x" },
 ]
