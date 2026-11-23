@@ -121,6 +121,8 @@ choices = [
   { value = "1600x900", label = "1600 × 900" },
   { value = "1920x1080", label = "1920 × 1080" },
   { value = "2560x1440", label = "2560 × 1440" },
+  { value = "2560x1080", label = "2560 × 1080 (21:9)" },
+  { value = "3440x1440", label = "3440 × 1440 (21:9)" },
 ]
 
 [[options]]
@@ -162,6 +164,36 @@ help = { pt = "Suaviza os degraus nas bordas; leve. Soma com o FSR 1.", en = "Sm
 choices = [
   { value = "0", label = { pt = "Desligado", en = "Off", es = "Desactivado" } },
   { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
+]
+
+[[options]]
+page = "video"
+key = "PSP_PROPORCAO"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Proporção da imagem", en = "Aspect ratio", es = "Relación de aspecto" }
+help = { pt = "Para monitores ultralargos: a cena 3D ganha visão dos lados (nada é esticado); HUD, menus e vídeos ficam no meio, com faixas pretas nos vídeos. \"Do monitor\" usa a proporção do seu monitor; em janela, escolha também um tamanho de janela largo.", en = "For ultrawide monitors: the 3D scene gets a wider view on the sides (nothing is stretched); HUD, menus and movies stay centered, with black bars on movies. \"Monitor\" uses your monitor's aspect ratio; in a window, also pick a wide window size.", es = "Para monitores ultrapanorámicos: la escena 3D gana visión a los lados (nada se estira); el HUD, los menús y los vídeos quedan en el centro, con franjas negras en los vídeos. \"Del monitor\" usa la proporción de tu monitor; en ventana, elige también un tamaño de ventana ancho." }
+choices = [
+  { value = "0", label = { pt = "Original (padrão)", en = "Original (default)", es = "Original (por defecto)" } },
+  { value = "tela", label = { pt = "Do monitor", en = "Monitor", es = "Del monitor" } },
+  { value = "64:27", label = "21:9" },
+  { value = "32:9", label = "32:9" },
+]
+
+[[options]]
+page = "video"
+key = "PSP_MSAA"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Antisserrilhado (MSAA)", en = "Anti-aliasing (MSAA)", es = "Antialiasing (MSAA)" }
+help = { pt = "Suaviza as bordas dos objetos da cena 3D com mais qualidade que o FXAA (sem borrar texturas e texto). Pesa mais na placa de vídeo, sobretudo com a resolução interna alta: 4x serve para a maioria das placas; em notebook, prefira 2x.", en = "Smooths the edges of 3D scene objects with better quality than FXAA (without blurring textures or text). Heavier on the graphics card, especially at high internal resolution: 4x suits most cards; on laptops, prefer 2x.", es = "Suaviza los bordes de los objetos de la escena 3D con más calidad que el FXAA (sin desenfocar texturas ni texto). Pesa más en la tarjeta gráfica, sobre todo con resolución interna alta: 4x sirve para la mayoría de las tarjetas; en portátiles, mejor 2x." }
+choices = [
+  { value = "0", label = { pt = "Desligado (padrão)", en = "Off (default)", es = "Desactivado (por defecto)" } },
+  { value = "2", label = "2x" },
+  { value = "4", label = "4x" },
+  { value = "8", label = "8x" },
 ]
 
 [[options]]
