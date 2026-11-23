@@ -10,7 +10,7 @@ status_text = { pt = "Beta", en = "Beta", es = "Beta" }
 exe = "bin/gow-ghost-of-sparta.exe"
 port_file = "gerar.ps1"
 args = ["{iso}", "{dir}/bin/imagem.bin"]
-env = { PSP_LOG = "{dir}/out/psp.log", PSP_MS0 = "{dir}/ms0", PSP_PGD = "{dir}/bin/pgd" }
+env = { PSP_LOG = "{dir}/out/psp.log", PSP_MS0 = "{dir}/ms0", PSP_PGD = "{dir}/bin/pgd", PSP_TEXTURAS = "{dir}/texturas" }
 log_file = "out/jogo.log"  # the console (stdout/stderr); the engine's own log is out/psp.log (PSP_LOG)
 logs = "out"
 saves = ["ms0"]
@@ -204,6 +204,19 @@ choices = [
   { value = "en", label = "English" },
   { value = "fr", label = "Français" },
   { value = "es", label = "Español" },
+]
+
+[[options]]
+page = "video"
+key = "PSP_TEXTURAS_DESPEJO"
+target = "env"
+type = "choice"
+default = "0"
+label = { pt = "Gravar as texturas do jogo", en = "Save the game's textures", es = "Guardar las texturas del juego" }
+help = { pt = "Para criar pacotes de texturas: cada textura que aparecer é gravada em PNG na pasta texturas\\novas do jogo (só uma vez cada). Os pacotes prontos vão em texturas (ou numa subpasta) e entram sozinhos, sem precisar desta opção; o LEIA-ME.txt dessa pasta explica. Ligada, a primeira passagem por cada lugar fica um pouco mais lenta.", en = "To make texture packs: every texture that shows up is saved as a PNG in the game's texturas\\novas folder (once each). Finished packs go in texturas (or a subfolder) and load on their own, without this option; the LEIA-ME.txt in that folder explains. While on, the first pass through each place is a little slower.", es = "Para crear paquetes de texturas: cada textura que aparezca se guarda en PNG en la carpeta texturas\\novas del juego (una sola vez cada una). Los paquetes listos van en texturas (o en una subcarpeta) y se cargan solos, sin esta opción; el LEIA-ME.txt de esa carpeta lo explica. Activada, la primera pasada por cada lugar va un poco más lenta." }
+choices = [
+  { value = "0", label = { pt = "Desligado (padrão)", en = "Off (default)", es = "Desactivado (por defecto)" } },
+  { value = "1", label = { pt = "Ligado", en = "On", es = "Activado" } },
 ]
 
 [[presets]]
