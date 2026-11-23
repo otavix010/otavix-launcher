@@ -2,6 +2,8 @@
 #include "i18n.h"
 
 #include <fstream>
+#include <iterator>
+#include <sstream>
 #include <thread>
 
 #ifndef _WIN32
@@ -207,6 +209,64 @@ bool RunInConsole(const std::string& command_line, const std::string& title) {
 #endif
 }
 
+namespace {
+
+// the generator running from a folder of marks: its process id and start time in gerando.pid there (the start time
+// tells it from another process given the same id later, after a launcher that was ended left the file)
+fs::path RunFile(const fs::path& marks) { return marks / "gerando.pid"; }
+
+// a process's start time, 0 when it is not running
+unsigned long long StartTime(long pid) {
+    if (pid <= 0) return 0;
+#ifdef _WIN32
+    HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, DWORD(pid));
+    if (!h) return 0;
+    FILETIME made{}, ended{}, kernel{}, user{};
+    unsigned long long t = 0;
+    if (WaitForSingleObject(h, 0) == WAIT_TIMEOUT && GetProcessTimes(h, &made, &ended, &kernel, &user))
+        t = (unsigned long long)made.dwHighDateTime << 32 | made.dwLowDateTime;
+    CloseHandle(h);
+    return t;
+#else
+    std::ifstream f("/proc/" + std::to_string(pid) + "/stat");
+    std::string s((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    size_t close = s.rfind(')');
+    if (close == std::string::npos) return 0;
+    // the fields after the name: state is the 3rd of the line, the start time the 22nd
+    std::istringstream rest(s.substr(close + 1));
+    std::string field;
+    for (int i = 3; i <= 22 && rest >> field; i++)
+        if (i == 3 && (field == "Z" || field == "X")) return 0;  // ended, not yet reaped
+    try {
+        return std::stoull(field);
+    } catch (...) {
+        return 0;
+    }
+#endif
+}
+
+void NoteRunning(const fs::path& marks, long pid) {
+    if (unsigned long long t = StartTime(pid)) std::ofstream(RunFile(marks), std::ios::trunc) << pid << ' ' << t << '\n';
+}
+
+// the file gone at the end, unless another run wrote its own in it since
+void NoteEnded(const fs::path& marks, long pid) {
+    long noted = 0;
+    if (std::ifstream f(RunFile(marks)); f >> noted && noted != pid) return;
+    std::error_code ec;
+    fs::remove(RunFile(marks), ec);
+}
+
+}  // namespace
+
+long GameBuild::RunningIn(const fs::path& marks) {
+    std::ifstream f(RunFile(marks));
+    long pid = 0;
+    unsigned long long t = 0;
+    if (!(f >> pid >> t) || pid <= 0) return 0;
+    return StartTime(pid) == t ? pid : 0;
+}
+
 void GameBuild::Start(const std::vector<std::string>& args, const fs::path& marks, const std::vector<std::string>& steps) {
     {
         std::lock_guard lock(m_);
@@ -247,6 +307,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
         }
         if (job) AssignProcessToJobObject(job, pi.hProcess);
         ResumeThread(pi.hThread);
+        NoteRunning(marks, long(pi.dwProcessId));
         {
             std::lock_guard lock(m_);
             job_ = job;
@@ -275,6 +336,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
         }
         DWORD code = 1;
         GetExitCodeProcess(pi.hProcess, &code);
+        NoteEnded(marks, long(pi.dwProcessId));
         CloseHandle(pi.hThread);
         CloseHandle(pi.hProcess);
         {
@@ -319,9 +381,11 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
             return fail(L3("não foi possível iniciar o gerador", "could not start the generator", "no se pudo iniciar el generador") +
                             std::string(": ") + SDL_GetError(), -1);
         }
+        long pid = long(SDL_GetNumberProperty(SDL_GetProcessProperties(proc), SDL_PROP_PROCESS_PID_NUMBER, 0));
+        NoteRunning(marks, pid);
         {
             std::lock_guard lock(m_);
-            job_ = reinterpret_cast<void*>(intptr_t(SDL_GetNumberProperty(SDL_GetProcessProperties(proc), SDL_PROP_PROCESS_PID_NUMBER, 0)));
+            job_ = reinterpret_cast<void*>(intptr_t(pid));
         }
         std::string last;
         fs::path step_log;
@@ -343,6 +407,7 @@ void GameBuild::Start(const std::vector<std::string>& args, const fs::path& mark
             st_.step = done;
             st_.line = last;
         }
+        NoteEnded(marks, pid);
         SDL_DestroyProcess(proc);
         SDL_CloseIO(out);
         {

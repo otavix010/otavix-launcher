@@ -106,6 +106,9 @@ struct Game {
     // a disc image found inside the archive (unpacked in turn, then deleted), and why the last unpacking failed
     std::string unpack_key, unpack_image, unpack_error;
     bool unpack_redo = false;
+    // the generator not started because another run of it is still going (report 1450): shown as it is, not as an
+    // unpacking failure
+    std::string busy_error;
     std::vector<Mod> mods;
     bool mods_stale = true;
     std::atomic<bool> mods_busy = false;
@@ -3125,6 +3128,19 @@ std::string WrongDisc(Game& gm) {
 }
 
 void BuildOrUnpack(Game& gm, bool redo) {
+    // report 1450: one run at a time. A generator still running from another launcher window, or left running by a
+    // launcher closed (on Linux it goes on), would write into the same files as a second one
+    gm.busy_error.clear();
+    if (long pid = GameBuild::RunningIn(gm.entry.dir / FromU8(gm.prof.install.marks)); pid && !gm.build.Busy()) {
+        gm.busy_error =
+            L3("Já há uma geração deste jogo rodando (processo ", "This game is already being made (process ", "Ya hay una generación de este juego en marcha (proceso ") +
+            std::to_string(pid) +
+            L3("), aberta antes nesta ou em outra janela do launcher. O download das ferramentas pode levar meia hora: espere ela terminar e abra o launcher de novo. Para pará-la antes, feche a outra janela do launcher ou reinicie o computador.",
+               "), started earlier in this or another launcher window. Downloading the tools can take half an hour: wait for it to finish and open the launcher again. To stop it sooner, close the other launcher window or restart the computer.",
+               "), abierta antes en esta u otra ventana del launcher. La descarga de las herramientas puede tardar media hora: espera a que termine y abre el launcher de nuevo. Para pararla antes, cierra la otra ventana del launcher o reinicia el ordenador.");
+        gm.build_form = true;
+        return;
+    }
     std::string gone = PickedInputGone(gm);
     if (!gone.empty()) {
         gm.unpack_error = gone;
@@ -3610,6 +3626,7 @@ void BuildCard(Game& gm) {
         std::snprintf(b, sizeof(b), Tr(S::UnpackFailed), gm.unpack_error.c_str());
         ErrorText(b);
     }
+    if (!gm.busy_error.empty()) ErrorText(gm.busy_error.c_str());
     if (bs.stage == GameBuild::Stage::Failed) {
         ImGui::Spacing();
         if (bs.cancelled) {
@@ -4983,6 +5000,8 @@ void BulkTick() {
         it.error = Tr(S::UpdateAllStopped);
     } else if (!gm.unpack_error.empty()) {
         it.error = gm.unpack_error;
+    } else if (!gm.busy_error.empty()) {
+        it.error = gm.busy_error;
     } else if (bs.stage == GameBuild::Stage::Done) {
         NoteBuild(gm);
         it.built = true;

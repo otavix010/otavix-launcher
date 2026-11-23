@@ -38,6 +38,10 @@ public:
     void Cancel();
     Status Get();
     bool Busy() { return Get().stage == Stage::Running; }
+    // the generator already running from these marks, started by another launcher window or left running by one closed
+    // (on Linux it goes on after the launcher): its process id, 0 when none (report 1450: a second run started while the
+    // first still downloaded the tools wrote into the same file and spoiled both)
+    static long RunningIn(const fs::path& marks);
 
 private:
     std::mutex m_;
