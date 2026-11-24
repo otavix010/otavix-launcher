@@ -1822,6 +1822,71 @@ void TutorialPage() {
          T3("Use \"Já tenho a pasta do jogo\" e escolha essa pasta: o launcher confere e usa de lá mesmo.",
             "Use \"I have the game's folder\" and pick it: the launcher checks it and uses it from there.",
             "Usa \"Ya tengo la carpeta del juego\" y elígela: el launcher la comprueba y la usa desde ahí.")},
+        // the generated ports (PS2, PS3, PSP, Xbox 360): the questions players hit most (survey of 24/11)
+        {T3("O gerador pede o Visual Studio Build Tools ou o Python.",
+            "The generator asks for Visual Studio Build Tools or Python.",
+            "El generador pide Visual Studio Build Tools o Python."),
+         T3("Os jogos \"gerados no seu PC\" são compilados uma vez, no seu computador, a partir da sua cópia; para isso o "
+            "Windows precisa dessas ferramentas gratuitas. Na página \"Gerar o jogo no seu PC\", clique em \"Instalar\" ao "
+            "lado de cada uma. No Build Tools, deixe marcados \"Desenvolvimento para desktop com C++\" e o \"SDK do Windows "
+            "11\". Quando terminar, clique em \"Conferir de novo\" (às vezes é preciso reiniciar o PC) e depois em \"Gerar o "
+            "jogo\".",
+            "The games \"made on your PC\" are compiled once, on your computer, from your own copy; Windows needs these free "
+            "tools for that. On the \"Make the game on your PC\" page, click \"Install\" next to each one. In Build Tools, "
+            "keep \"Desktop development with C++\" and the \"Windows 11 SDK\" ticked. When it finishes, click \"Check "
+            "again\" (sometimes the PC needs a restart) and then \"Make the game\".",
+            "Los juegos \"generados en tu PC\" se compilan una vez, en tu equipo, a partir de tu copia; para eso Windows "
+            "necesita estas herramientas gratuitas. En la página \"Generar el juego en tu PC\", haz clic en \"Instalar\" "
+            "junto a cada una. En Build Tools, deja marcados \"Desarrollo para el escritorio con C++\" y el \"SDK de "
+            "Windows 11\". Al terminar, haz clic en \"Comprobar de nuevo\" (a veces hay que reiniciar el PC) y luego en "
+            "\"Generar el juego\".")},
+        {T3("A geração parou num download (erro de internet ou de DNS).",
+            "Making the game stopped on a download (internet or DNS error).",
+            "La generación se detuvo en una descarga (error de internet o de DNS)."),
+         T3("O gerador baixa algumas ferramentas uma vez. Se o PC não consegue abrir https://github.com no navegador, algo "
+            "está bloqueando: um filtro de DNS, VPN, firewall, a proteção web do antivírus ou o DNS do roteador. Trocar o DNS "
+            "da rede para 1.1.1.1 ou 8.8.8.8 costuma resolver. Depois clique em \"Gerar o jogo\" de novo: ele continua de "
+            "onde parou.",
+            "The generator downloads a few tools once. If the PC cannot open https://github.com in the browser, something is "
+            "blocking it: a DNS filter, VPN, firewall, the antivirus web protection or the router's DNS. Switching the "
+            "network's DNS to 1.1.1.1 or 8.8.8.8 usually fixes it. Then click \"Make the game\" again: it picks up where it "
+            "stopped.",
+            "El generador descarga algunas herramientas una vez. Si el PC no puede abrir https://github.com en el navegador, "
+            "algo lo bloquea: un filtro de DNS, VPN, firewall, la protección web del antivirus o el DNS del router. Cambiar el "
+            "DNS de la red a 1.1.1.1 u 8.8.8.8 suele resolverlo. Luego haz clic en \"Generar el juego\" de nuevo: sigue desde "
+            "donde se detuvo.")},
+        {T3("O Windows ou o antivírus bloqueou o gerador ou o jogo.",
+            "Windows or the antivirus blocked the generator or the game.",
+            "Windows o el antivirus bloqueó el generador o el juego."),
+         T3("O jogo é um programa novo, compilado no seu PC, então o Windows ainda não o conhece. Se o Controle Inteligente "
+            "de Aplicativos estiver ligado (Segurança do Windows > Controle de aplicativos e do navegador), ele bloqueia tudo "
+            "que é gerado: desligue-o para usar os ports gerados. Se for o antivírus, adicione uma exceção para a pasta do "
+            "port. Baixe o launcher e os ports só pelo próprio launcher ou pela página oficial no GitHub: cópias repostadas "
+            "em outros sites não são nossas.",
+            "The game is a new program, compiled on your PC, so Windows does not know it yet. If Smart App Control is on "
+            "(Windows Security > App & browser control), it blocks everything that is generated: turn it off to use the "
+            "generated ports. If it is the antivirus, add an exception for the port's folder. Download the launcher and the "
+            "ports only through the launcher itself or the official GitHub page: copies reuploaded on other sites are not "
+            "ours.",
+            "El juego es un programa nuevo, compilado en tu PC, así que Windows todavía no lo conoce. Si el Control "
+            "inteligente de aplicaciones está activado (Seguridad de Windows > Control de aplicaciones y navegador), bloquea "
+            "todo lo que se genera: desactívalo para usar los ports generados. Si es el antivirus, añade una excepción para "
+            "la carpeta del port. Descarga el launcher y los ports solo desde el propio launcher o la página oficial en "
+            "GitHub: las copias resubidas en otros sitios no son nuestras.")},
+        {T3("O gerador não aceitou a minha cópia do jogo.", "The generator did not accept my copy of the game.",
+            "El generador no aceptó mi copia del juego."),
+         T3("Cada port é feito a partir de uma versão do disco (outra região, uma cópia \"com update\" embutido, traduzida "
+            "ou criptografada tem outro código). A mensagem do gerador diz qual é o caso e qual versão serve. Use uma cópia "
+            "do seu próprio disco, dessa versão, e clique em \"Escolher o disco de novo\". Nós não fornecemos jogos nem "
+            "indicamos onde baixar.",
+            "Each port is made from one release of the disc (another region, a copy with the update built in, a translated "
+            "or an encrypted copy has different code). The generator's message says which case it is and which release "
+            "works. Use a copy of your own disc, of that release, and click \"Pick the disc again\". We do not provide "
+            "games or point to where to download them.",
+            "Cada port se hace a partir de una versión del disco (otra región, una copia \"con update\" incluido, traducida "
+            "o cifrada tiene otro código). El mensaje del generador dice qué caso es y qué versión sirve. Usa una copia de tu "
+            "propio disco, de esa versión, y haz clic en \"Elegir el disco de nuevo\". No proporcionamos juegos ni indicamos "
+            "dónde descargarlos.")},
     };
 
     Heading(Tr(S::Tutorial));
