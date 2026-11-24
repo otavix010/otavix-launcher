@@ -258,6 +258,15 @@ values = { PSP_TELA_CHEIA = "1", PSP_ESCALA = "4" }
 
 [[options]]
 page = "controls"
+key = "PSP_ESTADOS"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Salvar e carregar em qualquer ponto (save state)", en = "Save and load anywhere (save states)", es = "Guardar y cargar en cualquier punto (save states)" }
+help = { pt = "F5 salva, F8 carrega, F6/F7 trocam o espaço (1 a 9). No controle: segure Back (Select) e aperte RB para salvar ou LB para carregar; Back + direcional esquerda/direita troca o espaço. Os estados ficam na pasta estados\ do port. Não dá para salvar durante vídeos nem enquanto o jogo grava no cartão de memória.", en = "F5 saves, F8 loads, F6/F7 change the slot (1 to 9). On a controller: hold Back (Select) and press RB to save or LB to load; Back + D-pad left/right changes the slot. States are kept in the port's estados\ folder. Saving is not possible during videos or while the game is writing to the memory card.", es = "F5 guarda, F8 carga, F6/F7 cambian el espacio (1 a 9). Con mando: mantén Back (Select) y pulsa RB para guardar o LB para cargar; Back + cruceta izquierda/derecha cambia el espacio. Los estados quedan en la carpeta estados\ del port. No se puede guardar durante los vídeos ni mientras el juego escribe en la tarjeta de memoria." }
+
+[[options]]
+page = "controls"
 key = "PSP_TECLADO"
 target = "env"
 type = "toggle"
