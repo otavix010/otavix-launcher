@@ -248,6 +248,15 @@ values = { PS2X_QPS = "60", PS2X_TELA_CHEIA = "1", PS2X_ESCALA = "nis", PS2X_NIT
 
 [[options]]
 page = "controls"
+key = "PS2X_ESTADOS"
+target = "env"
+type = "toggle"
+default = true
+label = { pt = "Salvar e carregar em qualquer ponto (save state)", en = "Save and load anywhere (save states)", es = "Guardar y cargar en cualquier punto (save states)" }
+help = { pt = "F5 salva, F8 carrega, F6/F7 trocam o espaço (1 a 9). No controle: segure Select e aperte RB para salvar ou LB para carregar; Select + esquerda/direita troca o espaço. Os estados ficam na pasta estados do port e valem só para esta versão do port: depois de uma atualização, use o save do jogo. Não dá para salvar durante vídeos ou carregamentos. Se uma tecla do jogo estiver em F5 a F8 no mapa de teclas, ela fica com o jogo.", en = "F5 saves, F8 loads, F6/F7 change the slot (1 to 9). On a controller: hold Select and press RB to save or LB to load; Select + left/right changes the slot. States are kept in the port's estados folder and only work with this port version: after an update, use the game's own save. Saving is not possible during videos or loading. If a game key is mapped to F5 to F8, the game keeps it.", es = "F5 guarda, F8 carga, F6/F7 cambian el espacio (1 a 9). Con mando: mantén Select y pulsa RB para guardar o LB para cargar; Select + izquierda/derecha cambia el espacio. Los estados quedan en la carpeta estados del port y solo valen para esta versión del port: después de una actualización, usa el guardado del juego. No se puede guardar durante los vídeos ni las cargas. Si una tecla del juego está en F5 a F8 en el mapa de teclas, se queda con el juego." }
+
+[[options]]
+page = "controls"
 key = "PS2X_TECLADO"
 target = "env"
 type = "toggle"
