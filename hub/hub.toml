@@ -415,7 +415,7 @@ repo = "otavix010/blade-2-pc"
 
 branch = "main"
 
-platforms = { windows = "wip", linux = "soon" }
+platforms = { windows = "beta", linux = "soon" }
 
 [[games]]
 
