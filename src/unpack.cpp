@@ -78,6 +78,20 @@ std::string Tar() {
 #endif
 }
 
+bool PackTarGz(const std::string& parent, const std::vector<std::string>& names, const std::string& out, std::string& why) {
+    std::string tar = Tar();
+#ifndef _WIN32
+    if (tar.empty()) tar = "tar";  // GNU tar makes .tar.gz too
+#endif
+    std::vector<std::string> args = {tar, "-czf", out, "-C", parent};
+    for (const auto& n : names) args.push_back(n);
+    std::string start_error;
+    int code = Run(args, start_error);
+    if (code == 0) return true;
+    why = code < 0 ? start_error : "tar: " + std::to_string(code);
+    return false;
+}
+
 std::string MissingBsdtarHint() {
 #ifdef _WIN32
     return {};

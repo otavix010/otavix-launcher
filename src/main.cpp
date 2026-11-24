@@ -271,6 +271,13 @@ struct App {
     std::string photo_report;
     std::vector<Photo> photo_queue;
     size_t photo_next = 0, photo_failed = 0;
+    // the game's save folders, packed as a .tar.gz when the report is sent and sent after it (1.0.121: so that we can
+    // reach the player's scene, report 1452); off by default
+    bool rep_saves = false;
+    std::string saves_pending;  // the packed bytes until the report's id comes back
+    Call saves_call;
+    std::string saves_report;
+    std::string saves_msg;
     // the player's own port requests, to take one back
     Call mine_call, withdraw_call;
     std::vector<std::vector<std::string>> mine;  // console, key, name, when, comment, cover
@@ -2463,7 +2470,9 @@ void OpenReport(Game& gm, int cat, const std::string& desc) {
     g.rep_cat = cat;
     SDL_strlcpy(g.rep_desc, desc.c_str(), sizeof(g.rep_desc));
     g.rep_attach = true;
+    g.rep_saves = false;
     g.rep_msg.clear();
+    g.saves_msg.clear();
     auto entries = Entries();
     for (size_t k = 0; k < entries.size(); k++)
         if (entries[k].kind == Kind::Report) gm.page = int(k);
@@ -3286,11 +3295,11 @@ std::string ExplainBuildError(const std::string& err) {
     if (g.lang == Lang::Pt) return {};
     auto has = [&](const char* s) { return err.find(s) != std::string::npos; };
     if (has("este disco é a versão"))
-        return L3("", "This disc is not the supported version. The port only works with the American version (BCUS98232) with update 1.04; the files of the European or other regions are different and the game closes. Click \"Pick the disc again\" and pick a copy of the American disc.",
-                  "Este disco no es la versión compatible. El port solo funciona con la versión americana (BCUS98232) con la actualización 1.04; los archivos de la versión europea u otras regiones son distintos y el juego se cierra. Pulsa \"Elegir el disco de nuevo\" y elige una copia del disco americano.");
+        return L3("", "This disc is not a supported version. The port works with the American disc (BCUS98232) and the European discs (BCES01741 and BCES01742); the files of other regions are different and the game closes. Click \"Pick the disc again\" and pick a copy of one of these discs.",
+                  "Este disco no es una versión compatible. El port funciona con el disco americano (BCUS98232) y los discos europeos (BCES01741 y BCES01742); los archivos de otras regiones son distintos y el juego se cierra. Pulsa \"Elegir el disco de nuevo\" y elige una copia de uno de estos discos.");
     if (has("criptografada"))
-        return L3("", "Your copy of the game is encrypted. Use a copy with the PS3_GAME folder taken from your PS3 or from RPCS3, or a decrypted .iso, of the American version (BCUS98232). Click \"Pick the disc again\" and pick it.",
-                  "Tu copia del juego está cifrada. Usa una copia con la carpeta PS3_GAME sacada de tu PS3 o de RPCS3, o un .iso descifrado, de la versión americana (BCUS98232). Pulsa \"Elegir el disco de nuevo\" y elígela.");
+        return L3("", "Your copy of the game is encrypted. Use a copy with the PS3_GAME folder taken from your PS3 or from RPCS3, or a decrypted .iso, of a supported disc (BCUS98232, BCES01741 or BCES01742). Click \"Pick the disc again\" and pick it.",
+                  "Tu copia del juego está cifrada. Usa una copia con la carpeta PS3_GAME sacada de tu PS3 o de RPCS3, o un .iso descifrado, de un disco compatible (BCUS98232, BCES01741 o BCES01742). Pulsa \"Elegir el disco de nuevo\" y elígela.");
     if (has("está incompleta"))
         return L3("", "Your copy of the game is incomplete: files are missing. Copy or extract the game again (check the free disk space and that the antivirus did not delete anything), then click \"Pick the disc again\".",
                   "Tu copia del juego está incompleta: faltan archivos. Copia o extrae el juego de nuevo (revisa el espacio libre en el disco y que el antivirus no haya borrado nada) y pulsa \"Elegir el disco de nuevo\".");
@@ -5779,6 +5788,40 @@ void PhotoTick() {
     g.photo_queue.clear();
 }
 
+// the report's saves, one request once the report has its id
+void SavesTick() {
+    if (g.saves_report.empty()) return;
+    HttpResult r;
+    Call::State st = g.saves_call.Get(&r);
+    if (st == Call::State::Busy) return;
+    if (st == Call::State::Idle) {
+        g.saves_call.Start("POST", Server() + "/v1/report/saves?report=" + g.saves_report, ServerHeaders(), g.saves_pending);
+        return;
+    }
+    g.saves_msg = r.Ok() ? L3("Os saves do jogo foram enviados junto com o report.", "The game's saves were sent with the report.",
+                              "Las partidas guardadas del juego se enviaron junto con el report.")
+                         : std::string(L3("Os saves não foram enviados", "The saves were not sent", "Las partidas guardadas no se enviaron")) +
+                               ": " + (r.error.empty() ? r.body : r.error);
+    g.saves_call.Reset();
+    g.saves_report.clear();
+    g.saves_pending.clear();
+}
+
+// the game's save folders that exist, with their size together
+uint64_t SaveBytes(const Game& gm, std::vector<std::string>* names = nullptr) {
+    uint64_t total = 0;
+    std::error_code ec;
+    for (const std::string& s : gm.prof.saves) {
+        fs::path p = gm.entry.dir / FromU8(s);
+        if (!fs::is_directory(p, ec)) continue;
+        uint64_t b = FolderBytes(p);
+        if (!b) continue;
+        total += b;
+        if (names) names->push_back(s);
+    }
+    return total;
+}
+
 // the report form's pictures: from a file or the clipboard (Win+Shift+S), listed with a button to drop each
 void ReportPhotos() {
     std::vector<std::string> picked;
@@ -5859,6 +5902,15 @@ void ReportPage() {
     ImGui::InputText("##contact", g.rep_contact, sizeof(g.rep_contact));
     ImGui::Spacing();
     ImGui::Checkbox(Tr(S::ReportAttach), &g.rep_attach);
+    uint64_t save_bytes = gm.prof.saves.empty() ? 0 : SaveBytes(gm);
+    if (save_bytes) {
+        ImGui::Checkbox(L3("Enviar os saves do jogo junto", "Send the game's saves along", "Enviar las partidas guardadas del juego").c_str(),
+                        &g.rep_saves);
+        Dim(L3("Ajuda quando o problema acontece num ponto do jogo: com o seu save, chegamos na mesma cena para testar. Só a equipe tem acesso.",
+               "Helps when the problem happens at a certain point of the game: with your save, we reach the same scene to test it. Only the team can see it.",
+               "Ayuda cuando el problema ocurre en un punto del juego: con tu partida guardada, llegamos a la misma escena para probarlo. Solo el equipo tiene acceso.")
+                .c_str());
+    }
     ReportPhotos();
 
     // everything that goes along, before it goes
@@ -5875,6 +5927,13 @@ void ReportPage() {
             ImGui::BulletText("%s", gm.prof.settings.c_str());
         }
         for (const Photo& p : g.rep_photos) ImGui::BulletText("%s (%s)", p.name.c_str(), Bytes(p.bytes.size()).c_str());
+        if (g.rep_saves && save_bytes) {
+            std::vector<std::string> names;
+            SaveBytes(gm, &names);
+            std::string list;
+            for (const auto& n : names) list += (list.empty() ? "" : ", ") + n;
+            ImGui::BulletText("%s: %s (%s)", L3("Saves", "Saves", "Partidas guardadas").c_str(), list.c_str(), Bytes(save_bytes).c_str());
+        }
     }
     ImGui::Spacing();
 
@@ -5894,12 +5953,23 @@ void ReportPage() {
                 g.photo_next = g.photo_failed = 0;
                 g.rep_msg = Tr(S::ReportSendingPhotos);
             }
+            // and the saves, to the same id
+            if (!g.saves_pending.empty() && !id.empty() && id.find_first_not_of("0123456789") == std::string::npos) {
+                g.saves_report = id;
+                g.saves_msg = L3("Enviando os saves...", "Sending the saves...", "Enviando las partidas guardadas...");
+            } else {
+                g.saves_pending.clear();
+            }
         } else {
             g.rep_msg = std::string(Tr(S::SendFailed)) + ": " + r.error + "\n" + Tr(S::ReportSaved);
+            g.saves_pending.clear();
         }
         g.report_call.Reset();
     }
-    bool busy = st == Call::State::Busy || !g.photo_report.empty();
+    // tests: LAUNCHER_REPORT_SAVES=1 ticks "Send the game's saves along"
+    static bool test_saves = SDL_getenv("LAUNCHER_REPORT_SAVES") != nullptr;
+    if (test_saves && save_bytes) g.rep_saves = true, test_saves = false;
+    bool busy = st == Call::State::Busy || !g.photo_report.empty() || !g.saves_report.empty();
     // tests: LAUNCHER_REPORT_SEND=1 presses Send once the test's picture is in
     static bool test_send = SDL_getenv("LAUNCHER_REPORT_SEND") != nullptr;
     bool press = test_send && !busy && (!g.rep_photos.empty() || !SDL_getenv("LAUNCHER_REPORT_PHOTO"));
@@ -5920,6 +5990,28 @@ void ReportPage() {
             std::ofstream(dir / FromU8(stamp + "_" + gm.entry.id + ".json"), std::ios::binary) << json;
             for (const Photo& p : g.rep_photos)
                 std::ofstream(dir / FromU8(stamp + "_" + gm.entry.id + "_" + p.name), std::ios::binary) << p.bytes;
+            // the saves, packed beside the copy (it stays there too)
+            g.saves_pending.clear();
+            g.saves_msg.clear();
+            if (g.rep_saves && save_bytes) {
+                std::vector<std::string> names;
+                SaveBytes(gm, &names);
+                fs::path pack = dir / FromU8(stamp + "_" + gm.entry.id + "_saves.tar.gz");
+                std::string why;
+                if (unpack::PackTarGz(U8(gm.entry.dir), names, U8(pack), why)) {
+                    std::ifstream in(pack, std::ios::binary);
+                    std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+                    if (bytes.size() > 60'000'000)
+                        g.saves_msg = L3("Os saves passam de 60 MB e não vão junto; a cópia ficou na pasta de reports.",
+                                         "The saves are over 60 MB and do not go along; the copy stayed in the reports folder.",
+                                         "Las partidas guardadas superan los 60 MB y no se envían; la copia quedó en la carpeta de reports.");
+                    else
+                        g.saves_pending = std::move(bytes);
+                } else {
+                    g.saves_msg = std::string(L3("Não consegui compactar os saves", "Could not pack the saves",
+                                                 "No se pudieron comprimir las partidas guardadas")) + ": " + why;
+                }
+            }
             if (Server().empty()) g.rep_msg = Tr(S::ServerOff);
             else g.report_call.Start("POST", Server() + "/v1/report", ServerHeaders(), json);
         }
@@ -5934,6 +6026,7 @@ void ReportPage() {
     ImGui::SameLine();
     if (ImGui::Button(Tr(S::OpenReports))) OpenPath(g.hub_dir / "reports");
     if (!g.rep_msg.empty()) ImGui::TextWrapped("%s", g.rep_msg.c_str());
+    if (!g.saves_msg.empty()) ImGui::TextWrapped("%s", g.saves_msg.c_str());
 
     // the owner's answers to this game's reports sent from here
     bool heading = false;
@@ -7962,6 +8055,7 @@ int main(int argc, char** argv) {
         PeriodicChecks();
         BulkTick();
         PhotoTick();
+        SavesTick();
         WatchCloseCombo();
         WatchIcon();
         TakeDialog();

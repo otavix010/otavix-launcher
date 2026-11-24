@@ -24,6 +24,7 @@ async function route(req, env) {
   if (req.method === 'GET' && p === '/v1/ping') return text(200, 'ok');
   if (req.method === 'POST' && p === '/v1/report') return report(req, env);
   if (req.method === 'POST' && p === '/v1/report/foto') return foto(req, env, url);
+  if (req.method === 'POST' && p === '/v1/report/saves') return savesReport(req, env, url);
   if (req.method === 'POST' && p === '/v1/pedidos') return pedir(req, env);
   if (req.method === 'GET' && p === '/v1/pedidos/meus') return meusPedidos(req, env);
   if (req.method === 'DELETE' && p === '/v1/pedidos') return retirar(req, env);
@@ -192,7 +193,8 @@ const TIPOS = { exe: 'application/vnd.microsoft.portable-executable', zip: 'appl
 async function arquivo(req, env, url) {
   if (!env.ARQ) return text(404, 'sem arquivos');
   const key = decodeURIComponent(url.pathname.slice('/v1/arquivos/'.length));
-  if (!key || key.includes('..') || key.startsWith('espelho/')) return text(404, 'não encontrado');
+  // privado/: the players' saves sent with a report (only through /v1/admin/anexo)
+  if (!key || key.includes('..') || key.startsWith('espelho/') || key.startsWith('privado/')) return text(404, 'não encontrado');
   const obj = req.method === 'HEAD' ? await env.ARQ.head(key) : await env.ARQ.get(key);
   if (!obj) return text(404, 'não encontrado');
   const ext = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
@@ -337,12 +339,45 @@ async function foto(req, env, url) {
   return text(200, 'ok');
 }
 
+// the game's save folders for a report just sent from the same launcher (a .tar.gz the launcher makes, 1.0.121): too
+// big for a D1 value, so the bytes go to R2 under privado/ (never served by /v1/arquivos) and the anexos row only
+// points at them. One a report, within 30 minutes of it, up to 60 MB.
+const SAVES_MAX = 60_000_000;
+async function savesReport(req, env, url) {
+  if (!env.ARQ) return text(503, 'sem armazenamento');
+  const inst = install(req);
+  const id = Number(url.searchParams.get('report'));
+  if (!inst || !Number.isInteger(id) || id <= 0) return text(400, 'qual report?');
+  const rep = await env.DB.prepare('SELECT install, quando FROM reports WHERE id = ?').bind(id).first();
+  if (!rep || rep.install !== inst || now() - rep.quando > 1800) return text(403, 'report de outro launcher ou antigo');
+  const len = Number(req.headers.get('Content-Length') || 0);
+  if (len > SAVES_MAX) return text(413, 'saves grandes demais');
+  const bytes = new Uint8Array(await req.arrayBuffer());
+  if (bytes.length > SAVES_MAX) return text(413, 'saves grandes demais');
+  if (bytes.length < 2 || bytes[0] !== 0x1f || bytes[1] !== 0x8b) return text(415, 'só .tar.gz');
+  const ja = await env.DB.prepare("SELECT COUNT(*) AS n FROM anexos WHERE report = ? AND nome = 'saves.tar.gz'").bind(id).first();
+  if (ja.n > 0) return text(429, 'os saves deste report já vieram');
+  await env.ARQ.put(`privado/reports/${id}/saves.tar.gz`, bytes, { httpMetadata: { contentType: 'application/gzip' } });
+  await env.DB.prepare('INSERT INTO anexos (report, nome, tipo, tamanho, dados) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, 'saves.tar.gz', 'application/gzip', bytes.length, new Uint8Array(0)).run();
+  return text(200, 'ok');
+}
+
 // one attachment, for the owner's launcher
 async function anexo(env, url) {
   const id = Number(url.searchParams.get('id'));
   if (!Number.isInteger(id) || id <= 0) return text(400, 'qual anexo?');
-  const a = await env.DB.prepare('SELECT nome, tipo, dados FROM anexos WHERE id = ?').bind(id).first();
+  const a = await env.DB.prepare('SELECT report, nome, tipo, tamanho, dados FROM anexos WHERE id = ?').bind(id).first();
   if (!a) return text(404, 'não encontrado');
+  // the saves live in R2 (savesReport): the row holds no bytes
+  if (a.nome === 'saves.tar.gz' && env.ARQ) {
+    const obj = await env.ARQ.get(`privado/reports/${a.report}/saves.tar.gz`);
+    if (!obj) return text(404, 'não encontrado');
+    return new Response(obj.body, {
+      status: 200,
+      headers: { 'Content-Type': 'application/gzip', 'Content-Disposition': `attachment; filename="report-${a.report}-saves.tar.gz"` },
+    });
+  }
   // D1 hands a BLOB back as an ArrayBuffer or, in older runtimes, an array of numbers
   const dados = a.dados instanceof ArrayBuffer ? a.dados : new Uint8Array(a.dados);
   return new Response(dados, {
