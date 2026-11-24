@@ -3315,6 +3315,9 @@ std::string ExplainBuildError(const std::string& err) {
     if (has("Windows SDK") || has("GOWA_ERRO_SDK") || has("falta o Visual Studio"))
         return L3("", "Visual Studio is missing a component. Open the Visual Studio Installer, click Modify and tick \"Desktop development with C++\" and \"Windows 11 SDK\" (and \"C++ Clang tools\"), install and generate again.",
                   "A Visual Studio le falta un componente. Abre el Visual Studio Installer, pulsa Modificar y marca \"Desarrollo para el escritorio con C++\" y \"Windows 11 SDK\" (y \"C++ Clang tools\"), instala y genera de nuevo.");
+    if (has("atualização do jogo embutida"))
+        return L3("", "The chosen .iso is the right disc, but it came with the game's update built into its default.xex (some downloaded copies come \"with the update\"). The port is made from the disc's original executable: click \"Pick the disc again\" and pick a .iso of the original disc, without the update built in.",
+                  "El .iso elegido es del disco correcto, pero vino con la actualización del juego incluida en su default.xex (algunas copias descargadas vienen \"con update\"). El port se hace a partir del ejecutable original del disco: pulsa \"Elegir el disco de nuevo\" y elige un .iso del disco original, sin la actualización incluida.");
     if (has("não é uma imagem de disco do Xbox 360"))
         return L3("", "The chosen file is not an Xbox 360 disc image. This port needs the Xbox 360 .iso of the game (not the PS3 or another console's version). Click \"Pick the disc again\".",
                   "El archivo elegido no es una imagen de disco de Xbox 360. Este port necesita el .iso de Xbox 360 del juego (no la versión de PS3 ni de otra consola). Pulsa \"Elegir el disco de nuevo\".");
