@@ -12,6 +12,7 @@ port_file = "gerar.ps1"
 args = ["{iso}", "{dir}/bin/imagem.bin"]
 env = { PSP_LOG = "{dir}/out/psp.log", PSP_MS0 = "{dir}/ms0", PSP_PGD = "{dir}/bin/pgd", PSP_TEXTURAS = "{dir}/texturas" }
 log_file = "out/jogo.log"  # the console (stdout/stderr); the engine's own log is out/psp.log (PSP_LOG)
+report_files = ["out/psp.log"]  # the engine's own log (PSP_LOG): out/jogo.log stays empty, the engine writes nothing to the console
 logs = "out"
 saves = ["ms0"]
 accent = [160, 120, 50]

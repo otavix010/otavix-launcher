@@ -2288,9 +2288,11 @@ fs::path GameLog(Game& gm) {
         fs::path b = gm.entry.dir / FromU8(gm.prof.install.marks) / "launcher.log";
         if (fs::is_regular_file(b, ec)) return b;
     }
+    // an empty log_file is skipped: a port that writes nothing to the console (the PSP engine logs to its own
+    // psp.log) left an empty out/jogo.log, and the reports of its crashes came with no log at all (1458, 1471)
     if (!gm.prof.log_file.empty()) {
         fs::path f = gm.entry.dir / FromU8(gm.prof.log_file);
-        if (fs::is_regular_file(f, ec)) return f;
+        if (fs::is_regular_file(f, ec) && fs::file_size(f, ec) > 0 && !ec) return f;
     }
     fs::path best;
     fs::file_time_type when{};
@@ -2298,6 +2300,7 @@ fs::path GameLog(Game& gm) {
         std::string ext = e.path().extension().string();
         for (char& c : ext) c = char(std::tolower(static_cast<unsigned char>(c)));
         if (!e.is_regular_file(ec) || (ext != ".log" && ext != ".txt")) continue;
+        if (e.file_size(ec) == 0 || ec) continue;
         auto t = e.last_write_time(ec);
         if (best.empty() || t > when) best = e.path(), when = t;
     }
