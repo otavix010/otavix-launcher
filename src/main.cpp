@@ -3309,6 +3309,13 @@ std::string ExplainBuildError(const std::string& err) {
     if (has("não tem AVX2"))
         return L3("", "Your processor does not have AVX2, which the port needs: Intel Core 4th generation (Haswell, 2013) or newer, or AMD Ryzen or FX Excavator (2015) or newer. Unfortunately the game cannot run on this processor.",
                   "Tu procesador no tiene AVX2, que el port necesita: Intel Core de 4.ª generación (Haswell, 2013) o posterior, o AMD Ryzen o FX Excavator (2015) o posterior. Por desgracia el juego no puede funcionar en este procesador.");
+    // before the FFmpeg one: a download that failed on DNS names FFmpeg too (report 1477)
+    if (has("could not be resolved") || has("curl 6") || has("getaddrinfo failed") || has("urlopen error"))
+        return L3("", "The computer could not reach the internet (DNS error): it could not resolve our server or github.com. Open https://github.com in the browser on this PC; if it does not open, something is blocking those addresses (a DNS filter, VPN, firewall or antivirus web protection, or the router's DNS). Switching the network's DNS to 1.1.1.1 or 8.8.8.8 usually fixes it. Then generate again.",
+                  "El equipo no pudo llegar a internet (error de DNS): no pudo resolver nuestro servidor ni github.com. Abre https://github.com en el navegador de este PC; si no abre, algo bloquea esas direcciones (un filtro de DNS, VPN, firewall o la protección web del antivirus, o el DNS del router). Cambiar el DNS de la red a 1.1.1.1 u 8.8.8.8 suele resolverlo. Luego genera de nuevo.");
+    if (has("Controle Inteligente de Aplicativos"))
+        return L3("", "Windows Smart App Control is on, and it blocks the generator and the game: it only lets signed programs, or programs Microsoft already knows, run, and the game is compiled on your own PC. To use the port, go to Windows Security > App & browser control > Smart App Control, set it to Off, and generate again.",
+                  "El Control inteligente de aplicaciones de Windows está activado y bloquea el generador y el juego: solo deja ejecutar programas firmados o ya conocidos por Microsoft, y el juego se compila en tu propio PC. Para usar el port, ve a Seguridad de Windows > Control de aplicaciones y navegador > Control inteligente de aplicaciones, desactívalo y genera de nuevo.");
     if (has("FFmpeg"))
         return L3("", "FFmpeg could not be downloaded or extracted. Check that the internet is stable and the antivirus is not blocking the download, move the project to a shorter folder (for example C:\\OtavixPorts), and generate again.",
                   "No se pudo descargar o extraer FFmpeg. Revisa que internet sea estable y que el antivirus no bloquee la descarga, mueve el proyecto a una carpeta más corta (por ejemplo C:\\OtavixPorts) y genera de nuevo.");
@@ -3327,9 +3334,6 @@ std::string ExplainBuildError(const std::string& err) {
     if (has("pouco espaço"))
         return L3("", "There is not enough free disk space to extract the game. Free some space (about 35 GB) and try again.",
                   "No hay espacio libre suficiente en el disco para extraer el juego. Libera espacio (unos 35 GB) e inténtalo de nuevo.");
-    if (has("getaddrinfo failed") || has("urlopen error"))
-        return L3("", "The computer could not reach the internet (DNS error). Check the connection, try a public DNS (1.1.1.1 or 8.8.8.8), check that the antivirus or firewall is not blocking Python, and generate again.",
-                  "El equipo no pudo acceder a internet (error de DNS). Revisa la conexión, prueba un DNS público (1.1.1.1 u 8.8.8.8), revisa que el antivirus o el firewall no bloqueen Python y genera de nuevo.");
     if (has("sem espaços"))
         return L3("", "Put the project in a folder whose path has no spaces (for example C:\\OtavixPorts) and generate again.",
                   "Pon el proyecto en una carpeta cuya ruta no tenga espacios (por ejemplo C:\\OtavixPorts) y genera de nuevo.");
