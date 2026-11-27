@@ -46,6 +46,7 @@ enum class S {
     ShadersTitle, ShadersShare, ShadersHelp, ShadersPack, ShadersPackGpu, ShadersNoPack, ShadersSent, ShadersWorking,
     LauncherReportTitle, LauncherReportHelp,
     SuggestTitle, SuggestIntro, SuggestAbout, SuggestLauncher, SuggestText, SuggestSent, SuggestMine,
+    OnlyWindows,
     Count
 };
 

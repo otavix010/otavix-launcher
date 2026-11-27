@@ -4062,7 +4062,11 @@ void HomePage() {
     ImGui::BeginDisabled(!can || game.empty() || playing);
     if (g.focus_page) ImGui::SetKeyboardFocusHere();
     std::string state = StateLabel(gm, g.view);
-    if ((state.empty() || gm.StateOn(g.view, g.here) == "beta") && !PortPresent(gm)) state = Tr(S::PortMissing);
+    // on Linux, a game that does not play here: its Windows version says so, not "port not installed" (the port present
+    // here is the Linux one)
+    bool linux_only_view = g.here == Platform::Linux && g.view != g.here && !Playable(gm, g.here);
+    if (linux_only_view) state = Tr(S::OnlyWindows);
+    else if ((state.empty() || gm.StateOn(g.view, g.here) == "beta") && !PortPresent(gm)) state = Tr(S::PortMissing);
     const char* label = !can ? state.c_str() : playing ? Tr(S::Playing) : Tr(S::Play);
     // a port made on this PC whose code changed since the game was made: Play asks first (the old executable lacks the
     // fixes, and a player who updated the port and pressed Play reported a bug the update had already fixed -- GoW,
@@ -4114,9 +4118,11 @@ void HomePage() {
         ImGui::EndPopup();
     }
     if (playing) ImGui::TextDisabled("%s", Tr(S::Running));
-    if (g.state.Bool("close_combo", true) && g.state.Str("on_play", "minimize") != "close") Dim(Tr(S::CloseHint));
+    // on Linux, how to close it and a shortcut only for a game that plays here (a PSP "coming soon", a Windows-only port)
+    bool here_ok = g.here != Platform::Linux || Playable(gm, g.here);
+    if (here_ok && g.state.Bool("close_combo", true) && g.state.Str("on_play", "minimize") != "close") Dim(Tr(S::CloseHint));
     ImGui::Spacing();
-    if (ImGui::SmallButton(Tr(S::DesktopShortcut))) MakeShortcut(gm);
+    if (here_ok && ImGui::SmallButton(Tr(S::DesktopShortcut))) MakeShortcut(gm);
     ShadersCard(gm);
 }
 

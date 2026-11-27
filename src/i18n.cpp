@@ -490,6 +490,7 @@ constexpr Row kRows[] = {
     {"Sua sugestão ou elogio", "Your suggestion or praise", "Tu sugerencia o elogio"},
     {"Sugestão enviada. Obrigado! Se respondermos, a resposta aparece aqui.", "Suggestion sent. Thank you! If we answer, the answer shows up here.", "Sugerencia enviada. ¡Gracias! Si respondemos, la respuesta aparece aquí."},
     {"Suas sugestões respondidas", "Your answered suggestions", "Tus sugerencias respondidas"},
+    {"Só no Windows", "Windows only", "Solo en Windows"},
 };
 static_assert(std::size(kRows) == size_t(S::Count), "a row per string");
 
